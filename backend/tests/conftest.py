@@ -6,6 +6,14 @@ from app.database import init_db, SessionLocal
 from app.models import User
 from app.auth import get_current_user
 from app.csrf import generate_csrf_token, CSRF_COOKIE_NAME
+from app.rate_limit import reset_rate_limits
+
+
+@pytest.fixture(autouse=True)
+def reset_limits_before_test():
+    """Reset rate limits before every test."""
+    reset_rate_limits()
+    yield
 
 
 @pytest.fixture
@@ -26,7 +34,6 @@ def auth_client():
     app.dependency_overrides[get_current_user] = mock_get_current_user
     client = TestClient(app)
     
-    # Set CSRF cookie and capture token for header
     csrf_token = generate_csrf_token()
     client.cookies.set(CSRF_COOKIE_NAME, csrf_token)
     client.headers["X-CSRF-Token"] = csrf_token

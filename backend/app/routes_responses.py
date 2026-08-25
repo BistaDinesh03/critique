@@ -6,6 +6,7 @@ from app.models import Project, Question, Response, User
 from app.schemas import ResponseCreate, ResponseOut
 from app.auth import get_current_user
 from app.csrf import require_csrf
+from app.rate_limit import rate_limit
 
 router = APIRouter(prefix="/api/projects", tags=["responses"])
 
@@ -23,6 +24,7 @@ def create_response(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
     _: None = Depends(require_csrf),
+    __: None = Depends(rate_limit("response_submit")),
 ):
     """Submit a structured response. Requires authentication and CSRF."""
     project = db.query(Project).filter(Project.id == project_id).first()
@@ -88,3 +90,5 @@ def list_responses(project_id: int, db: Session = Depends(get_db)):
     )
 
     return responses
+
+

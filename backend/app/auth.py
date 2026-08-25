@@ -7,6 +7,7 @@ from app.config import settings
 from app.database import get_db
 from app.models import User
 from app.csrf import generate_csrf_token, set_csrf_cookie
+from app.rate_limit import rate_limit
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -40,7 +41,7 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
 
 
 @router.get("/login")
-def github_login():
+def github_login(request: Request, _: None = Depends(rate_limit("auth"))):
     """Redirect to GitHub OAuth authorization page."""
     github_auth_url = (
         "https://github.com/login/oauth/authorize"
@@ -52,7 +53,12 @@ def github_login():
 
 
 @router.get("/callback")
-async def github_callback(code: str, request: Request, db: Session = Depends(get_db)):
+async def github_callback(
+    code: str,
+    request: Request,
+    db: Session = Depends(get_db),
+    _: None = Depends(rate_limit("auth")),
+):
     """Handle GitHub OAuth callback and create session."""
     async with httpx.AsyncClient() as client:
         token_response = await client.post(

@@ -14,6 +14,7 @@ from app.schemas import (
 )
 from app.auth import get_current_user
 from app.csrf import require_csrf
+from app.rate_limit import rate_limit
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 
@@ -26,6 +27,7 @@ def create_project_with_question(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
     _: None = Depends(require_csrf),
+    __: None = Depends(rate_limit("project_create")),
 ):
     """Create a project with its first question. Requires authentication and CSRF."""
     project = Project(
@@ -136,6 +138,7 @@ def delete_project(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
     _: None = Depends(require_csrf),
+    __: None = Depends(rate_limit("project_create")),
 ):
     """Delete a project. Only the owner can delete it. Requires CSRF."""
     project = db.query(Project).filter(Project.id == project_id).first()
@@ -152,3 +155,5 @@ def delete_project(
 
     db.delete(project)
     db.commit()
+
+
