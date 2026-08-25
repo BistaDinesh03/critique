@@ -1,5 +1,5 @@
 ﻿from datetime import datetime
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 from typing import Optional
 
 
@@ -9,6 +9,17 @@ class ProjectCreate(BaseModel):
     description: Optional[str] = Field(None, max_length=5000)
     url: Optional[str] = Field(None, max_length=500)
     image_url: Optional[str] = Field(None, max_length=500)
+
+    @field_validator("url", "image_url")
+    @classmethod
+    def validate_url(cls, v: Optional[str]) -> Optional[str]:
+        """Validate that URL starts with http:// or https://."""
+        if v is None:
+            return None
+        v = v.strip()
+        if not v.startswith(("http://", "https://")):
+            raise ValueError("URL must start with http:// or https://")
+        return v
 
 
 class ProjectOut(BaseModel):
