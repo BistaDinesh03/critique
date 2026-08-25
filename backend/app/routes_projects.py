@@ -25,7 +25,6 @@ def create_project_with_question(
     user: User = Depends(get_current_user),
 ):
     """Create a project with its first question. Requires authentication."""
-    # Create project
     project = Project(
         title=project_data.title,
         description=project_data.description,
@@ -37,7 +36,6 @@ def create_project_with_question(
     db.commit()
     db.refresh(project)
 
-    # Create question
     question = Question(
         text=question_data.text,
         project_id=project.id,
@@ -57,14 +55,10 @@ def list_projects(
     db: Session = Depends(get_db),
 ):
     """List projects with pagination. Public endpoint."""
-    # Get total count
     total = db.query(func.count(Project.id)).scalar()
-
-    # Calculate pagination
     total_pages = (total + page_size - 1) // page_size if total > 0 else 0
     offset = (page - 1) * page_size
 
-    # Get projects for current page
     projects = (
         db.query(Project)
         .order_by(Project.created_at.desc())
@@ -73,7 +67,6 @@ def list_projects(
         .all()
     )
 
-    # Build list items
     items = []
     for project in projects:
         question = (
@@ -131,3 +124,27 @@ def get_project(project_id: int, db: Session = Depends(get_db)):
     )
 
     return ProjectWithQuestion(project=project, question=question)
+
+
+@router.delete("/{project_id}", status_code=204)
+def delete_project(
+    project_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Delete a project. Only the owner can delete it."""
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    if project.owner_id != user.id:
+        raise HTTPException(status_code=403, detail="You cannot delete this project")
+
+    # Delete associated responses, questions, then project
+    questions = db.query(Question).filter(Question.project_id == project_id).all()
+    for question in questions:
+        db.query(Response).filter(Response.question_id == question.id).delete()
+        db.delete(question)
+
+    db.delete(project)
+    db.commit()

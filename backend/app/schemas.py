@@ -1,5 +1,5 @@
 ﻿from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional
 
 
@@ -13,6 +13,8 @@ class ProjectCreate(BaseModel):
 
 class ProjectOut(BaseModel):
     """Schema for returning project data."""
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     title: str
     description: Optional[str]
@@ -21,12 +23,11 @@ class ProjectOut(BaseModel):
     owner_id: int
     created_at: datetime
 
-    class Config:
-        from_attributes = True
-
 
 class ProjectListItem(BaseModel):
     """Schema for project in discovery list."""
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     title: str
     description: Optional[str]
@@ -37,9 +38,6 @@ class ProjectListItem(BaseModel):
     question_text: Optional[str] = None
     response_count: int = 0
 
-    class Config:
-        from_attributes = True
-
 
 class QuestionCreate(BaseModel):
     """Schema for creating a new question."""
@@ -48,14 +46,13 @@ class QuestionCreate(BaseModel):
 
 class QuestionOut(BaseModel):
     """Schema for returning question data."""
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     text: str
     is_active: bool
     project_id: int
     created_at: datetime
-
-    class Config:
-        from_attributes = True
 
 
 class ProjectWithQuestion(BaseModel):
@@ -82,12 +79,11 @@ class ResponseCreate(BaseModel):
 
 class ResponseOut(BaseModel):
     """Schema for returning response data."""
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     clarity: str
     would_use: str
     suggestion: Optional[str]
     question_id: int
     created_at: datetime
-
-    class Config:
-        from_attributes = True

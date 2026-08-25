@@ -1,4 +1,5 @@
-﻿from fastapi import FastAPI
+﻿from contextlib import asynccontextmanager
+from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
@@ -9,25 +10,26 @@ from app.routes_projects import router as projects_router
 from app.routes_responses import router as responses_router
 from app.routes_results import router as results_router
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Initialize database on startup."""
+    init_db()
+    yield
+
+
 app = FastAPI(
     title=settings.APP_NAME,
     description="Ask one question. Get real answers.",
     version="0.1.0",
+    lifespan=lifespan,
 )
-
-
-@app.on_event("startup")
-def startup_event():
-    """Initialize database on application startup."""
-    init_db()
-
 
 # Include routers
 app.include_router(auth_router)
 app.include_router(projects_router)
 app.include_router(responses_router)
 app.include_router(results_router)
-
 
 # Serve static files
 static_dir = Path(__file__).resolve().parent.parent.parent / "static"
