@@ -4,56 +4,197 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Project — Critique</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link rel="stylesheet" href="/static/shared.css">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #fafafa; color: #1a1a1a; line-height: 1.6; min-height: 100vh; overflow-wrap: break-word; word-break: break-word; }
-        header { border-bottom: 1px solid #e5e5e5; padding: 1.5rem 2rem; background: #fff; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
-        header h1 { font-size: 1.5rem; font-weight: 700; }
-        header h1 a { color: #1a1a1a; text-decoration: none; }
-        header nav { display: flex; gap: 1rem; }
-        header nav a { color: #2563eb; text-decoration: none; font-weight: 600; font-size: 0.9rem; }
-        main { max-width: 700px; margin: 0 auto; padding: 2rem; }
-        .back-link { color: #666; text-decoration: none; font-size: 0.9rem; display: inline-block; margin-bottom: 1.5rem; }
-        .project-header { background: #fff; border: 1px solid #e5e5e5; border-radius: 8px; padding: 2rem; margin-bottom: 1.5rem; }
-        .project-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; }
-        .project-description { color: #444; margin-bottom: 1rem; }
-        .project-url { color: #2563eb; text-decoration: none; font-size: 0.9rem; overflow-wrap: break-word; word-break: break-all; }
-        .question-box { background: #f9fafb; border-left: 3px solid #2563eb; padding: 1rem 1.25rem; border-radius: 0 6px 6px 0; margin-bottom: 1.5rem; }
-        .question-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #666; margin-bottom: 0.5rem; }
-        .question-text { font-weight: 600; font-size: 1.1rem; }
-        .response-form-card { background: #fff; border: 1px solid #e5e5e5; border-radius: 8px; padding: 2rem; }
-        .form-section { margin-bottom: 1.5rem; }
-        .form-section h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.75rem; }
-        .radio-group { display: flex; gap: 0.75rem; flex-wrap: wrap; }
-        .radio-option { display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 1rem; border: 1px solid #d1d1d1; border-radius: 6px; cursor: pointer; }
-        .radio-option input[type="radio"] { accent-color: #2563eb; }
-        textarea { width: 100%; padding: 0.75rem; border: 1px solid #d1d1d1; border-radius: 6px; font-size: 1rem; font-family: inherit; resize: vertical; min-height: 100px; }
-        .submit-btn { background: #2563eb; color: #fff; border: none; padding: 0.75rem 1.5rem; border-radius: 6px; font-size: 1rem; font-weight: 600; cursor: pointer; width: 100%; }
-        .message { margin-top: 1rem; padding: 0.75rem; border-radius: 6px; display: none; }
-        .message.success { display: block; background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
-        .message.error { display: block; background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
-        .responses-list { margin-top: 1.5rem; }
-        .responses-list h3 { font-size: 1rem; font-weight: 700; margin-bottom: 1rem; }
-        .response-item { background: #fff; border: 1px solid #e5e5e5; border-radius: 8px; padding: 1rem; margin-bottom: 0.75rem; }
-        .response-meta { display: flex; gap: 1rem; flex-wrap: wrap; font-size: 0.85rem; color: #666; margin-bottom: 0.5rem; }
-        .response-suggestion { color: #444; }
-        .loading, .error { text-align: center; padding: 3rem 1rem; color: #666; }
-        .error { color: #991b1b; }
-        @media (max-width: 600px) { main { padding: 1rem; } header { padding: 1rem; } .radio-group { flex-direction: column; } }
+        .back-link {
+            display: inline-block;
+            color: var(--text-muted);
+            font-size: var(--text-sm);
+            margin-bottom: var(--space-4);
+            text-decoration: none;
+        }
+
+        .back-link:hover {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .project-header {
+            margin-bottom: var(--space-5);
+        }
+
+        .project-title {
+            font-size: var(--text-2xl);
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: var(--space-2);
+            letter-spacing: -0.01em;
+        }
+
+        .project-description {
+            color: var(--text-secondary);
+            margin-bottom: var(--space-3);
+            font-size: var(--text-base);
+        }
+
+        .project-url {
+            color: var(--accent);
+            font-size: var(--text-sm);
+            text-decoration: none;
+            word-break: break-all;
+        }
+
+        .project-url:hover {
+            text-decoration: underline;
+        }
+
+        .question-block {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--accent);
+            border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+            padding: var(--space-5);
+            margin-bottom: var(--space-5);
+        }
+
+        .question-label {
+            font-size: var(--text-xs);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: var(--space-2);
+        }
+
+        .question-text {
+            font-weight: 600;
+            font-size: var(--text-lg);
+            color: var(--text-primary);
+        }
+
+        .response-form-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: var(--space-6);
+        }
+
+        .form-section {
+            margin-bottom: var(--space-5);
+        }
+
+        .form-section h3 {
+            font-size: var(--text-base);
+            font-weight: 600;
+            margin-bottom: var(--space-3);
+            color: var(--text-primary);
+        }
+
+        .radio-group {
+            display: flex;
+            gap: var(--space-3);
+            flex-wrap: wrap;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            padding: var(--space-2) var(--space-4);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: border-color var(--transition-fast), background-color var(--transition-fast);
+            font-size: var(--text-sm);
+            font-weight: 500;
+        }
+
+        .radio-option:hover {
+            border-color: var(--accent);
+            background: var(--surface-muted);
+        }
+
+        .radio-option:has(input:checked) {
+            border-color: var(--accent);
+            background: rgba(37, 99, 235, 0.04);
+            font-weight: 600;
+        }
+
+        .radio-option input[type="radio"] {
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+
+        .radio-option label {
+            cursor: pointer;
+        }
+
+        .responses-list {
+            margin-top: var(--space-6);
+        }
+
+        .responses-list h3 {
+            font-size: var(--text-base);
+            font-weight: 700;
+            margin-bottom: var(--space-3);
+            color: var(--text-primary);
+        }
+
+        .response-item {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: var(--space-4);
+            margin-bottom: var(--space-3);
+        }
+
+        .response-meta {
+            display: flex;
+            gap: var(--space-4);
+            flex-wrap: wrap;
+            font-size: var(--text-sm);
+            color: var(--text-secondary);
+            margin-bottom: var(--space-2);
+        }
+
+        .response-suggestion {
+            color: var(--text-primary);
+            font-size: var(--text-sm);
+        }
+
+        @media (max-width: 600px) {
+            .radio-group {
+                flex-direction: column;
+            }
+
+            .radio-option {
+                justify-content: center;
+            }
+        }
     </style>
 </head>
 <body>
-    <header>
-        <h1><a href="/">Critique</a></h1>
-        <nav><a href="/discover">Discover</a> <a href="/my-projects">My Projects</a> <a href="/my-projects">My Projects</a></nav>
+    <header class="navbar">
+        <a href="/" class="navbar-brand">
+            <img src="/static/logo.svg" alt="" width="24" height="24">
+            Critique
+        </a>
+        <nav class="navbar-nav" aria-label="Main navigation">
+            <a href="/discover">Discover</a>
+            <a href="/my-projects">My Projects</a>
+            <a href="/">Submit</a>
+        </nav>
     </header>
-    <main>
+
+    <main class="container">
         <a href="/discover" class="back-link">Back to discover</a>
-        <div id="content"><div class="loading">Loading project...</div></div>
+        <div id="content"><div class="loading-state"><div class="loading-spinner"></div><p>Loading project...</p></div></div>
     </main>
+
     <script>
         const projectId = window.location.pathname.split('/')[2];
-        
+
         function getCsrfToken() {
             const cookies = document.cookie.split(';');
             for (let cookie of cookies) {
@@ -73,12 +214,10 @@
         function wouldUseLabel(v) { return {'yes':'Yes','maybe':'Maybe','no':'No'}[v] || v; }
 
         function getCurrentUserId() {
-    // This would be populated from an auth check endpoint
-    // For now, we can read it from a meta tag or make an auth check call
-    return localStorage.getItem('user_id') || '';
-}
+            return localStorage.getItem('user_id') || '';
+        }
 
-async function loadProject() {
+        async function loadProject() {
             const content = document.getElementById('content');
             try {
                 const [projectRes, responsesRes] = await Promise.all([
@@ -90,7 +229,7 @@ async function loadProject() {
                 const responses = responsesRes.ok ? await responsesRes.json() : [];
                 renderProject(projectData, responses);
             } catch (e) {
-                content.innerHTML = '<div class="error">Failed to load project.</div>';
+                content.innerHTML = '<div class="error-state"><p>Something went wrong. Please try again.</p></div>';
             }
         }
 
@@ -103,7 +242,7 @@ async function loadProject() {
             if (p.url) html += '<a href="' + escapeHtml(p.url) + '" target="_blank" rel="noopener" class="project-url">' + escapeHtml(p.url) + '</a>';
             html += '</div>';
             if (q) {
-                html += '<div class="question-box"><div class="question-label">The Question</div><div class="question-text">' + escapeHtml(q.text) + '</div></div>';
+                html += '<div class="question-block"><div class="question-label">The Maker\'s Question</div><div class="question-text">' + escapeHtml(q.text) + '</div></div>';
                 html += '<div class="response-form-card"><form id="response-form">';
                 html += '<div class="form-section"><h3>How clear is it?</h3><div class="radio-group">';
                 html += '<div class="radio-option"><input type="radio" id="c1" name="clarity" value="very_clear" required><label for="c1">Very clear</label></div>';
@@ -115,8 +254,8 @@ async function loadProject() {
                 html += '<div class="radio-option"><input type="radio" id="u2" name="would_use" value="maybe"><label for="u2">Maybe</label></div>';
                 html += '<div class="radio-option"><input type="radio" id="u3" name="would_use" value="no"><label for="u3">No</label></div>';
                 html += '</div></div>';
-                html += '<div class="form-section"><h3>What would you change? (optional)</h3><textarea id="suggestion" maxlength="2000" placeholder="Your honest feedback..."></textarea></div>';
-                html += '<button type="submit" class="submit-btn" id="submit-btn">Submit feedback</button>';
+                html += '<div class="form-section"><h3>What would you change? <span style="font-weight:400;color:var(--text-muted);">(optional)</span></h3><textarea class="form-textarea" id="suggestion" maxlength="2000" placeholder="Your honest feedback..."></textarea></div>';
+                html += '<button type="submit" class="btn btn-primary" id="submit-btn" style="width:100%;">Submit feedback</button>';
                 html += '<div class="message" id="message"></div></form></div>';
                 if (responses.length > 0) {
                     html += '<div class="responses-list"><h3>' + responses.length + ' response' + (responses.length !== 1 ? 's' : '') + '</h3>';
@@ -137,17 +276,17 @@ async function loadProject() {
             e.preventDefault();
             const msg = document.getElementById('message');
             const btn = document.getElementById('submit-btn');
-            msg.className = 'message';
+            msg.className = 'alert';
             msg.textContent = '';
             btn.disabled = true;
-            
+
             const csrfToken = getCsrfToken();
             const payload = {
                 clarity: document.querySelector('input[name="clarity"]:checked').value,
                 would_use: document.querySelector('input[name="would_use"]:checked').value,
                 suggestion: document.getElementById('suggestion').value.trim() || null,
             };
-            
+
             try {
                 const response = await fetch('/api/projects/' + projectId + '/responses', {
                     method: 'POST',
@@ -164,23 +303,23 @@ async function loadProject() {
                     data = {};
                 }
                 if (response.ok) {
-                    msg.className = 'message success';
+                    msg.className = 'alert alert-success';
                     msg.textContent = 'Thank you! Your feedback has been submitted.';
                     document.getElementById('response-form').reset();
                     setTimeout(loadProject, 1500);
                 } else if (response.status === 401) {
-                    msg.className = 'message error';
+                    msg.className = 'alert alert-error';
                     msg.textContent = 'Please login to submit feedback.';
                 } else if (response.status === 403) {
-                    msg.className = 'message error';
+                    msg.className = 'alert alert-error';
                     msg.textContent = 'Session expired. Please refresh.';
                 } else {
-                    msg.className = 'message error';
+                    msg.className = 'alert alert-error';
                     msg.textContent = data.detail || 'Failed to submit.';
                 }
             } catch (e) {
                 console.error('Submit error:', e);
-                msg.className = 'message error';
+                msg.className = 'alert alert-error';
                 msg.textContent = 'Network error: ' + e.message;
             } finally {
                 btn.disabled = false;
@@ -191,10 +330,3 @@ async function loadProject() {
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
