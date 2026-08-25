@@ -4,6 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 from app.config import settings
 from app.database import init_db
+from app.routes_projects import router as projects_router
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -18,6 +19,10 @@ def startup_event():
     init_db()
 
 
+# Include routers
+app.include_router(projects_router)
+
+
 # Serve static files (CSS, JS, images)
 static_dir = Path(__file__).resolve().parent.parent.parent / "static"
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
@@ -25,23 +30,10 @@ app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 @app.get("/", response_class=HTMLResponse)
 def homepage():
-    """Serve the minimal homepage."""
-    return """
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Critique</title>
-    </head>
-    <body>
-        <main>
-            <h1>Critique</h1>
-            <p>Ask one question. Get real answers.</p>
-        </main>
-    </body>
-    </html>
-    """
+    """Serve the frontend HTML."""
+    frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"
+    html_file = frontend_dir / "index.html"
+    return HTMLResponse(content=html_file.read_text(encoding="utf-8"))
 
 
 @app.get("/health")

@@ -1,5 +1,5 @@
 ﻿from datetime import datetime, timezone
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -29,6 +29,7 @@ class Project(Base):
     title = Column(String(200), nullable=False)
     description = Column(Text, nullable=True)
     url = Column(String(500), nullable=True)
+    image_url = Column(String(500), nullable=True)
     created_at = Column(DateTime, default=utc_now)
 
     # Foreign keys
@@ -44,6 +45,7 @@ class Question(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     text = Column(String(500), nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=utc_now)
 
     # Foreign keys
