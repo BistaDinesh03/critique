@@ -11,10 +11,9 @@ def test_health_check():
     assert response.json() == {"status": "ok"}
 
 
-def test_root():
-    """Test that the root endpoint returns welcome message."""
+def test_homepage():
+    """Test that the homepage returns the expected content."""
     response = client.get("/")
     assert response.status_code == 200
-    data = response.json()
-    assert data["message"] == "Welcome to Critique"
-    assert data["status"] == "running"
+    assert "Critique" in response.text
+    assert "Ask one question. Get real answers." in response.text
