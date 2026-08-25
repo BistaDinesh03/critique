@@ -110,8 +110,9 @@ async def github_callback(
         SESSION_COOKIE_NAME,
         session_token,
         httponly=True,
-        max_age=86400 * 7,
+        max_age=settings.SESSION_COOKIE_MAX_AGE,
         samesite="lax",
+        secure=settings.SESSION_COOKIE_SECURE,
     )
     set_csrf_cookie(response, csrf_token)
     return response
@@ -139,4 +140,5 @@ def get_csrf_token(request: Request):
     if not token:
         token = generate_csrf_token()
     return {"csrf_token": token}
+
 
