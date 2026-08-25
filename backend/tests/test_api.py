@@ -24,23 +24,27 @@ def cleanup_database():
         db.close()
 
 
-def test_create_project_with_question():
-    """Test creating a project with a question via API."""
-    cleanup_database()
-
+def create_test_project(title="Akiya Scout", question_text="Can you understand what this website does within 10 seconds?"):
+    """Helper to create a test project via API."""
     payload = {
         "project_data": {
-            "title": "Akiya Scout",
+            "title": title,
             "description": "Find abandoned houses in Japan",
             "url": "https://akiya-scout.example.com",
             "image_url": None,
         },
         "question_data": {
-            "text": "Can you understand what this website does within 10 seconds?",
+            "text": question_text,
         },
     }
+    return client.post("/api/projects/", json=payload)
 
-    response = client.post("/api/projects/", json=payload)
+
+def test_create_project_with_question():
+    """Test creating a project with a question via API."""
+    cleanup_database()
+
+    response = create_test_project()
 
     assert response.status_code == 201
     data = response.json()
@@ -51,30 +55,33 @@ def test_create_project_with_question():
     cleanup_database()
 
 
-def test_list_projects():
-    """Test listing projects via API."""
+def test_list_projects_with_pagination():
+    """Test listing projects with pagination."""
     cleanup_database()
 
-    # Create a project first
-    payload = {
-        "project_data": {
-            "title": "Akiya Scout",
-            "description": "Find abandoned houses in Japan",
-            "url": "https://akiya-scout.example.com",
-            "image_url": None,
-        },
-        "question_data": {
-            "text": "Can you understand what this website does within 10 seconds?",
-        },
-    }
-    client.post("/api/projects/", json=payload)
+    # Create 3 test projects
+    create_test_project(title="Project One")
+    create_test_project(title="Project Two")
+    create_test_project(title="Project Three")
 
-    # List projects
-    response = client.get("/api/projects/")
+    # List with page_size=2
+    response = client.get("/api/projects/?page=1&page_size=2")
     assert response.status_code == 200
-    projects = response.json()
-    assert len(projects) == 1
-    assert projects[0]["title"] == "Akiya Scout"
+    data = response.json()
+    assert data["total"] == 3
+    assert data["page"] == 1
+    assert data["page_size"] == 2
+    assert data["total_pages"] == 2
+    assert len(data["items"]) == 2
+    # Items should have question_text and response_count
+    assert data["items"][0]["question_text"] is not None
+    assert data["items"][0]["response_count"] == 0
+
+    # Get page 2
+    response = client.get("/api/projects/?page=2&page_size=2")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["items"]) == 1
 
     cleanup_database()
 
@@ -83,22 +90,9 @@ def test_get_project_with_question():
     """Test getting a project with its active question via API."""
     cleanup_database()
 
-    # Create a project first
-    payload = {
-        "project_data": {
-            "title": "Akiya Scout",
-            "description": "Find abandoned houses in Japan",
-            "url": "https://akiya-scout.example.com",
-            "image_url": None,
-        },
-        "question_data": {
-            "text": "Can you understand what this website does within 10 seconds?",
-        },
-    }
-    create_response = client.post("/api/projects/", json=payload)
+    create_response = create_test_project()
     project_id = create_response.json()["project"]["id"]
 
-    # Get the project
     response = client.get(f"/api/projects/{project_id}")
     assert response.status_code == 200
     data = response.json()
@@ -126,6 +120,16 @@ def test_validation_rejects_empty_title():
     }
 
     response = client.post("/api/projects/", json=payload)
-    assert response.status_code == 422  # Validation error
+    assert response.status_code == 422
+
+    cleanup_database()
+
+
+def test_pagination_rejects_invalid_page():
+    """Test that page=0 is rejected."""
+    cleanup_database()
+
+    response = client.get("/api/projects/?page=0")
+    assert response.status_code == 422
 
     cleanup_database()

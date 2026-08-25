@@ -23,6 +23,11 @@
             border-bottom: 1px solid #e5e5e5;
             padding: 1.5rem 2rem;
             background: #ffffff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
         }
 
         header h1 {
@@ -30,9 +35,20 @@
             font-weight: 700;
         }
 
-        header p {
-            color: #666;
-            font-size: 0.95rem;
+        header h1 a {
+            color: #1a1a1a;
+            text-decoration: none;
+        }
+
+        header nav a {
+            color: #2563eb;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        header nav a:hover {
+            text-decoration: underline;
         }
 
         main {
@@ -120,12 +136,24 @@
             border: 1px solid #fca5a5;
             color: #991b1b;
         }
+
+        @media (max-width: 600px) {
+            main {
+                padding: 1rem;
+            }
+
+            header {
+                padding: 1rem;
+            }
+        }
     </style>
 </head>
 <body>
     <header>
-        <h1>Critique</h1>
-        <p>Ask one question. Get real answers.</p>
+        <h1><a href="/">Critique</a></h1>
+        <nav>
+            <a href="/discover">Discover projects</a>
+        </nav>
     </header>
 
     <main>

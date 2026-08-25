@@ -1,0 +1,134 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discover — Critique</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #fafafa; color: #1a1a1a; line-height: 1.6; min-height: 100vh; }
+        header { border-bottom: 1px solid #e5e5e5; padding: 1.5rem 2rem; background: #ffffff; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+        header h1 { font-size: 1.5rem; font-weight: 700; }
+        header h1 a { color: #1a1a1a; text-decoration: none; }
+        header nav a { color: #2563eb; text-decoration: none; font-weight: 600; font-size: 0.9rem; }
+        header nav a:hover { text-decoration: underline; }
+        main { max-width: 800px; margin: 0 auto; padding: 2rem; }
+        .page-title { margin-bottom: 2rem; }
+        .page-title h2 { font-size: 1.75rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .page-title p { color: #666; }
+        .project-list { display: flex; flex-direction: column; gap: 1rem; }
+        .project-card { background: #ffffff; border: 1px solid #e5e5e5; border-radius: 8px; padding: 1.5rem; transition: border-color 0.15s, box-shadow 0.15s; }
+        .project-card:hover { border-color: #d1d1d1; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .project-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .project-description { color: #444; font-size: 0.95rem; margin-bottom: 1rem; }
+        .question-box { background: #f9fafb; border-left: 3px solid #2563eb; padding: 0.75rem 1rem; margin-bottom: 1rem; border-radius: 0 6px 6px 0; }
+        .question-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #666; margin-bottom: 0.25rem; }
+        .question-text { font-weight: 600; color: #1a1a1a; }
+        .card-footer { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+        .response-count { font-size: 0.85rem; color: #666; }
+        .btn { display: inline-block; background: #2563eb; color: #ffffff; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.9rem; font-weight: 600; cursor: pointer; text-decoration: none; transition: background-color 0.15s; }
+        .btn:hover { background: #1d4ed8; }
+        .pagination { display: flex; justify-content: center; align-items: center; gap: 1rem; margin-top: 2rem; }
+        .pagination button { background: #ffffff; border: 1px solid #d1d1d1; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 600; }
+        .pagination button:hover:not(:disabled) { background: #f3f4f6; }
+        .pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .pagination .page-info { font-size: 0.9rem; color: #666; }
+        .loading-state, .empty-state, .error-state { text-align: center; padding: 3rem 1rem; color: #666; }
+        .loading-spinner { display: inline-block; width: 32px; height: 32px; border: 3px solid #e5e5e5; border-top-color: #2563eb; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 1rem; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .error-state { color: #991b1b; }
+        @media (max-width: 600px) { main { padding: 1rem; } header { padding: 1rem; } .card-footer { flex-direction: column; align-items: stretch; text-align: center; } }
+    </style>
+</head>
+<body>
+    <header>
+        <h1><a href="/">Critique</a></h1>
+        <nav><a href="/">Submit your project</a></nav>
+    </header>
+    <main>
+        <div class="page-title">
+            <h2>Discover projects</h2>
+            <p>Help others by answering their ONE question.</p>
+        </div>
+        <div id="project-list" class="project-list"></div>
+        <div class="pagination" id="pagination" style="display: none;">
+            <button id="prev-btn" onclick="changePage(-1)">Previous</button>
+            <span class="page-info" id="page-info"></span>
+            <button id="next-btn" onclick="changePage(1)">Next</button>
+        </div>
+    </main>
+    <script>
+        let currentPage = 1;
+        const pageSize = 10;
+        let totalPages = 1;
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showLoading() {
+            document.getElementById('project-list').innerHTML = '<div class="loading-state"><div class="loading-spinner"></div><p>Loading projects...</p></div>';
+            document.getElementById('pagination').style.display = 'none';
+        }
+
+        function showEmpty() {
+            document.getElementById('project-list').innerHTML = '<div class="empty-state"><p>No projects yet. Be the first to ask for feedback!</p></div>';
+            document.getElementById('pagination').style.display = 'none';
+        }
+
+        function showError() {
+            document.getElementById('project-list').innerHTML = '<div class="error-state"><p>Failed to load projects. Please try again.</p></div>';
+            document.getElementById('pagination').style.display = 'none';
+        }
+
+        function showProjects(items) {
+            const listContainer = document.getElementById('project-list');
+            listContainer.innerHTML = '';
+            items.forEach(function(project) {
+                const card = document.createElement('div');
+                card.className = 'project-card';
+                const description = project.description || 'No description provided.';
+                const questionText = project.question_text || 'No question';
+                const responseCount = project.response_count || 0;
+                const plural = responseCount !== 1 ? 's' : '';
+                card.innerHTML = '<div class="project-title">' + escapeHtml(project.title) + '</div>' +
+                    '<div class="project-description">' + escapeHtml(description) + '</div>' +
+                    '<div class="question-box"><div class="question-label">The Question</div><div class="question-text">' + escapeHtml(questionText) + '</div></div>' +
+                    '<div class="card-footer"><span class="response-count">' + responseCount + ' response' + plural + '</span>' +
+                    '<a href="/project/' + project.id + '" class="btn">View and Respond</a></div>';
+                listContainer.appendChild(card);
+            });
+            if (totalPages > 1) {
+                document.getElementById('pagination').style.display = 'flex';
+                document.getElementById('prev-btn').disabled = currentPage <= 1;
+                document.getElementById('next-btn').disabled = currentPage >= totalPages;
+                document.getElementById('page-info').textContent = 'Page ' + currentPage + ' of ' + totalPages;
+            }
+        }
+
+        async function loadProjects(page) {
+            currentPage = page;
+            showLoading();
+            try {
+                const response = await fetch('/api/projects/?page=' + page + '&page_size=' + pageSize);
+                if (!response.ok) { throw new Error('Failed to load projects'); }
+                const data = await response.json();
+                totalPages = data.total_pages;
+                if (data.items.length === 0) { showEmpty(); } else { showProjects(data.items); }
+            } catch (error) {
+                console.error('Error loading projects:', error);
+                showError();
+            }
+        }
+
+        function changePage(delta) {
+            const newPage = currentPage + delta;
+            if (newPage >= 1 && newPage <= totalPages) { loadProjects(newPage); }
+        }
+
+        loadProjects(1);
+    </script>
+</body>
+</html>

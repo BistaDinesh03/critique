@@ -28,12 +28,23 @@ static_dir = Path(__file__).resolve().parent.parent.parent / "static"
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 
+def _read_frontend_file(filename: str) -> str:
+    """Read a file from the frontend directory."""
+    frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"
+    file_path = frontend_dir / filename
+    return file_path.read_text(encoding="utf-8")
+
+
 @app.get("/", response_class=HTMLResponse)
 def homepage():
-    """Serve the frontend HTML."""
-    frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"
-    html_file = frontend_dir / "index.html"
-    return HTMLResponse(content=html_file.read_text(encoding="utf-8"))
+    """Serve the submission form."""
+    return HTMLResponse(content=_read_frontend_file("index.html"))
+
+
+@app.get("/discover", response_class=HTMLResponse)
+def discover_page():
+    """Serve the discovery page."""
+    return HTMLResponse(content=_read_frontend_file("discover.html"))
 
 
 @app.get("/health")

@@ -1,5 +1,5 @@
 ﻿from datetime import datetime
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, Field
 from typing import Optional
 
 
@@ -20,6 +20,22 @@ class ProjectOut(BaseModel):
     image_url: Optional[str]
     owner_id: int
     created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class ProjectListItem(BaseModel):
+    """Schema for project in discovery list."""
+    id: int
+    title: str
+    description: Optional[str]
+    url: Optional[str]
+    image_url: Optional[str]
+    owner_id: int
+    created_at: datetime
+    question_text: Optional[str] = None
+    response_count: int = 0
 
     class Config:
         from_attributes = True
@@ -46,3 +62,12 @@ class ProjectWithQuestion(BaseModel):
     """Schema for returning a project with its active question."""
     project: ProjectOut
     question: Optional[QuestionOut] = None
+
+
+class PaginatedProjects(BaseModel):
+    """Schema for paginated project list."""
+    items: list[ProjectListItem]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
