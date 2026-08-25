@@ -3,12 +3,20 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 from app.config import settings
+from app.database import init_db
 
 app = FastAPI(
     title=settings.APP_NAME,
     description="Ask one question. Get real answers.",
     version="0.1.0",
 )
+
+
+@app.on_event("startup")
+def startup_event():
+    """Initialize database on application startup."""
+    init_db()
+
 
 # Serve static files (CSS, JS, images)
 static_dir = Path(__file__).resolve().parent.parent.parent / "static"
