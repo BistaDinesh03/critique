@@ -57,6 +57,13 @@ def homepage():
     return HTMLResponse(content=_read_frontend_file("index.html"))
 
 
+
+
+@app.get("/my-projects", response_class=HTMLResponse)
+def my_projects_page():
+    """Serve the my projects page."""
+    return HTMLResponse(content=_read_frontend_file("my_projects.html"))
+
 @app.get("/discover", response_class=HTMLResponse)
 def discover_page():
     """Serve the discovery page."""
@@ -79,4 +86,5 @@ def project_results_page(project_id: int):
 def health_check():
     """Health check endpoint for monitoring."""
     return {"status": "ok"}
+
 

@@ -114,6 +114,56 @@ def list_projects(
     )
 
 
+
+
+@router.get("/my/list")
+def list_my_projects(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """List projects owned by the current user."""
+    projects = (
+        db.query(Project)
+        .filter(Project.owner_id == user.id)
+        .order_by(Project.created_at.desc())
+        .all()
+    )
+
+    items = []
+    for project in projects:
+        question = (
+            db.query(Question)
+            .filter(Question.project_id == project.id, Question.is_active == True)
+            .order_by(Question.created_at.desc())
+            .first()
+        )
+
+        response_count = 0
+        question_text = None
+        if question:
+            question_text = question.text
+            response_count = (
+                db.query(func.count(Response.id))
+                .filter(Response.question_id == question.id)
+                .scalar()
+            )
+
+        items.append(
+            ProjectListItem(
+                id=project.id,
+                title=project.title,
+                description=project.description,
+                url=project.url,
+                image_url=project.image_url,
+                owner_id=project.owner_id,
+                created_at=project.created_at,
+                question_text=question_text,
+                response_count=response_count,
+            )
+        )
+
+    return items
+
 @router.get("/{project_id}", response_model=ProjectWithQuestion)
 def get_project(project_id: int, db: Session = Depends(get_db)):
     """Get a project with its active question. Public endpoint."""
@@ -155,5 +205,6 @@ def delete_project(
 
     db.delete(project)
     db.commit()
+
 
 
