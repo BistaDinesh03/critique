@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.database import get_db
 from app.models import User
+from app.csrf import generate_csrf_token, set_csrf_cookie
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -88,6 +89,8 @@ async def github_callback(code: str, request: Request, db: Session = Depends(get
         db.refresh(user)
 
     session_token = create_session_token(user.id)
+    csrf_token = generate_csrf_token()
+
     response = RedirectResponse("/")
     response.set_cookie(
         SESSION_COOKIE_NAME,
@@ -96,6 +99,7 @@ async def github_callback(code: str, request: Request, db: Session = Depends(get
         max_age=86400 * 7,
         samesite="lax",
     )
+    set_csrf_cookie(response, csrf_token)
     return response
 
 
@@ -104,6 +108,7 @@ def logout():
     """Clear the session and log out."""
     response = RedirectResponse("/")
     response.delete_cookie(SESSION_COOKIE_NAME)
+    response.delete_cookie("critique_csrf")
     return response
 
 
@@ -111,3 +116,12 @@ def logout():
 def check_auth(user: User = Depends(get_current_user)):
     """Check if the current user is authenticated."""
     return {"authenticated": True, "username": user.username}
+
+
+@router.get("/csrf-token")
+def get_csrf_token(request: Request):
+    """Return the CSRF token for the current session."""
+    token = request.cookies.get("critique_csrf")
+    if not token:
+        token = generate_csrf_token()
+    return {"csrf_token": token}

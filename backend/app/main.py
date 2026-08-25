@@ -9,6 +9,7 @@ from app.auth import router as auth_router
 from app.routes_projects import router as projects_router
 from app.routes_responses import router as responses_router
 from app.routes_results import router as results_router
+from app.csrf import generate_csrf_token
 
 
 @asynccontextmanager

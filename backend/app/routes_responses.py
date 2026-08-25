@@ -5,6 +5,7 @@ from app.database import get_db
 from app.models import Project, Question, Response, User
 from app.schemas import ResponseCreate, ResponseOut
 from app.auth import get_current_user
+from app.csrf import require_csrf
 
 router = APIRouter(prefix="/api/projects", tags=["responses"])
 
@@ -21,14 +22,13 @@ def create_response(
     request: Request,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
+    _: None = Depends(require_csrf),
 ):
-    """Submit a structured response to a project's active question. Requires authentication."""
-    # Validate project exists
+    """Submit a structured response. Requires authentication and CSRF."""
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    # Get active question
     question = (
         db.query(Question)
         .filter(Question.project_id == project_id, Question.is_active == True)
@@ -38,11 +38,9 @@ def create_response(
     if not question:
         raise HTTPException(status_code=404, detail="No active question for this project")
 
-    # Get client IP for duplicate prevention
     client_ip = request.client.host if request.client else "unknown"
     ip_hash = hash_ip(client_ip)
 
-    # Check for duplicate submission from same user on same question
     existing = (
         db.query(Response)
         .filter(Response.question_id == question.id, Response.user_id == user.id)
@@ -51,7 +49,6 @@ def create_response(
     if existing:
         raise HTTPException(status_code=409, detail="You have already responded to this question")
 
-    # Create response
     response = Response(
         clarity=response_data.clarity,
         would_use=response_data.would_use,

@@ -7,43 +7,36 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #fafafa; color: #1a1a1a; line-height: 1.6; min-height: 100vh; }
-        header { border-bottom: 1px solid #e5e5e5; padding: 1.5rem 2rem; background: #ffffff; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+        header { border-bottom: 1px solid #e5e5e5; padding: 1.5rem 2rem; background: #fff; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
         header h1 { font-size: 1.5rem; font-weight: 700; }
         header h1 a { color: #1a1a1a; text-decoration: none; }
-        header nav a { color: #2563eb; text-decoration: none; font-weight: 600; font-size: 0.9rem; margin-left: 1rem; }
-        header nav a:hover { text-decoration: underline; }
+        header nav { display: flex; gap: 1rem; }
+        header nav a { color: #2563eb; text-decoration: none; font-weight: 600; font-size: 0.9rem; }
         main { max-width: 700px; margin: 0 auto; padding: 2rem; }
-        .back-link { color: #666; text-decoration: none; font-size: 0.9rem; margin-bottom: 1.5rem; display: inline-block; }
-        .back-link:hover { color: #2563eb; }
-        .project-header { background: #ffffff; border: 1px solid #e5e5e5; border-radius: 8px; padding: 2rem; margin-bottom: 1.5rem; }
+        .back-link { color: #666; text-decoration: none; font-size: 0.9rem; display: inline-block; margin-bottom: 1.5rem; }
+        .project-header { background: #fff; border: 1px solid #e5e5e5; border-radius: 8px; padding: 2rem; margin-bottom: 1.5rem; }
         .project-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; }
         .project-description { color: #444; margin-bottom: 1rem; }
         .project-url { color: #2563eb; text-decoration: none; font-size: 0.9rem; }
-        .project-url:hover { text-decoration: underline; }
-        .question-box { background: #f9fafb; border-left: 3px solid #2563eb; padding: 1rem 1.25rem; border-radius: 0 6px 6px 0; }
+        .question-box { background: #f9fafb; border-left: 3px solid #2563eb; padding: 1rem 1.25rem; border-radius: 0 6px 6px 0; margin-bottom: 1.5rem; }
         .question-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #666; margin-bottom: 0.5rem; }
         .question-text { font-weight: 600; font-size: 1.1rem; }
-        .response-form-card { background: #ffffff; border: 1px solid #e5e5e5; border-radius: 8px; padding: 2rem; }
+        .response-form-card { background: #fff; border: 1px solid #e5e5e5; border-radius: 8px; padding: 2rem; }
         .form-section { margin-bottom: 1.5rem; }
         .form-section h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.75rem; }
         .radio-group { display: flex; gap: 0.75rem; flex-wrap: wrap; }
-        .radio-option { display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 1rem; border: 1px solid #d1d1d1; border-radius: 6px; cursor: pointer; transition: all 0.15s; }
-        .radio-option:hover { border-color: #2563eb; }
+        .radio-option { display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 1rem; border: 1px solid #d1d1d1; border-radius: 6px; cursor: pointer; }
         .radio-option input[type="radio"] { accent-color: #2563eb; }
-        .radio-option label { cursor: pointer; font-size: 0.9rem; }
         textarea { width: 100%; padding: 0.75rem; border: 1px solid #d1d1d1; border-radius: 6px; font-size: 1rem; font-family: inherit; resize: vertical; min-height: 100px; }
-        textarea:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
-        .submit-btn { background: #2563eb; color: #ffffff; border: none; padding: 0.75rem 1.5rem; border-radius: 6px; font-size: 1rem; font-weight: 600; cursor: pointer; width: 100%; transition: background-color 0.15s; }
-        .submit-btn:hover { background: #1d4ed8; }
-        .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .submit-btn { background: #2563eb; color: #fff; border: none; padding: 0.75rem 1.5rem; border-radius: 6px; font-size: 1rem; font-weight: 600; cursor: pointer; width: 100%; }
         .message { margin-top: 1rem; padding: 0.75rem; border-radius: 6px; display: none; }
         .message.success { display: block; background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
         .message.error { display: block; background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
         .responses-list { margin-top: 1.5rem; }
         .responses-list h3 { font-size: 1rem; font-weight: 700; margin-bottom: 1rem; }
-        .response-item { background: #ffffff; border: 1px solid #e5e5e5; border-radius: 8px; padding: 1rem; margin-bottom: 0.75rem; }
+        .response-item { background: #fff; border: 1px solid #e5e5e5; border-radius: 8px; padding: 1rem; margin-bottom: 0.75rem; }
         .response-meta { display: flex; gap: 1rem; flex-wrap: wrap; font-size: 0.85rem; color: #666; margin-bottom: 0.5rem; }
-        .response-suggestion { color: #444; font-size: 0.95rem; }
+        .response-suggestion { color: #444; }
         .loading, .error { text-align: center; padding: 3rem 1rem; color: #666; }
         .error { color: #991b1b; }
         @media (max-width: 600px) { main { padding: 1rem; } header { padding: 1rem; } .radio-group { flex-direction: column; } }
@@ -52,34 +45,32 @@
 <body>
     <header>
         <h1><a href="/">Critique</a></h1>
-        <nav>
-            <a href="/discover">Discover projects</a>
-        </nav>
+        <nav><a href="/discover">Discover projects</a></nav>
     </header>
     <main>
         <a href="/discover" class="back-link">Back to discover</a>
-        <div id="content">
-            <div class="loading">Loading project...</div>
-        </div>
+        <div id="content"><div class="loading">Loading project...</div></div>
     </main>
     <script>
-        const projectId = window.location.pathname.split('/').pop();
+        const projectId = window.location.pathname.split('/')[2];
         
+        function getCsrfToken() {
+            const cookies = document.cookie.split(';');
+            for (let cookie of cookies) {
+                const [name, value] = cookie.trim().split('=');
+                if (name === 'critique_csrf') return decodeURIComponent(value);
+            }
+            return '';
+        }
+
         function escapeHtml(text) {
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
         }
 
-        function clarityLabel(value) {
-            const labels = { 'very_clear': 'Very clear', 'mostly_clear': 'Mostly clear', 'confusing': 'Confusing' };
-            return labels[value] || value;
-        }
-
-        function wouldUseLabel(value) {
-            const labels = { 'yes': 'Yes', 'maybe': 'Maybe', 'no': 'No' };
-            return labels[value] || value;
-        }
+        function clarityLabel(v) { return {'very_clear':'Very clear','mostly_clear':'Mostly clear','confusing':'Confusing'}[v] || v; }
+        function wouldUseLabel(v) { return {'yes':'Yes','maybe':'Maybe','no':'No'}[v] || v; }
 
         async function loadProject() {
             const content = document.getElementById('content');
@@ -88,106 +79,63 @@
                     fetch('/api/projects/' + projectId),
                     fetch('/api/projects/' + projectId + '/responses')
                 ]);
-                
-                if (!projectRes.ok) {
-                    throw new Error('Project not found');
-                }
-                
+                if (!projectRes.ok) throw new Error('Project not found');
                 const projectData = await projectRes.json();
                 const responses = responsesRes.ok ? await responsesRes.json() : [];
-                
                 renderProject(projectData, responses);
-            } catch (error) {
-                content.innerHTML = '<div class="error">Failed to load project. Please try again.</div>';
+            } catch (e) {
+                content.innerHTML = '<div class="error">Failed to load project.</div>';
             }
         }
 
         function renderProject(data, responses) {
             const content = document.getElementById('content');
-            const project = data.project;
-            const question = data.question;
-            
-            let html = '<div class="project-header">';
-            html += '<h2 class="project-title">' + escapeHtml(project.title) + '</h2>';
-            if (project.description) {
-                html += '<p class="project-description">' + escapeHtml(project.description) + '</p>';
-            }
-            if (project.url) {
-                html += '<a href="' + escapeHtml(project.url) + '" target="_blank" rel="noopener" class="project-url">' + escapeHtml(project.url) + '</a>';
-            }
+            const p = data.project;
+            const q = data.question;
+            let html = '<div class="project-header"><h2 class="project-title">' + escapeHtml(p.title) + '</h2>';
+            if (p.description) html += '<p class="project-description">' + escapeHtml(p.description) + '</p>';
+            if (p.url) html += '<a href="' + escapeHtml(p.url) + '" target="_blank" rel="noopener" class="project-url">' + escapeHtml(p.url) + '</a>';
             html += '</div>';
-            
-            if (question) {
-                html += '<div class="question-box">';
-                html += '<div class="question-label">The Question</div>';
-                html += '<div class="question-text">' + escapeHtml(question.text) + '</div>';
-                html += '</div>';
-                
-                // Response form
-                html += '<div class="response-form-card" style="margin-top: 1.5rem;">';
-                html += '<form id="response-form">';
-                html += '<div class="form-section">';
-                html += '<h3>How clear is it?</h3>';
-                html += '<div class="radio-group">';
-                html += '<div class="radio-option"><input type="radio" id="clarity_very" name="clarity" value="very_clear" required><label for="clarity_very">Very clear</label></div>';
-                html += '<div class="radio-option"><input type="radio" id="clarity_mostly" name="clarity" value="mostly_clear"><label for="clarity_mostly">Mostly clear</label></div>';
-                html += '<div class="radio-option"><input type="radio" id="clarity_confusing" name="clarity" value="confusing"><label for="clarity_confusing">Confusing</label></div>';
+            if (q) {
+                html += '<div class="question-box"><div class="question-label">The Question</div><div class="question-text">' + escapeHtml(q.text) + '</div></div>';
+                html += '<div class="response-form-card"><form id="response-form">';
+                html += '<div class="form-section"><h3>How clear is it?</h3><div class="radio-group">';
+                html += '<div class="radio-option"><input type="radio" id="c1" name="clarity" value="very_clear" required><label for="c1">Very clear</label></div>';
+                html += '<div class="radio-option"><input type="radio" id="c2" name="clarity" value="mostly_clear"><label for="c2">Mostly clear</label></div>';
+                html += '<div class="radio-option"><input type="radio" id="c3" name="clarity" value="confusing"><label for="c3">Confusing</label></div>';
                 html += '</div></div>';
-                
-                html += '<div class="form-section">';
-                html += '<h3>Would you use it?</h3>';
-                html += '<div class="radio-group">';
-                html += '<div class="radio-option"><input type="radio" id="use_yes" name="would_use" value="yes" required><label for="use_yes">Yes</label></div>';
-                html += '<div class="radio-option"><input type="radio" id="use_maybe" name="would_use" value="maybe"><label for="use_maybe">Maybe</label></div>';
-                html += '<div class="radio-option"><input type="radio" id="use_no" name="would_use" value="no"><label for="use_no">No</label></div>';
+                html += '<div class="form-section"><h3>Would you use it?</h3><div class="radio-group">';
+                html += '<div class="radio-option"><input type="radio" id="u1" name="would_use" value="yes" required><label for="u1">Yes</label></div>';
+                html += '<div class="radio-option"><input type="radio" id="u2" name="would_use" value="maybe"><label for="u2">Maybe</label></div>';
+                html += '<div class="radio-option"><input type="radio" id="u3" name="would_use" value="no"><label for="u3">No</label></div>';
                 html += '</div></div>';
-                
-                html += '<div class="form-section">';
-                html += '<h3>What would you change? (optional)</h3>';
-                html += '<textarea id="suggestion" name="suggestion" maxlength="2000" placeholder="Your honest feedback..."></textarea>';
-                html += '</div>';
-                
+                html += '<div class="form-section"><h3>What would you change? (optional)</h3><textarea id="suggestion" maxlength="2000" placeholder="Your honest feedback..."></textarea></div>';
                 html += '<button type="submit" class="submit-btn" id="submit-btn">Submit feedback</button>';
-                html += '<div class="message" id="message"></div>';
-                html += '</form></div>';
-                
-                // Responses list
+                html += '<div class="message" id="message"></div></form></div>';
                 if (responses.length > 0) {
-                    html += '<div class="responses-list">';
-                    html += '<h3>' + responses.length + ' response' + (responses.length !== 1 ? 's' : '') + '</h3>';
+                    html += '<div class="responses-list"><h3>' + responses.length + ' response' + (responses.length !== 1 ? 's' : '') + '</h3>';
                     responses.forEach(function(r) {
-                        html += '<div class="response-item">';
-                        html += '<div class="response-meta">';
-                        html += '<span>Clarity: ' + clarityLabel(r.clarity) + '</span>';
-                        html += '<span>Would use: ' + wouldUseLabel(r.would_use) + '</span>';
-                        html += '</div>';
-                        if (r.suggestion) {
-                            html += '<p class="response-suggestion">' + escapeHtml(r.suggestion) + '</p>';
-                        }
+                        html += '<div class="response-item"><div class="response-meta"><span>Clarity: ' + clarityLabel(r.clarity) + '</span><span>Would use: ' + wouldUseLabel(r.would_use) + '</span></div>';
+                        if (r.suggestion) html += '<p class="response-suggestion">' + escapeHtml(r.suggestion) + '</p>';
                         html += '</div>';
                     });
                     html += '</div>';
                 }
             }
-            
             content.innerHTML = html;
-            
-            // Attach form handler if form exists
             const form = document.getElementById('response-form');
-            if (form) {
-                form.addEventListener('submit', handleSubmit);
-            }
+            if (form) form.addEventListener('submit', handleSubmit);
         }
 
         async function handleSubmit(e) {
             e.preventDefault();
-            const messageDiv = document.getElementById('message');
-            const submitBtn = document.getElementById('submit-btn');
+            const msg = document.getElementById('message');
+            const btn = document.getElementById('submit-btn');
+            msg.className = 'message';
+            msg.textContent = '';
+            btn.disabled = true;
             
-            messageDiv.className = 'message';
-            messageDiv.textContent = '';
-            submitBtn.disabled = true;
-            
+            const csrfToken = getCsrfToken();
             const payload = {
                 clarity: document.querySelector('input[name="clarity"]:checked').value,
                 would_use: document.querySelector('input[name="would_use"]:checked').value,
@@ -197,27 +145,33 @@
             try {
                 const response = await fetch('/api/projects/' + projectId + '/responses', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfToken,
+                    },
                     body: JSON.stringify(payload),
                 });
-                
                 const data = await response.json();
-                
                 if (response.ok) {
-                    messageDiv.className = 'message success';
-                    messageDiv.textContent = 'Thank you! Your feedback has been submitted.';
+                    msg.className = 'message success';
+                    msg.textContent = 'Thank you! Your feedback has been submitted.';
                     form.reset();
-                    // Reload to show new response
-                    setTimeout(function() { loadProject(); }, 1500);
+                    setTimeout(loadProject, 1500);
+                } else if (response.status === 401) {
+                    msg.className = 'message error';
+                    msg.textContent = 'Please login to submit feedback.';
+                } else if (response.status === 403) {
+                    msg.className = 'message error';
+                    msg.textContent = 'Session expired. Please refresh.';
                 } else {
-                    messageDiv.className = 'message error';
-                    messageDiv.textContent = data.detail || 'Failed to submit feedback.';
+                    msg.className = 'message error';
+                    msg.textContent = data.detail || 'Failed to submit.';
                 }
-            } catch (error) {
-                messageDiv.className = 'message error';
-                messageDiv.textContent = 'Network error. Please try again.';
+            } catch (e) {
+                msg.className = 'message error';
+                msg.textContent = 'Network error.';
             } finally {
-                submitBtn.disabled = false;
+                btn.disabled = false;
             }
         }
 

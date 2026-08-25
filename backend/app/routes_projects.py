@@ -1,4 +1,4 @@
-﻿from fastapi import APIRouter, Depends, HTTPException, Query
+﻿from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.database import get_db
@@ -13,6 +13,7 @@ from app.schemas import (
     PaginatedProjects,
 )
 from app.auth import get_current_user
+from app.csrf import require_csrf
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 
@@ -21,10 +22,12 @@ router = APIRouter(prefix="/api/projects", tags=["projects"])
 def create_project_with_question(
     project_data: ProjectCreate,
     question_data: QuestionCreate,
+    request: Request,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
+    _: None = Depends(require_csrf),
 ):
-    """Create a project with its first question. Requires authentication."""
+    """Create a project with its first question. Requires authentication and CSRF."""
     project = Project(
         title=project_data.title,
         description=project_data.description,
@@ -129,10 +132,12 @@ def get_project(project_id: int, db: Session = Depends(get_db)):
 @router.delete("/{project_id}", status_code=204)
 def delete_project(
     project_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
+    _: None = Depends(require_csrf),
 ):
-    """Delete a project. Only the owner can delete it."""
+    """Delete a project. Only the owner can delete it. Requires CSRF."""
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -140,7 +145,6 @@ def delete_project(
     if project.owner_id != user.id:
         raise HTTPException(status_code=403, detail="You cannot delete this project")
 
-    # Delete associated responses, questions, then project
     questions = db.query(Question).filter(Question.project_id == project_id).all()
     for question in questions:
         db.query(Response).filter(Response.question_id == question.id).delete()
