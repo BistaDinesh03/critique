@@ -30,6 +30,8 @@
             gap: var(--space-4);
         }
 
+        .project-screenshot { width: 100%; border-radius: var(--radius-md); margin-bottom: var(--space-3); object-fit: cover; max-height: 200px; }
+
         .project-card {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -198,7 +200,8 @@
                 const questionText = project.question_text || 'No question';
                 const responseCount = project.response_count || 0;
                 const plural = responseCount !== 1 ? 's' : '';
-                card.innerHTML = '<div class="project-title">' + escapeHtml(project.title) + '</div>' +
+                const screenshotHtml = project.image_url ? '<img class="project-screenshot" src="' + escapeHtml(project.image_url) + '" alt="Screenshot" loading="lazy" onerror="this.style.display=\'none\'">' : '';
+                card.innerHTML = screenshotHtml + '<div class="project-title">' + escapeHtml(project.title) + '</div>' +
                     '<div class="project-description">' + escapeHtml(description) + '</div>' +
                     '<div class="question-box"><div class="question-label">The Question</div><div class="question-text">' + escapeHtml(questionText) + '</div></div>' +
                     '<div class="card-footer"><span class="response-count">' + responseCount + ' response' + plural + '</span>' +
@@ -237,6 +240,7 @@
     </script>
 </body>
 </html>
+
 
 
 

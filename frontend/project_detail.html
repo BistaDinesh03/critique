@@ -20,6 +20,8 @@
             text-decoration: none;
         }
 
+        .project-screenshot { width: 100%; border-radius: var(--radius-lg); margin-bottom: var(--space-4); object-fit: cover; max-height: 300px; }
+
         .project-header {
             margin-bottom: var(--space-5);
         }
@@ -237,7 +239,9 @@
             const content = document.getElementById('content');
             const p = data.project;
             const q = data.question;
-            let html = '<div class="project-header"><h2 class="project-title">' + escapeHtml(p.title) + '</h2>';
+            let html = '<div class="project-header">';
+            if (p.image_url) { html += '<img class="project-screenshot" src="' + escapeHtml(p.image_url) + '" alt="Screenshot of ' + escapeHtml(p.title) + '" loading="lazy" onerror="this.style.display=\'none\'">'; }
+            html += '<h2 class="project-title">' + escapeHtml(p.title) + '</h2>';
             if (p.description) html += '<p class="project-description">' + escapeHtml(p.description) + '</p>';
             if (p.url) html += '<a href="' + escapeHtml(p.url) + '" target="_blank" rel="noopener" class="project-url">' + escapeHtml(p.url) + '</a>';
             html += '</div>';

@@ -28,6 +28,8 @@
             gap: var(--space-4);
         }
 
+        .project-screenshot { width: 100%; border-radius: var(--radius-md); margin-bottom: var(--space-3); object-fit: cover; max-height: 180px; }
+
         .project-card {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -127,6 +129,7 @@
                 let html = '<div class="project-list">';
                 projects.forEach(function(p) {
                     html += '<div class="project-card">';
+                    if (p.image_url) { html += '<img class="project-screenshot" src="' + escapeHtml(p.image_url) + '" alt="Screenshot" loading="lazy" onerror="this.style.display=\'none\'">'; }
                     html += '<div class="project-title">' + escapeHtml(p.title) + '</div>';
                     if (p.description) html += '<div class="project-description">' + escapeHtml(p.description) + '</div>';
                     html += '<div class="project-meta">' + p.response_count + ' response' + (p.response_count !== 1 ? 's' : '') + '</div>';
