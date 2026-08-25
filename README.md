@@ -1,63 +1,78 @@
 ﻿<p align="center">
-  <img src="static/logo.svg" alt="Critique" width="48" />
+  <img src="static/logo.svg" alt="Critique" width="56" />
 </p>
 
-# Critique
+<h1 align="center">Critique</h1>
 
-**Ask one question. Get real answers.**
+<p align="center">
+  <strong>Ask one question. Get real answers.</strong>
+</p>
 
-Critique is an open-source platform where makers share what they've built, ask one focused question, and receive structured feedback from real people.
+<p align="center">
+  An open-source platform where makers share what they've built,<br>
+  ask one focused question, and get structured feedback from real people.
+</p>
 
----
+<p align="center">
+  <strong><a href="https://critique-qqz9.onrender.com">Try Critique →</a></strong>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/BistaDinesh03/critique">View Source</a>
+  &nbsp;·&nbsp;
+  <a href="CONTRIBUTING.md">Contribute</a>
+</p>
 
-**[Live Demo](https://critique-qqz9.onrender.com)** &nbsp;|&nbsp; **[GitHub](https://github.com/BistaDinesh03/critique)** &nbsp;|&nbsp; **[Contributing](CONTRIBUTING.md)**
+<p align="center">
+  <a href="https://github.com/BistaDinesh03/critique/blob/main/LICENSE"><img src="https://img.shields.io/github/license/BistaDinesh03/critique" alt="License: MIT"></a>
+</p>
 
 ---
 
 ## How It Works
 
-1. **Share** — Add your project with a title, description, and link.
-2. **Ask** — Ask the one specific question you genuinely want answered.
+1. **Share** — Add your project.
+2. **Ask** — Ask one focused question.
 3. **Learn** — Get structured feedback from real people.
 
 ## Features
 
 ### For Makers
+
 - Submit a project
 - Ask one focused question
-- View aggregate results (clarity and would-use percentages)
-- Read private written feedback (visible only to you)
-- Manage and delete projects from My Projects
+- View clarity and would-use results
+- Read private written feedback
+- Manage and delete projects
 
 ### For Reviewers
-- Discover projects chronologically
-- Rate clarity (Very clear / Mostly clear / Confusing)
-- Share whether you'd use it (Yes / Maybe / No)
-- Leave optional written suggestions
-- One response per user per project
+
+- Discover projects
+- Rate clarity
+- Say whether you'd use the project
+- Leave optional suggestions
+- Respond once per project
 
 ## Built With Care
 
-- GitHub OAuth authentication
+- GitHub OAuth
 - CSRF protection
 - Rate limiting
 - Input validation
 - XSS protection
 - Ownership checks
-- Privacy controls for written feedback
+- Privacy controls
 
 See [SECURITY.md](SECURITY.md).
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Backend | FastAPI, SQLAlchemy |
-| Database | SQLite |
-| Frontend | HTML, CSS, Vanilla JavaScript |
-| Authentication | GitHub OAuth |
-| Testing | pytest (44 tests) |
-| Deployment | Render |
+| Layer          | Technology                    |
+|----------------|-------------------------------|
+| Backend        | FastAPI, SQLAlchemy           |
+| Database       | SQLite                        |
+| Frontend       | HTML, CSS, Vanilla JavaScript |
+| Authentication | GitHub OAuth                  |
+| Testing        | pytest                        |
+| Deployment     | Render                        |
 
 ## Getting Started
 
@@ -68,82 +83,82 @@ See [SECURITY.md](SECURITY.md).
 
 ### Clone
 
-\\\ash
+```bash
 git clone https://github.com/BistaDinesh03/critique.git
 cd critique
-\\\
+```
 
 ### Install
 
-\\\ash
+```bash
 python -m pip install -r backend/requirements.txt
-\\\
+```
 
 ### Configure
 
-\\\ash
-Copy-Item .env.example .env
-\\\
+```bash
+cp .env.example .env
+```
 
-Edit .env with your GitHub OAuth credentials and a secret key.
-
-### Run
-
-\\\ash
-cd backend
-python -m uvicorn app.main:app --reload
-\\\
-
-Open http://127.0.0.1:8000
-
-### Test
-
-\\\ash
-cd backend
-python -m pytest tests/ -v
-\\\
-
-## Environment Variables
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| GITHUB_CLIENT_ID | Yes | GitHub OAuth App Client ID |
-| GITHUB_CLIENT_SECRET | Yes | GitHub OAuth App Client Secret |
-| GITHUB_REDIRECT_URI | Yes | OAuth callback URL |
-| SECRET_KEY | Yes | Random string for session signing |
-| DATABASE_URL | No | Default: sqlite:///./critique.db |
-| APP_ENV | No | development or production |
-| APP_URL | No | Base URL of the application |
-| SESSION_COOKIE_SECURE | No | 	rue in production (HTTPS) |
-
-## GitHub OAuth Setup
-
-1. Go to [GitHub Settings > Developer settings > OAuth Apps](https://github.com/settings/developers)
-2. Click **New OAuth App**
-3. Set:
-   - **Homepage URL**: http://127.0.0.1:8000 (local) or your production URL
-   - **Callback URL**: http://127.0.0.1:8000/auth/callback (local) or your production callback
-4. Register and copy the Client ID and Client Secret
-
-Full instructions: [docs/github-oauth-setup.md](docs/github-oauth-setup.md)
+Edit `.env` with your GitHub OAuth credentials and a secret key.
 
 Generate a secret key:
 
-\\\ash
+```bash
 python -c "import secrets; print(secrets.token_hex(32))"
-\\\
+```
+
+### Run
+
+```bash
+cd backend
+python -m uvicorn app.main:app --reload
+```
+
+Open [http://127.0.0.1:8000](http://127.0.0.1:8000).
+
+### Test
+
+```bash
+cd backend
+python -m pytest tests/ -v
+```
+
+## Environment Variables
+
+| Variable                | Required | Description                        |
+|-------------------------|----------|------------------------------------|
+| `GITHUB_CLIENT_ID`      | Yes      | GitHub OAuth App Client ID         |
+| `GITHUB_CLIENT_SECRET`  | Yes      | GitHub OAuth App Client Secret     |
+| `GITHUB_REDIRECT_URI`   | Yes      | OAuth callback URL                 |
+| `SECRET_KEY`            | Yes      | Random string for session signing  |
+| `DATABASE_URL`          | No       | Default: `sqlite:///./critique.db` |
+| `APP_ENV`               | No       | `development` or `production`      |
+| `APP_URL`               | No       | Base URL of the application        |
+| `SESSION_COOKIE_SECURE` | No       | `true` in production (HTTPS)       |
+
+## GitHub OAuth Setup
+
+1. Go to [GitHub Settings → Developer settings → OAuth Apps](https://github.com/settings/developers).
+2. Click **New OAuth App**.
+3. Set:
+   - **Homepage URL**: `http://127.0.0.1:8000` (local) or your production URL
+   - **Callback URL**: `http://127.0.0.1:8000/auth/callback` (local) or your production callback
+4. Register and copy the Client ID and Client Secret.
+
+Full instructions: [docs/github-oauth-setup.md](docs/github-oauth-setup.md).
 
 ## Project Structure
 
-\\\
+```
 backend/          # FastAPI application
   app/            # Python source code
-  tests/          # 44 pytest tests
+  tests/          # pytest tests
 frontend/         # HTML pages (vanilla JS)
 static/           # CSS, logo, favicon
 docs/             # Setup guides
 render.yaml       # Render deployment config
-\\\
+```
 
 ## Contributing
 
