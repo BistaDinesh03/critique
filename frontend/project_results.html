@@ -1,0 +1,158 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Results — Critique</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #fafafa; color: #1a1a1a; line-height: 1.6; min-height: 100vh; }
+        header { border-bottom: 1px solid #e5e5e5; padding: 1.5rem 2rem; background: #ffffff; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+        header h1 { font-size: 1.5rem; font-weight: 700; }
+        header h1 a { color: #1a1a1a; text-decoration: none; }
+        header nav a { color: #2563eb; text-decoration: none; font-weight: 600; font-size: 0.9rem; margin-left: 1rem; }
+        header nav a:hover { text-decoration: underline; }
+        main { max-width: 800px; margin: 0 auto; padding: 2rem; }
+        .back-link { color: #666; text-decoration: none; font-size: 0.9rem; margin-bottom: 1.5rem; display: inline-block; }
+        .back-link:hover { color: #2563eb; }
+        .page-title { margin-bottom: 2rem; }
+        .page-title h2 { font-size: 1.5rem; font-weight: 700; }
+        .question-box { background: #ffffff; border: 1px solid #e5e5e5; border-left: 3px solid #2563eb; border-radius: 0 8px 8px 0; padding: 1.25rem; margin-bottom: 2rem; }
+        .question-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #666; margin-bottom: 0.5rem; }
+        .question-text { font-weight: 600; font-size: 1.15rem; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; }
+        .stat-card { background: #ffffff; border: 1px solid #e5e5e5; border-radius: 8px; padding: 1.5rem; }
+        .stat-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 1rem; }
+        .total-badge { display: inline-block; background: #f3f4f6; padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.85rem; font-weight: 600; color: #444; margin-bottom: 1.5rem; }
+        .bar-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; }
+        .bar-label { min-width: 100px; font-size: 0.85rem; font-weight: 600; }
+        .bar-track { flex: 1; height: 24px; background: #f3f4f6; border-radius: 6px; overflow: hidden; }
+        .bar-fill { height: 100%; border-radius: 6px; transition: width 0.3s ease; }
+        .bar-pct { min-width: 50px; text-align: right; font-size: 0.85rem; font-weight: 600; }
+        .bar-fill.very_clear { background: #10b981; }
+        .bar-fill.mostly_clear { background: #f59e0b; }
+        .bar-fill.confusing { background: #ef4444; }
+        .bar-fill.yes { background: #10b981; }
+        .bar-fill.maybe { background: #f59e0b; }
+        .bar-fill.no { background: #ef4444; }
+        .written-responses { margin-top: 2rem; }
+        .written-responses h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem; }
+        .response-card { background: #ffffff; border: 1px solid #e5e5e5; border-radius: 8px; padding: 1.25rem; margin-bottom: 1rem; }
+        .response-meta { display: flex; gap: 1rem; flex-wrap: wrap; font-size: 0.85rem; color: #666; margin-bottom: 0.5rem; }
+        .response-suggestion { color: #1a1a1a; font-size: 0.95rem; }
+        .empty-state { text-align: center; padding: 3rem 1rem; color: #666; background: #ffffff; border: 1px solid #e5e5e5; border-radius: 8px; }
+        .loading, .error { text-align: center; padding: 3rem 1rem; color: #666; }
+        .error { color: #991b1b; }
+        @media (max-width: 600px) { .stats-grid { grid-template-columns: 1fr; } main { padding: 1rem; } header { padding: 1rem; } }
+    </style>
+</head>
+<body>
+    <header>
+        <h1><a href="/">Critique</a></h1>
+        <nav>
+            <a href="/discover">Discover projects</a>
+        </nav>
+    </header>
+    <main>
+        <a href="/discover" class="back-link">Back to discover</a>
+        <div id="content">
+            <div class="loading">Loading results...</div>
+        </div>
+    </main>
+    <script>
+        const projectId = window.location.pathname.split('/')[2];
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function clarityLabel(value) {
+            const labels = { 'very_clear': 'Very clear', 'mostly_clear': 'Mostly clear', 'confusing': 'Confusing' };
+            return labels[value] || value;
+        }
+
+        function wouldUseLabel(value) {
+            const labels = { 'yes': 'Yes', 'maybe': 'Maybe', 'no': 'No' };
+            return labels[value] || value;
+        }
+
+        function renderBar(label, value, cssClass) {
+            return '<div class="bar-row">' +
+                '<span class="bar-label">' + label + '</span>' +
+                '<div class="bar-track"><div class="bar-fill ' + cssClass + '" style="width: ' + value + '%"></div></div>' +
+                '<span class="bar-pct">' + value + '%</span>' +
+                '</div>';
+        }
+
+        function renderStats(stats) {
+            let html = '<span class="total-badge">' + stats.total + ' total response' + (stats.total !== 1 ? 's' : '') + '</span>';
+            html += '<div class="stats-grid">';
+            html += '<div class="stat-card"><h3>How clear is it?</h3>';
+            html += renderBar('Very clear', stats.clarity.very_clear, 'very_clear');
+            html += renderBar('Mostly clear', stats.clarity.mostly_clear, 'mostly_clear');
+            html += renderBar('Confusing', stats.clarity.confusing, 'confusing');
+            html += '</div>';
+            html += '<div class="stat-card"><h3>Would you use it?</h3>';
+            html += renderBar('Yes', stats.would_use.yes, 'yes');
+            html += renderBar('Maybe', stats.would_use.maybe, 'maybe');
+            html += renderBar('No', stats.would_use.no, 'no');
+            html += '</div>';
+            html += '</div>';
+            return html;
+        }
+
+        function renderWrittenResponses(responses) {
+            const withSuggestions = responses.filter(function(r) { return r.suggestion; });
+            if (withSuggestions.length === 0) return '';
+            
+            let html = '<div class="written-responses"><h3>Written responses</h3>';
+            withSuggestions.forEach(function(r) {
+                html += '<div class="response-card">';
+                html += '<div class="response-meta">';
+                html += '<span>Clarity: ' + clarityLabel(r.clarity) + '</span>';
+                html += '<span>Would use: ' + wouldUseLabel(r.would_use) + '</span>';
+                html += '</div>';
+                html += '<p class="response-suggestion">' + escapeHtml(r.suggestion) + '</p>';
+                html += '</div>';
+            });
+            html += '</div>';
+            return html;
+        }
+
+        async function loadResults() {
+            const content = document.getElementById('content');
+            try {
+                const response = await fetch('/api/projects/' + projectId + '/results');
+                if (!response.ok) {
+                    throw new Error('Failed to load results');
+                }
+                const data = await response.json();
+                
+                let html = '<div class="page-title"><h2>' + escapeHtml(data.project_title) + ' — Results</h2></div>';
+                
+                if (data.question_text) {
+                    html += '<div class="question-box">';
+                    html += '<div class="question-label">The Question</div>';
+                    html += '<div class="question-text">' + escapeHtml(data.question_text) + '</div>';
+                    html += '</div>';
+                }
+                
+                if (data.stats.total === 0) {
+                    html += '<div class="empty-state"><p>No responses yet. Share your project to get feedback!</p></div>';
+                } else {
+                    html += renderStats(data.stats);
+                    html += renderWrittenResponses(data.responses);
+                }
+                
+                content.innerHTML = html;
+            } catch (error) {
+                content.innerHTML = '<div class="error">Failed to load results. Please try again.</div>';
+            }
+        }
+
+        loadResults();
+    </script>
+</body>
+</html>

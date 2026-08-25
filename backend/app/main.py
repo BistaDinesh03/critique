@@ -6,6 +6,7 @@ from app.config import settings
 from app.database import init_db
 from app.routes_projects import router as projects_router
 from app.routes_responses import router as responses_router
+from app.routes_results import router as results_router
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -23,6 +24,7 @@ def startup_event():
 # Include routers
 app.include_router(projects_router)
 app.include_router(responses_router)
+app.include_router(results_router)
 
 
 # Serve static files (CSS, JS, images)
@@ -53,6 +55,12 @@ def discover_page():
 def project_detail_page(project_id: int):
     """Serve the project detail page."""
     return HTMLResponse(content=_read_frontend_file("project_detail.html"))
+
+
+@app.get("/project/{project_id}/results", response_class=HTMLResponse)
+def project_results_page(project_id: int):
+    """Serve the project results page."""
+    return HTMLResponse(content=_read_frontend_file("project_results.html"))
 
 
 @app.get("/health")
