@@ -4,6 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 from app.config import settings
 from app.database import init_db
+from app.auth import router as auth_router
 from app.routes_projects import router as projects_router
 from app.routes_responses import router as responses_router
 from app.routes_results import router as results_router
@@ -22,12 +23,13 @@ def startup_event():
 
 
 # Include routers
+app.include_router(auth_router)
 app.include_router(projects_router)
 app.include_router(responses_router)
 app.include_router(results_router)
 
 
-# Serve static files (CSS, JS, images)
+# Serve static files
 static_dir = Path(__file__).resolve().parent.parent.parent / "static"
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 

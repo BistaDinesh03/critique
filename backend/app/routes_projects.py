@@ -2,7 +2,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.database import get_db
-from app.models import Project, Question, Response
+from app.models import Project, Question, Response, User
 from app.schemas import (
     ProjectCreate,
     ProjectOut,
@@ -12,7 +12,7 @@ from app.schemas import (
     ProjectWithQuestion,
     PaginatedProjects,
 )
-from app.temp_user import get_or_create_dev_user
+from app.auth import get_current_user
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 
@@ -22,9 +22,9 @@ def create_project_with_question(
     project_data: ProjectCreate,
     question_data: QuestionCreate,
     db: Session = Depends(get_db),
-    user=Depends(get_or_create_dev_user),
+    user: User = Depends(get_current_user),
 ):
-    """Create a project with its first question."""
+    """Create a project with its first question. Requires authentication."""
     # Create project
     project = Project(
         title=project_data.title,
@@ -56,7 +56,7 @@ def list_projects(
     page_size: int = Query(10, ge=1, le=50),
     db: Session = Depends(get_db),
 ):
-    """List projects with pagination and response counts."""
+    """List projects with pagination. Public endpoint."""
     # Get total count
     total = db.query(func.count(Project.id)).scalar()
 
@@ -73,10 +73,9 @@ def list_projects(
         .all()
     )
 
-    # Build list items with question text and response count
+    # Build list items
     items = []
     for project in projects:
-        # Get active question
         question = (
             db.query(Question)
             .filter(Question.project_id == project.id, Question.is_active == True)
@@ -84,7 +83,6 @@ def list_projects(
             .first()
         )
 
-        # Count responses for active question
         response_count = 0
         question_text = None
         if question:
@@ -120,12 +118,11 @@ def list_projects(
 
 @router.get("/{project_id}", response_model=ProjectWithQuestion)
 def get_project(project_id: int, db: Session = Depends(get_db)):
-    """Get a project with its active question."""
+    """Get a project with its active question. Public endpoint."""
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    # Get active question
     question = (
         db.query(Question)
         .filter(Question.project_id == project_id, Question.is_active == True)

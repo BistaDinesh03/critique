@@ -13,7 +13,7 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    github_id = Column(Integer, unique=True, nullable=False)
+    github_id = Column(Integer, unique=True, nullable=True)  # nullable for non-GitHub users
     username = Column(String(100), unique=True, nullable=False)
     avatar_url = Column(String(500), nullable=True)
     created_at = Column(DateTime, default=utc_now)
@@ -60,15 +60,14 @@ class Response(Base):
     __tablename__ = "responses"
 
     id = Column(Integer, primary_key=True, index=True)
-    clarity = Column(String(20), nullable=False)  # "very_clear", "mostly_clear", "confusing"
-    would_use = Column(String(10), nullable=False)  # "yes", "maybe", "no"
-    suggestion = Column(Text, nullable=True)  # optional text response
+    clarity = Column(String(20), nullable=False)
+    would_use = Column(String(10), nullable=False)
+    suggestion = Column(Text, nullable=True)
     created_at = Column(DateTime, default=utc_now)
 
     # Foreign keys
     question_id = Column(Integer, ForeignKey("questions.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    # IP address for duplicate prevention (hashed)
     ip_hash = Column(String(64), nullable=False)
 
     # Relationships

@@ -5,147 +5,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Critique — Ask one question. Get real answers.</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #fafafa;
-            color: #1a1a1a;
-            line-height: 1.6;
-            min-height: 100vh;
-        }
-
-        header {
-            border-bottom: 1px solid #e5e5e5;
-            padding: 1.5rem 2rem;
-            background: #ffffff;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-
-        header h1 {
-            font-size: 1.5rem;
-            font-weight: 700;
-        }
-
-        header h1 a {
-            color: #1a1a1a;
-            text-decoration: none;
-        }
-
-        header nav a {
-            color: #2563eb;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 0.9rem;
-        }
-
-        header nav a:hover {
-            text-decoration: underline;
-        }
-
-        main {
-            max-width: 640px;
-            margin: 0 auto;
-            padding: 3rem 2rem;
-        }
-
-        .card {
-            background: #ffffff;
-            border: 1px solid #e5e5e5;
-            border-radius: 8px;
-            padding: 2rem;
-        }
-
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-
-        label {
-            display: block;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            font-size: 0.9rem;
-        }
-
-        input[type="text"],
-        input[type="url"],
-        textarea {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid #d1d1d1;
-            border-radius: 6px;
-            font-size: 1rem;
-            font-family: inherit;
-            transition: border-color 0.15s;
-        }
-
-        input[type="text"]:focus,
-        input[type="url"]:focus,
-        textarea:focus {
-            outline: none;
-            border-color: #2563eb;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-        }
-
-        textarea {
-            resize: vertical;
-            min-height: 100px;
-        }
-
-        button {
-            background: #2563eb;
-            color: #ffffff;
-            border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 6px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.15s;
-        }
-
-        button:hover {
-            background: #1d4ed8;
-        }
-
-        .message {
-            margin-top: 1rem;
-            padding: 0.75rem;
-            border-radius: 6px;
-            display: none;
-        }
-
-        .message.success {
-            display: block;
-            background: #f0fdf4;
-            border: 1px solid #86efac;
-            color: #166534;
-        }
-
-        .message.error {
-            display: block;
-            background: #fef2f2;
-            border: 1px solid #fca5a5;
-            color: #991b1b;
-        }
-
-        @media (max-width: 600px) {
-            main {
-                padding: 1rem;
-            }
-
-            header {
-                padding: 1rem;
-            }
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #fafafa; color: #1a1a1a; line-height: 1.6; min-height: 100vh; }
+        header { border-bottom: 1px solid #e5e5e5; padding: 1.5rem 2rem; background: #ffffff; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+        header h1 { font-size: 1.5rem; font-weight: 700; }
+        header h1 a { color: #1a1a1a; text-decoration: none; }
+        header nav { display: flex; gap: 1rem; align-items: center; }
+        header nav a { color: #2563eb; text-decoration: none; font-weight: 600; font-size: 0.9rem; }
+        header nav a:hover { text-decoration: underline; }
+        .auth-btn { padding: 0.5rem 1rem; border-radius: 6px; font-weight: 600; font-size: 0.9rem; text-decoration: none; }
+        .login-btn { background: #2563eb; color: #ffffff; }
+        .login-btn:hover { background: #1d4ed8; text-decoration: none; }
+        .logout-btn { background: #f3f4f6; color: #444; }
+        .logout-btn:hover { background: #e5e5e5; text-decoration: none; }
+        main { max-width: 640px; margin: 0 auto; padding: 3rem 2rem; }
+        .card { background: #ffffff; border: 1px solid #e5e5e5; border-radius: 8px; padding: 2rem; }
+        .form-group { margin-bottom: 1.5rem; }
+        label { display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem; }
+        input[type="text"], input[type="url"], textarea { width: 100%; padding: 0.75rem; border: 1px solid #d1d1d1; border-radius: 6px; font-size: 1rem; font-family: inherit; transition: border-color 0.15s; }
+        input[type="text"]:focus, input[type="url"]:focus, textarea:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+        textarea { resize: vertical; min-height: 100px; }
+        button { background: #2563eb; color: #ffffff; border: none; padding: 0.75rem 1.5rem; border-radius: 6px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background-color 0.15s; }
+        button:hover { background: #1d4ed8; }
+        .message { margin-top: 1rem; padding: 0.75rem; border-radius: 6px; display: none; }
+        .message.success { display: block; background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
+        .message.error { display: block; background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
+        @media (max-width: 600px) { main { padding: 1rem; } header { padding: 1rem; } }
     </style>
 </head>
 <body>
@@ -153,56 +38,47 @@
         <h1><a href="/">Critique</a></h1>
         <nav>
             <a href="/discover">Discover projects</a>
+            <a href="/auth/login" class="auth-btn login-btn" id="login-btn">Login with GitHub</a>
+            <a href="/auth/logout" class="auth-btn logout-btn" id="logout-btn" style="display:none;">Logout</a>
         </nav>
     </header>
-
     <main>
         <div class="card">
             <form id="project-form">
                 <h2 style="margin-bottom: 1.5rem; font-size: 1.25rem;">Submit your project</h2>
-
-                <div class="form-group">
-                    <label for="title">Project title</label>
-                    <input type="text" id="title" name="title" required maxlength="200" placeholder="Akiya Scout">
-                </div>
-
-                <div class="form-group">
-                    <label for="description">Short description</label>
-                    <textarea id="description" name="description" maxlength="5000" placeholder="Find abandoned houses in Japan"></textarea>
-                </div>
-
-                <div class="form-group">
-                    <label for="url">Project URL</label>
-                    <input type="url" id="url" name="url" maxlength="500" placeholder="https://example.com">
-                </div>
-
-                <div class="form-group">
-                    <label for="image_url">Screenshot URL (optional)</label>
-                    <input type="url" id="image_url" name="image_url" maxlength="500" placeholder="https://example.com/screenshot.png">
-                </div>
-
+                <div class="form-group"><label for="title">Project title</label><input type="text" id="title" name="title" required maxlength="200" placeholder="Akiya Scout"></div>
+                <div class="form-group"><label for="description">Short description</label><textarea id="description" name="description" maxlength="5000" placeholder="Find abandoned houses in Japan"></textarea></div>
+                <div class="form-group"><label for="url">Project URL</label><input type="url" id="url" name="url" maxlength="500" placeholder="https://example.com"></div>
+                <div class="form-group"><label for="image_url">Screenshot URL (optional)</label><input type="url" id="image_url" name="image_url" maxlength="500" placeholder="https://example.com/screenshot.png"></div>
                 <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 1.5rem 0;">
-
-                <div class="form-group">
-                    <label for="question">Your ONE question</label>
-                    <textarea id="question" name="question" required maxlength="500" placeholder="Can you understand what this website does within 10 seconds?"></textarea>
-                </div>
-
+                <div class="form-group"><label for="question">Your ONE question</label><textarea id="question" name="question" required maxlength="500" placeholder="Can you understand what this website does within 10 seconds?"></textarea></div>
                 <button type="submit">Submit for feedback</button>
-
                 <div class="message" id="message"></div>
             </form>
         </div>
     </main>
-
     <script>
+        // Check auth state
+        async function checkAuth() {
+            try {
+                const response = await fetch('/api/projects/?page=1&page_size=1');
+                // If we can reach the API, check for auth via a protected endpoint
+                const authCheck = await fetch('/auth/check');
+                if (authCheck.status === 200) {
+                    document.getElementById('login-btn').style.display = 'none';
+                    document.getElementById('logout-btn').style.display = 'inline';
+                }
+            } catch (error) {
+                // Not authenticated
+            }
+        }
+        
         document.getElementById('project-form').addEventListener('submit', async function(e) {
             e.preventDefault();
-
             const messageDiv = document.getElementById('message');
             messageDiv.className = 'message';
             messageDiv.textContent = '';
-
+            
             const payload = {
                 project_data: {
                     title: document.getElementById('title').value.trim(),
@@ -214,22 +90,21 @@
                     text: document.getElementById('question').value.trim(),
                 }
             };
-
+            
             try {
                 const response = await fetch('/api/projects/', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(payload),
                 });
-
                 const data = await response.json();
-
                 if (response.ok) {
                     messageDiv.className = 'message success';
                     messageDiv.textContent = 'Project submitted successfully!';
                     document.getElementById('project-form').reset();
+                } else if (response.status === 401) {
+                    messageDiv.className = 'message error';
+                    messageDiv.textContent = 'Please login with GitHub to submit a project.';
                 } else {
                     messageDiv.className = 'message error';
                     messageDiv.textContent = 'Error: ' + JSON.stringify(data);
@@ -239,6 +114,8 @@
                 messageDiv.textContent = 'Network error: ' + error.message;
             }
         });
+        
+        checkAuth();
     </script>
 </body>
 </html>

@@ -2,9 +2,9 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models import Project, Question, Response
+from app.models import Project, Question, Response, User
 from app.schemas import ResponseCreate, ResponseOut
-from app.temp_user import get_or_create_dev_user
+from app.auth import get_current_user
 
 router = APIRouter(prefix="/api/projects", tags=["responses"])
 
@@ -20,9 +20,9 @@ def create_response(
     response_data: ResponseCreate,
     request: Request,
     db: Session = Depends(get_db),
-    user=Depends(get_or_create_dev_user),
+    user: User = Depends(get_current_user),
 ):
-    """Submit a structured response to a project's active question."""
+    """Submit a structured response to a project's active question. Requires authentication."""
     # Validate project exists
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
@@ -42,10 +42,10 @@ def create_response(
     client_ip = request.client.host if request.client else "unknown"
     ip_hash = hash_ip(client_ip)
 
-    # Check for duplicate submission from same IP on same question
+    # Check for duplicate submission from same user on same question
     existing = (
         db.query(Response)
-        .filter(Response.question_id == question.id, Response.ip_hash == ip_hash)
+        .filter(Response.question_id == question.id, Response.user_id == user.id)
         .first()
     )
     if existing:
@@ -69,13 +69,11 @@ def create_response(
 
 @router.get("/{project_id}/responses", response_model=list[ResponseOut])
 def list_responses(project_id: int, db: Session = Depends(get_db)):
-    """List all responses for a project's active question."""
-    # Validate project exists
+    """List all responses for a project's active question. Public endpoint."""
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    # Get active question
     question = (
         db.query(Question)
         .filter(Question.project_id == project_id, Question.is_active == True)
@@ -85,7 +83,6 @@ def list_responses(project_id: int, db: Session = Depends(get_db)):
     if not question:
         return []
 
-    # Get responses
     responses = (
         db.query(Response)
         .filter(Response.question_id == question.id)

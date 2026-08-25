@@ -1,14 +1,5 @@
-﻿from fastapi.testclient import TestClient
-from app.main import app
-from app.database import init_db, SessionLocal
+﻿from app.database import init_db, SessionLocal
 from app.models import Project, Question, Response, User
-
-client = TestClient(app)
-
-
-def setup_function():
-    """Initialize database before each test."""
-    init_db()
 
 
 def cleanup_database():
@@ -24,8 +15,8 @@ def cleanup_database():
         db.close()
 
 
-def create_test_project(title="Akiya Scout", question_text="Can you understand what this website does within 10 seconds?"):
-    """Helper to create a test project via API."""
+def create_test_project(client, title="Akiya Scout", question_text="Can you understand what this website does within 10 seconds?"):
+    """Helper to create a test project via authenticated client."""
     payload = {
         "project_data": {
             "title": title,
@@ -40,32 +31,26 @@ def create_test_project(title="Akiya Scout", question_text="Can you understand w
     return client.post("/api/projects/", json=payload)
 
 
-def test_create_project_with_question():
+def test_create_project_with_question(auth_client):
     """Test creating a project with a question via API."""
     cleanup_database()
-
-    response = create_test_project()
-
+    response = create_test_project(auth_client)
     assert response.status_code == 201
     data = response.json()
     assert data["project"]["title"] == "Akiya Scout"
     assert data["question"]["text"] == "Can you understand what this website does within 10 seconds?"
     assert data["question"]["is_active"] == True
-
     cleanup_database()
 
 
-def test_list_projects_with_pagination():
+def test_list_projects_with_pagination(auth_client):
     """Test listing projects with pagination."""
     cleanup_database()
+    create_test_project(auth_client, title="Project One")
+    create_test_project(auth_client, title="Project Two")
+    create_test_project(auth_client, title="Project Three")
 
-    # Create 3 test projects
-    create_test_project(title="Project One")
-    create_test_project(title="Project Two")
-    create_test_project(title="Project Three")
-
-    # List with page_size=2
-    response = client.get("/api/projects/?page=1&page_size=2")
+    response = auth_client.get("/api/projects/?page=1&page_size=2")
     assert response.status_code == 200
     data = response.json()
     assert data["total"] == 3
@@ -73,12 +58,10 @@ def test_list_projects_with_pagination():
     assert data["page_size"] == 2
     assert data["total_pages"] == 2
     assert len(data["items"]) == 2
-    # Items should have question_text and response_count
     assert data["items"][0]["question_text"] is not None
     assert data["items"][0]["response_count"] == 0
 
-    # Get page 2
-    response = client.get("/api/projects/?page=2&page_size=2")
+    response = auth_client.get("/api/projects/?page=2&page_size=2")
     assert response.status_code == 200
     data = response.json()
     assert len(data["items"]) == 1
@@ -86,27 +69,24 @@ def test_list_projects_with_pagination():
     cleanup_database()
 
 
-def test_get_project_with_question():
+def test_get_project_with_question(auth_client):
     """Test getting a project with its active question via API."""
     cleanup_database()
-
-    create_response = create_test_project()
+    create_response = create_test_project(auth_client)
     project_id = create_response.json()["project"]["id"]
 
-    response = client.get(f"/api/projects/{project_id}")
+    response = auth_client.get(f"/api/projects/{project_id}")
     assert response.status_code == 200
     data = response.json()
     assert data["project"]["id"] == project_id
     assert data["project"]["title"] == "Akiya Scout"
     assert data["question"]["text"] == "Can you understand what this website does within 10 seconds?"
-
     cleanup_database()
 
 
-def test_validation_rejects_empty_title():
+def test_validation_rejects_empty_title(auth_client):
     """Test that empty title is rejected."""
     cleanup_database()
-
     payload = {
         "project_data": {
             "title": "",
@@ -118,18 +98,34 @@ def test_validation_rejects_empty_title():
             "text": "Test question?",
         },
     }
-
-    response = client.post("/api/projects/", json=payload)
+    response = auth_client.post("/api/projects/", json=payload)
     assert response.status_code == 422
-
     cleanup_database()
 
 
-def test_pagination_rejects_invalid_page():
+def test_pagination_rejects_invalid_page(auth_client):
     """Test that page=0 is rejected."""
     cleanup_database()
-
-    response = client.get("/api/projects/?page=0")
+    response = auth_client.get("/api/projects/?page=0")
     assert response.status_code == 422
-
     cleanup_database()
+
+
+def test_unauthenticated_create_project():
+    """Test that unauthenticated project creation is rejected."""
+    from fastapi.testclient import TestClient
+    from app.main import app
+    client = TestClient(app)
+    payload = {
+        "project_data": {
+            "title": "Unauthorized",
+            "description": "Should fail",
+            "url": None,
+            "image_url": None,
+        },
+        "question_data": {
+            "text": "Should this fail?",
+        },
+    }
+    response = client.post("/api/projects/", json=payload)
+    assert response.status_code == 401
