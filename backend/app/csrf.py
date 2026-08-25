@@ -1,5 +1,7 @@
 ﻿import secrets
+import hmac
 from fastapi import HTTPException, Request
+from app.config import settings
 
 CSRF_COOKIE_NAME = "critique_csrf"
 CSRF_HEADER_NAME = "X-CSRF-Token"
@@ -15,10 +17,10 @@ def set_csrf_cookie(response, token: str):
     response.set_cookie(
         CSRF_COOKIE_NAME,
         token,
-        httponly=False,  # Must be readable by JavaScript to send in header
-        max_age=86400 * 7,
+        httponly=False,  # Must be readable by JavaScript
+        max_age=settings.SESSION_COOKIE_MAX_AGE,
         samesite="lax",
-        secure=False,  # Set to True in production
+        secure=settings.SESSION_COOKIE_SECURE,
     )
 
 
@@ -30,8 +32,6 @@ def verify_csrf_token(request: Request) -> bool:
     if not cookie_token or not header_token:
         return False
 
-    # Use constant-time comparison to prevent timing attacks
-    import hmac
     return hmac.compare_digest(cookie_token, header_token)
 
 

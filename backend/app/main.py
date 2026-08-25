@@ -44,6 +44,13 @@ def _read_frontend_file(filename: str) -> str:
     return file_path.read_text(encoding="utf-8")
 
 
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request, exc):
+    """Generic error handler that doesn't leak stack traces."""
+    return {"detail": "Internal server error"}
+
 @app.get("/", response_class=HTMLResponse)
 def homepage():
     """Serve the submission form."""
@@ -72,3 +79,4 @@ def project_results_page(project_id: int):
 def health_check():
     """Health check endpoint for monitoring."""
     return {"status": "ok"}
+

@@ -139,3 +139,4 @@ def get_csrf_token(request: Request):
     if not token:
         token = generate_csrf_token()
     return {"csrf_token": token}
+
