@@ -44,7 +44,7 @@ Critique focuses on one thing: helping makers get useful answers to specific que
 
 Most feedback requests are too broad: *"What do you think of my project?"*
 
-Critique intentionally focuses each project around one specific question, like:
+Critique intentionally focuses each project around one specific question, for example:
 
 > "Is it immediately clear what this tool does?"
 
@@ -94,14 +94,14 @@ See [SECURITY.md](SECURITY.md).
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Backend | FastAPI, SQLAlchemy |
-| Database | PostgreSQL (production), SQLite (development) |
-| Frontend | HTML, CSS, Vanilla JavaScript |
-| Authentication | GitHub OAuth |
-| Testing | pytest (44 tests) |
-| Deployment | Render |
+| Layer          | Technology                                      |
+|----------------|-------------------------------------------------|
+| Backend        | FastAPI, SQLAlchemy                             |
+| Database       | PostgreSQL (production), SQLite (development)   |
+| Frontend       | HTML, CSS, Vanilla JavaScript                   |
+| Authentication | GitHub OAuth                                    |
+| Testing        | pytest (44 tests)                               |
+| Deployment     | Render                                          |
 
 ## Quick Start
 
@@ -112,76 +112,76 @@ See [SECURITY.md](SECURITY.md).
 
 ### Clone
 
-\\\powershell
+```powershell
 git clone https://github.com/BistaDinesh03/critique.git
 cd critique
-\\\
+```
 
 ### Install
 
-\\\powershell
+```powershell
 python -m pip install -r backend/requirements.txt
-\\\
+```
 
 ### Configure
 
-\\\powershell
+```powershell
 Copy-Item .env.example .env
-\\\
+```
 
-Edit .env with your GitHub OAuth credentials and a secret key.
+Edit `.env` with your GitHub OAuth credentials and a secret key.
 
 Generate a secret key:
 
-\\\powershell
+```powershell
 python -c "import secrets; print(secrets.token_hex(32))"
-\\\
+```
 
 ### Run
 
-\\\powershell
+```powershell
 cd backend
 python -m uvicorn app.main:app --reload
-\\\
+```
 
-Open http://127.0.0.1:8000
+Open [http://127.0.0.1:8000](http://127.0.0.1:8000)
 
 ### Test
 
-\\\powershell
+```powershell
 cd backend
 python -m pytest tests/ -v
-\\\
+```
 
 ## Environment Variables
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| GITHUB_CLIENT_ID | Yes | GitHub OAuth App Client ID |
-| GITHUB_CLIENT_SECRET | Yes | GitHub OAuth App Client Secret |
-| GITHUB_REDIRECT_URI | Yes | OAuth callback URL |
-| SECRET_KEY | Yes | Random string for session signing |
-| DATABASE_URL | Yes | SQLite (dev) or PostgreSQL (production) |
-| APP_ENV | No | development or production |
-| APP_URL | No | Base URL of the application |
-| SESSION_COOKIE_SECURE | No | 	rue in production (HTTPS) |
+| Variable               | Required | Description                                      |
+|------------------------|----------|--------------------------------------------------|
+| `GITHUB_CLIENT_ID`     | Yes      | GitHub OAuth App Client ID                       |
+| `GITHUB_CLIENT_SECRET` | Yes      | GitHub OAuth App Client Secret                   |
+| `GITHUB_REDIRECT_URI`  | Yes      | OAuth callback URL                               |
+| `SECRET_KEY`           | Yes      | Random string for session signing                |
+| `DATABASE_URL`         | Yes      | SQLite (dev) or PostgreSQL (production)          |
+| `APP_ENV`              | No       | `development` or `production`                    |
+| `APP_URL`              | No       | Base URL of the application                      |
+| `SESSION_COOKIE_SECURE`| No       | `true` in production (HTTPS)                     |
 
-Never commit .env to the repository.
+Never commit `.env` to the repository.
 
 ## GitHub OAuth Setup
 
-1. Go to [GitHub Settings > Developer settings > OAuth Apps](https://github.com/settings/developers)
+1. Go to [GitHub Settings → Developer settings → OAuth Apps](https://github.com/settings/developers)
 2. Click **New OAuth App**
 3. Set:
-   - **Homepage URL**: http://127.0.0.1:8000 (local) or your production URL
-   - **Callback URL**: http://127.0.0.1:8000/auth/callback (local) or your production callback
+   - **Homepage URL**: `http://127.0.0.1:8000` (local) or your production URL
+   - **Callback URL**: `http://127.0.0.1:8000/auth/callback` (local) or your production callback
 4. Register and copy the Client ID and Client Secret
 
 Full instructions: [docs/github-oauth-setup.md](docs/github-oauth-setup.md)
 
 ## Project Structure
 
-\\\
+```
 backend/          # FastAPI application
   app/            # Python source code
   tests/          # pytest tests
@@ -189,7 +189,7 @@ frontend/         # HTML pages (vanilla JS)
 static/           # CSS, logo, favicon
 docs/             # Setup guides
 render.yaml       # Render deployment config
-\\\
+```
 
 ## Contributing
 
