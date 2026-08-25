@@ -4,6 +4,10 @@
 
 A lightweight, open-source platform for getting honest human feedback on your work. Built with simplicity in mind — no algorithms, no AI, no noise.
 
+## Live Demo
+
+**https://critique-qqz9.onrender.com**
+
 ## Why it exists
 
 Getting honest feedback on side projects is hard. Social media rewards engagement, not honesty. Critique gives you a clean space to ask ONE specific question about your project and receive structured, human responses.
@@ -15,6 +19,8 @@ Getting honest feedback on side projects is hard. Social media rewards engagemen
 - **Simple discovery** — Browse projects asking for feedback
 - **Results dashboard** — Clean percentage breakdowns
 - **GitHub OAuth** — Sign in with your existing account
+- **Privacy controls** — Written feedback visible only to project owner
+- **Security** — CSRF protection, rate limiting, input validation
 - **No algorithms** — Projects are listed chronologically
 - **No AI** — Every response is from a real person
 
@@ -24,7 +30,8 @@ Getting honest feedback on side projects is hard. Social media rewards engagemen
 - **Backend**: Python 3.11+, FastAPI
 - **Database**: SQLite
 - **Authentication**: GitHub OAuth
-- **Testing**: pytest
+- **Testing**: pytest (44 tests)
+- **Deployment**: Render
 
 ## Local Development
 
@@ -38,26 +45,16 @@ Getting honest feedback on side projects is hard. Social media rewards engagemen
 
 `powershell
 # Clone the repository
-git clone https://github.com/yourusername/critique.git
+git clone https://github.com/BistaDinesh03/critique.git
 cd critique
 
 # Install dependencies
-python -m pip install -r requirements.txt
+python -m pip install -r backend/requirements.txt
 
 # Create environment file
 Copy-Item .env.example .env
 
-# Edit .env with your values
-# See "GitHub OAuth Setup" below
-Environment Variables
-VariableDescriptionRequired
-GITHUB_CLIENT_IDGitHub OAuth App Client IDYes
-GITHUB_CLIENT_SECRETGitHub OAuth App Client SecretYes
-GITHUB_REDIRECT_URIOAuth callback URLYes
-SECRET_KEYRandom string for session signingYes
-DATABASE_URLSQLite database URLNo (default: sqlite:///./critique.db)
-APP_ENVEnvironment nameNo (default: development)
-APP_URLBase URLNo (default: http://127.0.0.1:8000)
+# Edit .env with your values (see Environment Variables below)
 Running the Application
 powershell
 cd backend
@@ -68,6 +65,26 @@ Running Tests
 powershell
 cd backend
 python -m pytest tests/ -v
+Production Deployment
+The application is deployed on Render.
+
+Render Configuration
+Build Command: pip install -r backend/requirements.txt
+
+Start Command: cd backend && uvicorn app.main:app --host 0.0.0.0 --port 
+
+Environment: Python 3
+
+Required Environment Variables
+VariableRequiredDescription
+GITHUB_CLIENT_IDYesGitHub OAuth App Client ID
+GITHUB_CLIENT_SECRETYesGitHub OAuth App Client Secret
+GITHUB_REDIRECT_URIYesOAuth callback URL (e.g., https://your-app.onrender.com/auth/callback)
+SECRET_KEYYesRandom string for session signing
+DATABASE_URLNoDefault: sqlite:///./critique.db
+APP_ENVNoSet to production in production
+APP_URLNoBase URL of the application
+SESSION_COOKIE_SECURENoSet to true in production (HTTPS)
 GitHub OAuth Setup
 Go to GitHub Settings → Developer settings → OAuth Apps
 
@@ -77,15 +94,15 @@ Fill in:
 
 Application name: Critique
 
-Homepage URL: http://127.0.0.1:8000
+Homepage URL: Your application URL
 
-Authorization callback URL: http://127.0.0.1:8000/auth/callback
+Authorization callback URL: https://your-app.onrender.com/auth/callback
 
 Click Register application
 
 Copy the Client ID and generate a Client Secret
 
-Put both values in your .env file
+Put both values in your environment variables
 
 Generate a secret key:
 
@@ -99,20 +116,26 @@ critique/
 ├── backend/          # FastAPI application
 │   ├── app/          # Python source code
 │   │   ├── auth.py       # GitHub OAuth and sessions
+│   │   ├── csrf.py       # CSRF protection
 │   │   ├── database.py   # SQLite connection
 │   │   ├── main.py       # App entry point
 │   │   ├── models.py     # SQLAlchemy models
+│   │   ├── rate_limit.py # In-memory rate limiting
 │   │   ├── routes_*.py   # API endpoints
 │   │   ├── schemas.py    # Pydantic validation
 │   │   └── stats.py      # Feedback calculations
-│   └── tests/        # pytest test suite
+│   └── tests/        # 44 pytest tests
 ├── frontend/         # HTML pages (vanilla JS)
 ├── docs/             # Documentation
 ├── static/           # Static files
 ├── .env.example      # Environment template
+├── render.yaml       # Render deployment config
 └── README.md
 Contributing
 See CONTRIBUTING.md for how to contribute.
+
+Security
+See SECURITY.md for reporting vulnerabilities.
 
 License
 MIT — see LICENSE for details.
