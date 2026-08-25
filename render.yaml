@@ -10,7 +10,7 @@
       - key: SESSION_COOKIE_SECURE
         value: "true"
       - key: DATABASE_URL
-        value: sqlite:///./critique.db
+        value: sqlite:////opt/render/project/data/critique.db
       - key: GITHUB_CLIENT_ID
         sync: false
       - key: GITHUB_CLIENT_SECRET
@@ -23,5 +23,5 @@
         sync: false
     disk:
       name: sqlite-data
-      mountPath: /opt/render/project/src/backend
+      mountPath: /opt/render/project/data
       sizeGB: 1

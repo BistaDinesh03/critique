@@ -1,6 +1,14 @@
-﻿from sqlalchemy import create_engine
+﻿import os
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 from app.config import settings
+
+# Ensure the database directory exists (important for absolute paths in production)
+if settings.DATABASE_URL.startswith("sqlite:///"):
+    db_path = settings.DATABASE_URL.replace("sqlite:///", "")
+    db_dir = os.path.dirname(db_path)
+    if db_dir and not os.path.exists(db_dir):
+        os.makedirs(db_dir, exist_ok=True)
 
 # Create database engine
 # SQLite needs check_same_thread=False for FastAPI
