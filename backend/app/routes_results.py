@@ -46,7 +46,12 @@ def get_project_results(
 
     # Determine if the requester is the owner using the X-Owner-ID header
     owner_id_header = request.headers.get("X-Owner-ID")
-    is_owner = owner_id_header is not None and int(owner_id_header) == project.owner_id
+    is_owner = False
+    if owner_id_header:
+        try:
+            is_owner = int(owner_id_header) == project.owner_id
+        except ValueError:
+            is_owner = False
 
     response_out = []
     if is_owner:
