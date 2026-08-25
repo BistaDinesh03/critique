@@ -1,141 +1,154 @@
-﻿# Critique
+﻿<p align="center">
+  <img src="static/logo.svg" alt="Critique" width="48" />
+</p>
+
+# Critique
 
 **Ask one question. Get real answers.**
 
-A lightweight, open-source platform for getting honest human feedback on your work. Built with simplicity in mind — no algorithms, no AI, no noise.
+Critique is an open-source platform where makers share what they've built, ask one focused question, and receive structured feedback from real people.
 
-## Live Demo
+---
 
-**https://critique-qqz9.onrender.com**
+**[Live Demo](https://critique-qqz9.onrender.com)** &nbsp;|&nbsp; **[GitHub](https://github.com/BistaDinesh03/critique)** &nbsp;|&nbsp; **[Contributing](CONTRIBUTING.md)**
 
-## Why it exists
+---
 
-Getting honest feedback on side projects is hard. Social media rewards engagement, not honesty. Critique gives you a clean space to ask ONE specific question about your project and receive structured, human responses.
+## How It Works
+
+1. **Share** — Add your project with a title, description, and link.
+2. **Ask** — Ask the one specific question you genuinely want answered.
+3. **Learn** — Get structured feedback from real people.
 
 ## Features
 
-- **One question per project** — Focus on what matters
-- **Structured feedback** — Clarity rating, would-you-use-it, and written suggestions
-- **Simple discovery** — Browse projects asking for feedback
-- **Results dashboard** — Clean percentage breakdowns
-- **GitHub OAuth** — Sign in with your existing account
-- **Privacy controls** — Written feedback visible only to project owner
-- **Security** — CSRF protection, rate limiting, input validation
-- **No algorithms** — Projects are listed chronologically
-- **No AI** — Every response is from a real person
+### For Makers
+- Submit a project
+- Ask one focused question
+- View aggregate results (clarity and would-use percentages)
+- Read private written feedback (visible only to you)
+- Manage and delete projects from My Projects
+
+### For Reviewers
+- Discover projects chronologically
+- Rate clarity (Very clear / Mostly clear / Confusing)
+- Share whether you'd use it (Yes / Maybe / No)
+- Leave optional written suggestions
+- One response per user per project
+
+## Built With Care
+
+- GitHub OAuth authentication
+- CSRF protection
+- Rate limiting
+- Input validation
+- XSS protection
+- Ownership checks
+- Privacy controls for written feedback
+
+See [SECURITY.md](SECURITY.md).
 
 ## Tech Stack
 
-- **Frontend**: HTML, CSS, Vanilla JavaScript
-- **Backend**: Python 3.11+, FastAPI
-- **Database**: SQLite
-- **Authentication**: GitHub OAuth
-- **Testing**: pytest (44 tests)
-- **Deployment**: Render
+| Layer | Technology |
+|-------|-----------|
+| Backend | FastAPI, SQLAlchemy |
+| Database | SQLite |
+| Frontend | HTML, CSS, Vanilla JavaScript |
+| Authentication | GitHub OAuth |
+| Testing | pytest (44 tests) |
+| Deployment | Render |
 
-## Local Development
+## Getting Started
 
-### Prerequisites
+### Requirements
 
-- Python 3.11+
+- Python 3
 - Git
-- A GitHub account
 
-### Setup
+### Clone
 
-`powershell
-# Clone the repository
+\\\ash
 git clone https://github.com/BistaDinesh03/critique.git
 cd critique
+\\\
 
-# Install dependencies
+### Install
+
+\\\ash
 python -m pip install -r backend/requirements.txt
+\\\
 
-# Create environment file
+### Configure
+
+\\\ash
 Copy-Item .env.example .env
+\\\
 
-# Edit .env with your values (see Environment Variables below)
-Running the Application
-powershell
+Edit .env with your GitHub OAuth credentials and a secret key.
+
+### Run
+
+\\\ash
 cd backend
 python -m uvicorn app.main:app --reload
-Open http://127.0.0.1:8000 in your browser.
+\\\
 
-Running Tests
-powershell
+Open http://127.0.0.1:8000
+
+### Test
+
+\\\ash
 cd backend
 python -m pytest tests/ -v
-Production Deployment
-The application is deployed on Render.
+\\\
 
-Render Configuration
-Build Command: pip install -r backend/requirements.txt
+## Environment Variables
 
-Start Command: cd backend && uvicorn app.main:app --host 0.0.0.0 --port 
+| Variable | Required | Description |
+|----------|----------|-------------|
+| GITHUB_CLIENT_ID | Yes | GitHub OAuth App Client ID |
+| GITHUB_CLIENT_SECRET | Yes | GitHub OAuth App Client Secret |
+| GITHUB_REDIRECT_URI | Yes | OAuth callback URL |
+| SECRET_KEY | Yes | Random string for session signing |
+| DATABASE_URL | No | Default: sqlite:///./critique.db |
+| APP_ENV | No | development or production |
+| APP_URL | No | Base URL of the application |
+| SESSION_COOKIE_SECURE | No | 	rue in production (HTTPS) |
 
-Environment: Python 3
+## GitHub OAuth Setup
 
-Required Environment Variables
-VariableRequiredDescription
-GITHUB_CLIENT_IDYesGitHub OAuth App Client ID
-GITHUB_CLIENT_SECRETYesGitHub OAuth App Client Secret
-GITHUB_REDIRECT_URIYesOAuth callback URL (e.g., https://your-app.onrender.com/auth/callback)
-SECRET_KEYYesRandom string for session signing
-DATABASE_URLNoDefault: sqlite:///./critique.db
-APP_ENVNoSet to production in production
-APP_URLNoBase URL of the application
-SESSION_COOKIE_SECURENoSet to true in production (HTTPS)
-GitHub OAuth Setup
-Go to GitHub Settings → Developer settings → OAuth Apps
+1. Go to [GitHub Settings > Developer settings > OAuth Apps](https://github.com/settings/developers)
+2. Click **New OAuth App**
+3. Set:
+   - **Homepage URL**: http://127.0.0.1:8000 (local) or your production URL
+   - **Callback URL**: http://127.0.0.1:8000/auth/callback (local) or your production callback
+4. Register and copy the Client ID and Client Secret
 
-Click New OAuth App
-
-Fill in:
-
-Application name: Critique
-
-Homepage URL: Your application URL
-
-Authorization callback URL: https://your-app.onrender.com/auth/callback
-
-Click Register application
-
-Copy the Client ID and generate a Client Secret
-
-Put both values in your environment variables
+Full instructions: [docs/github-oauth-setup.md](docs/github-oauth-setup.md)
 
 Generate a secret key:
 
-powershell
+\\\ash
 python -c "import secrets; print(secrets.token_hex(32))"
-See docs/github-oauth-setup.md for detailed instructions.
+\\\
 
-Project Structure
-text
-critique/
-├── backend/          # FastAPI application
-│   ├── app/          # Python source code
-│   │   ├── auth.py       # GitHub OAuth and sessions
-│   │   ├── csrf.py       # CSRF protection
-│   │   ├── database.py   # SQLite connection
-│   │   ├── main.py       # App entry point
-│   │   ├── models.py     # SQLAlchemy models
-│   │   ├── rate_limit.py # In-memory rate limiting
-│   │   ├── routes_*.py   # API endpoints
-│   │   ├── schemas.py    # Pydantic validation
-│   │   └── stats.py      # Feedback calculations
-│   └── tests/        # 44 pytest tests
-├── frontend/         # HTML pages (vanilla JS)
-├── docs/             # Documentation
-├── static/           # Static files
-├── .env.example      # Environment template
-├── render.yaml       # Render deployment config
-└── README.md
-Contributing
-See CONTRIBUTING.md for how to contribute.
+## Project Structure
 
-Security
-See SECURITY.md for reporting vulnerabilities.
+\\\
+backend/          # FastAPI application
+  app/            # Python source code
+  tests/          # 44 pytest tests
+frontend/         # HTML pages (vanilla JS)
+static/           # CSS, logo, favicon
+docs/             # Setup guides
+render.yaml       # Render deployment config
+\\\
 
-License
-MIT — see LICENSE for details.
+## Contributing
+
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## License
+
+MIT — see [LICENSE](LICENSE).
