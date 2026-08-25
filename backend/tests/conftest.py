@@ -4,7 +4,7 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app.database import init_db, SessionLocal
 from app.models import User
-from app.auth import get_current_user
+from app.auth import get_current_user, get_current_user_optional
 from app.csrf import generate_csrf_token, CSRF_COOKIE_NAME
 from app.rate_limit import reset_rate_limits
 
@@ -26,27 +26,28 @@ def auth_client():
     db.add(user)
     db.commit()
     db.refresh(user)
-    
-    # Keep a reference to the session so the user is not detached
-    # Store user_id for later use
+
     user_id = user.id
     db.close()
-    
-    # Re-query user in a new session that stays open
+
     db2 = SessionLocal()
     user = db2.query(User).filter(User.id == user_id).first()
 
     def mock_get_current_user():
         return user
 
+    def mock_get_current_user_optional():
+        return user
+
     app.dependency_overrides[get_current_user] = mock_get_current_user
+    app.dependency_overrides[get_current_user_optional] = mock_get_current_user_optional
     client = TestClient(app)
-    
+
     csrf_token = generate_csrf_token()
     client.cookies.set(CSRF_COOKIE_NAME, csrf_token)
     client.headers["X-CSRF-Token"] = csrf_token
-    
+
     yield client
-    
+
     app.dependency_overrides.clear()
     db2.close()

@@ -4,6 +4,7 @@ from app.database import get_db
 from app.models import Project, Question, Response, User
 from app.schemas import ResponseOwnerOut
 from app.stats import calculate_stats
+from app.auth import get_current_user_optional
 
 router = APIRouter(prefix="/api/projects", tags=["results"])
 
@@ -13,6 +14,7 @@ def get_project_results(
     project_id: int,
     request: Request,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_optional),
 ):
     """Get aggregated results. Public stats; owner sees written responses."""
     project = db.query(Project).filter(Project.id == project_id).first()
@@ -44,14 +46,8 @@ def get_project_results(
 
     stats = calculate_stats(responses)
 
-    # Determine if the requester is the owner using the X-Owner-ID header
-    owner_id_header = request.headers.get("X-Owner-ID")
-    is_owner = False
-    if owner_id_header:
-        try:
-            is_owner = int(owner_id_header) == project.owner_id
-        except ValueError:
-            is_owner = False
+    # Server-side authorization: use authenticated session, NOT client headers
+    is_owner = current_user is not None and project.owner_id == current_user.id
 
     response_out = []
     if is_owner:

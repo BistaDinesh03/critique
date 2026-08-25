@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import Project, Question, Response, User
 from app.schemas import ResponseCreate, ResponseOut, ResponseOwnerOut
-from app.auth import get_current_user
+from app.auth import get_current_user, get_current_user_optional
 from app.csrf import require_csrf
 from app.rate_limit import rate_limit
 
@@ -71,6 +71,7 @@ def list_responses(
     project_id: int,
     request: Request,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_optional),
 ):
     """List responses. Public sees stats only; owner sees written suggestions."""
     project = db.query(Project).filter(Project.id == project_id).first()
@@ -93,14 +94,8 @@ def list_responses(
         .all()
     )
 
-    # Determine if the requester is the owner using the X-Owner-ID header
-    owner_id_header = request.headers.get("X-Owner-ID")
-    is_owner = False
-    if owner_id_header:
-        try:
-            is_owner = int(owner_id_header) == project.owner_id
-        except ValueError:
-            is_owner = False
+    # Server-side authorization: use authenticated session, NOT client headers
+    is_owner = current_user is not None and project.owner_id == current_user.id
 
     if is_owner:
         return [
