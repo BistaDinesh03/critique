@@ -45,8 +45,15 @@ def test_create_full_chain():
         db.commit()
         db.refresh(question)
 
-        # Create response
-        response = Response(text="Looks great!", question_id=question.id, user_id=user.id)
+        # Create response with new structured fields
+        response = Response(
+            clarity="very_clear",
+            would_use="yes",
+            suggestion="Looks great!",
+            question_id=question.id,
+            user_id=user.id,
+            ip_hash="test_hash_123",
+        )
         db.add(response)
         db.commit()
         db.refresh(response)
@@ -56,6 +63,8 @@ def test_create_full_chain():
         assert project.questions[0].id == question.id
         assert question.responses[0].id == response.id
         assert response.user_id == user.id
+        assert response.clarity == "very_clear"
+        assert response.would_use == "yes"
 
         # Clean up (delete in reverse order)
         db.delete(response)

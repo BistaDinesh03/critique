@@ -71,3 +71,23 @@ class PaginatedProjects(BaseModel):
     page: int
     page_size: int
     total_pages: int
+
+
+class ResponseCreate(BaseModel):
+    """Schema for creating a response."""
+    clarity: str = Field(..., pattern="^(very_clear|mostly_clear|confusing)$")
+    would_use: str = Field(..., pattern="^(yes|maybe|no)$")
+    suggestion: Optional[str] = Field(None, max_length=2000)
+
+
+class ResponseOut(BaseModel):
+    """Schema for returning response data."""
+    id: int
+    clarity: str
+    would_use: str
+    suggestion: Optional[str]
+    question_id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

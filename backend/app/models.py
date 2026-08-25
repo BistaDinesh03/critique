@@ -60,12 +60,16 @@ class Response(Base):
     __tablename__ = "responses"
 
     id = Column(Integer, primary_key=True, index=True)
-    text = Column(Text, nullable=False)
+    clarity = Column(String(20), nullable=False)  # "very_clear", "mostly_clear", "confusing"
+    would_use = Column(String(10), nullable=False)  # "yes", "maybe", "no"
+    suggestion = Column(Text, nullable=True)  # optional text response
     created_at = Column(DateTime, default=utc_now)
 
     # Foreign keys
     question_id = Column(Integer, ForeignKey("questions.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    # IP address for duplicate prevention (hashed)
+    ip_hash = Column(String(64), nullable=False)
 
     # Relationships
     question = relationship("Question", back_populates="responses")
