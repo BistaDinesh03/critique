@@ -14,7 +14,6 @@ class ProjectCreate(BaseModel):
 class ProjectOut(BaseModel):
     """Schema for returning project data."""
     model_config = ConfigDict(from_attributes=True)
-
     id: int
     title: str
     description: Optional[str]
@@ -27,7 +26,6 @@ class ProjectOut(BaseModel):
 class ProjectListItem(BaseModel):
     """Schema for project in discovery list."""
     model_config = ConfigDict(from_attributes=True)
-
     id: int
     title: str
     description: Optional[str]
@@ -47,7 +45,6 @@ class QuestionCreate(BaseModel):
 class QuestionOut(BaseModel):
     """Schema for returning question data."""
     model_config = ConfigDict(from_attributes=True)
-
     id: int
     text: str
     is_active: bool
@@ -78,9 +75,18 @@ class ResponseCreate(BaseModel):
 
 
 class ResponseOut(BaseModel):
-    """Schema for returning response data."""
+    """Schema for returning response data (public)."""
     model_config = ConfigDict(from_attributes=True)
+    id: int
+    clarity: str
+    would_use: str
+    question_id: int
+    created_at: datetime
 
+
+class ResponseOwnerOut(BaseModel):
+    """Schema for returning response data to project owner (includes suggestion)."""
+    model_config = ConfigDict(from_attributes=True)
     id: int
     clarity: str
     would_use: str

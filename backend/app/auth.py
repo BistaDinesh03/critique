@@ -40,6 +40,14 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
     return user
 
 
+def get_current_user_optional(request: Request, db: Session = Depends(get_db)):
+    """Dependency that returns the current user if authenticated, else None."""
+    try:
+        return get_current_user(request, db)
+    except HTTPException:
+        return None
+
+
 @router.get("/login")
 def github_login(request: Request, _: None = Depends(rate_limit("auth"))):
     """Redirect to GitHub OAuth authorization page."""

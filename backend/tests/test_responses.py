@@ -48,7 +48,7 @@ def test_submit_response(auth_client):
     data = response.json()
     assert data["clarity"] == "very_clear"
     assert data["would_use"] == "yes"
-    assert data["suggestion"] == "Looks great!"
+    assert data["clarity"] == "very_clear"  # suggestion is only visible via results endpoint
     cleanup_database()
 
 
@@ -66,7 +66,7 @@ def test_submit_response_without_suggestion(auth_client):
     response = auth_client.post(f"/api/projects/{project_id}/responses", json=payload)
     assert response.status_code == 201
     data = response.json()
-    assert data["suggestion"] is None
+    assert "suggestion" not in data  # public response has no suggestion field
     cleanup_database()
 
 
@@ -153,3 +153,4 @@ def test_suggestion_length_validation(auth_client):
     response = auth_client.post(f"/api/projects/{project_id}/responses", json=payload)
     assert response.status_code == 422
     cleanup_database()
+

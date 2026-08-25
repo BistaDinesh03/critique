@@ -1,22 +1,24 @@
-﻿from fastapi import APIRouter, Depends, HTTPException
+﻿from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models import Project, Question, Response
-from app.schemas import ResponseOut
+from app.models import Project, Question, Response, User
+from app.schemas import ResponseOwnerOut
 from app.stats import calculate_stats
 
 router = APIRouter(prefix="/api/projects", tags=["results"])
 
 
 @router.get("/{project_id}/results")
-def get_project_results(project_id: int, db: Session = Depends(get_db)):
-    """Get aggregated results and individual responses for a project."""
-    # Validate project exists
+def get_project_results(
+    project_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Get aggregated results. Public stats; owner sees written responses."""
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    # Get active question
     question = (
         db.query(Question)
         .filter(Question.project_id == project_id, Question.is_active == True)
@@ -30,9 +32,9 @@ def get_project_results(project_id: int, db: Session = Depends(get_db)):
             "question_text": None,
             "stats": calculate_stats([]),
             "responses": [],
+            "is_owner": False,
         }
 
-    # Get all responses for this question
     responses = (
         db.query(Response)
         .filter(Response.question_id == question.id)
@@ -40,21 +42,25 @@ def get_project_results(project_id: int, db: Session = Depends(get_db)):
         .all()
     )
 
-    # Calculate stats
     stats = calculate_stats(responses)
 
-    # Convert responses to output format
-    response_out = [
-        ResponseOut(
-            id=r.id,
-            clarity=r.clarity,
-            would_use=r.would_use,
-            suggestion=r.suggestion,
-            question_id=r.question_id,
-            created_at=r.created_at,
-        )
-        for r in responses
-    ]
+    # Determine if the requester is the owner using the X-Owner-ID header
+    owner_id_header = request.headers.get("X-Owner-ID")
+    is_owner = owner_id_header is not None and int(owner_id_header) == project.owner_id
+
+    response_out = []
+    if is_owner:
+        response_out = [
+            ResponseOwnerOut(
+                id=r.id,
+                clarity=r.clarity,
+                would_use=r.would_use,
+                suggestion=r.suggestion,
+                question_id=r.question_id,
+                created_at=r.created_at,
+            )
+            for r in responses
+        ]
 
     return {
         "project_id": project_id,
@@ -62,4 +68,5 @@ def get_project_results(project_id: int, db: Session = Depends(get_db)):
         "question_text": question.text,
         "stats": stats,
         "responses": response_out,
+        "is_owner": is_owner,
     }

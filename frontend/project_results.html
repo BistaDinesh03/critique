@@ -143,7 +143,7 @@
                     html += '<div class="empty-state"><p>No responses yet. Share your project to get feedback!</p></div>';
                 } else {
                     html += renderStats(data.stats);
-                    html += renderWrittenResponses(data.responses);
+                    if (data.is_owner) { html += renderWrittenResponses(data.responses); }
                 }
                 
                 content.innerHTML = html;
@@ -156,3 +156,4 @@
     </script>
 </body>
 </html>
+

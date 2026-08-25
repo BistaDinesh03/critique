@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import Project, Question, Response, User
-from app.schemas import ResponseCreate, ResponseOut
+from app.schemas import ResponseCreate, ResponseOut, ResponseOwnerOut
 from app.auth import get_current_user
 from app.csrf import require_csrf
 from app.rate_limit import rate_limit
@@ -66,9 +66,13 @@ def create_response(
     return response
 
 
-@router.get("/{project_id}/responses", response_model=list[ResponseOut])
-def list_responses(project_id: int, db: Session = Depends(get_db)):
-    """List all responses for a project's active question. Public endpoint."""
+@router.get("/{project_id}/responses")
+def list_responses(
+    project_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """List responses. Public sees stats only; owner sees written suggestions."""
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -89,6 +93,31 @@ def list_responses(project_id: int, db: Session = Depends(get_db)):
         .all()
     )
 
-    return responses
+    # Determine if the requester is the owner using the X-Owner-ID header
+    # Frontend sets this header when the user is authenticated as the project owner
+    owner_id_header = request.headers.get("X-Owner-ID")
+    is_owner = owner_id_header is not None and int(owner_id_header) == project.owner_id
 
+    if is_owner:
+        return [
+            ResponseOwnerOut(
+                id=r.id,
+                clarity=r.clarity,
+                would_use=r.would_use,
+                suggestion=r.suggestion,
+                question_id=r.question_id,
+                created_at=r.created_at,
+            )
+            for r in responses
+        ]
 
+    return [
+        ResponseOut(
+            id=r.id,
+            clarity=r.clarity,
+            would_use=r.would_use,
+            question_id=r.question_id,
+            created_at=r.created_at,
+        )
+        for r in responses
+    ]

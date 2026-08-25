@@ -72,12 +72,18 @@
         function clarityLabel(v) { return {'very_clear':'Very clear','mostly_clear':'Mostly clear','confusing':'Confusing'}[v] || v; }
         function wouldUseLabel(v) { return {'yes':'Yes','maybe':'Maybe','no':'No'}[v] || v; }
 
-        async function loadProject() {
+        function getCurrentUserId() {
+    // This would be populated from an auth check endpoint
+    // For now, we can read it from a meta tag or make an auth check call
+    return localStorage.getItem('user_id') || '';
+}
+
+async function loadProject() {
             const content = document.getElementById('content');
             try {
                 const [projectRes, responsesRes] = await Promise.all([
                     fetch('/api/projects/' + projectId),
-                    fetch('/api/projects/' + projectId + '/responses')
+                    fetch('/api/projects/' + projectId + '/responses', { headers: { 'X-Owner-ID': getCurrentUserId() } })
                 ]);
                 if (!projectRes.ok) throw new Error('Project not found');
                 const projectData = await projectRes.json();
@@ -179,3 +185,5 @@
     </script>
 </body>
 </html>
+
+

@@ -26,7 +26,15 @@ def auth_client():
     db.add(user)
     db.commit()
     db.refresh(user)
+    
+    # Keep a reference to the session so the user is not detached
+    # Store user_id for later use
+    user_id = user.id
     db.close()
+    
+    # Re-query user in a new session that stays open
+    db2 = SessionLocal()
+    user = db2.query(User).filter(User.id == user_id).first()
 
     def mock_get_current_user():
         return user
@@ -39,4 +47,6 @@ def auth_client():
     client.headers["X-CSRF-Token"] = csrf_token
     
     yield client
+    
     app.dependency_overrides.clear()
+    db2.close()
