@@ -10,7 +10,9 @@
       - key: SESSION_COOKIE_SECURE
         value: "true"
       - key: DATABASE_URL
-        value: sqlite:////opt/render/project/data/critique.db
+        fromDatabase:
+          name: critique-db
+          property: connectionString
       - key: GITHUB_CLIENT_ID
         sync: false
       - key: GITHUB_CLIENT_SECRET
@@ -21,7 +23,7 @@
         sync: false
       - key: APP_URL
         sync: false
-    disk:
-      name: sqlite-data
-      mountPath: /opt/render/project/data
-      sizeGB: 1
+
+databases:
+  - name: critique-db
+    plan: free
