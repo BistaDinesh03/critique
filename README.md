@@ -1,8 +1,7 @@
 ﻿<p align="center">
-  <picture>
-  <source srcset="static/logo.svg" media="(prefers-color-scheme: dark)" style="background: #ffffff; border-radius: 8px; padding: 4px;">
-  <img src="static/logo.svg" alt="Critique" width="56" />
-</picture>
+  <div align="center">
+  <img src="static/logo.svg" alt="Critique" width="56" style="background: #f5f5f5; border-radius: 10px; padding: 8px; display: inline-block;" />
+</div>
 </p>
 
 <h1 align="center">Critique</h1>
