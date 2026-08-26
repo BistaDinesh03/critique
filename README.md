@@ -9,12 +9,13 @@
 </p>
 
 <p align="center">
-  An open-source platform where makers share what they've built,<br>
-  ask one focused question, and get structured feedback from real people.
+  Critique is an open-source feedback platform for makers. Share what you've built, ask one focused question, and get structured feedback from real people.
 </p>
 
 <p align="center">
-  <strong><a href="https://critique-qqz9.onrender.com">Try Critique</a></strong>
+  <a href="https://critique-qqz9.onrender.com"><strong>Try Critique</strong></a>
+  &nbsp;·&nbsp;
+  <a href="https://critique-qqz9.onrender.com/discover">Discover Projects</a>
   &nbsp;·&nbsp;
   <a href="https://github.com/BistaDinesh03/critique">View Source</a>
   &nbsp;·&nbsp;
@@ -23,73 +24,98 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
-  <a href="https://github.com/BistaDinesh03/critique/tags"><img src="https://img.shields.io/badge/Release-v0.3.0-green.svg" alt="Release"></a>
 </p>
 
 ---
 
-## Looking for early users
+## Early access — looking for 20 makers
 
-Critique is looking for its first makers and reviewers.
+Critique is currently in its early stage. We're looking for 20 makers and developers to try it with something they've built.
 
-**Have something you're building?**
-Submit your project, ask one question you genuinely want answered, and get honest feedback from other people.
+Have a side project, SaaS, open-source project, website, VS Code extension, mobile app, design, or student project? Submit it, ask one question you genuinely want answered, and get feedback from other people.
 
-**Want to help another maker?**
-Browse Discover, choose a project, and give the maker useful feedback.
+Then help another maker by reviewing a project in Discover.
 
-[Try Critique](https://critique-qqz9.onrender.com/) · [View projects](https://critique-qqz9.onrender.com/discover)
+> **Build something? Get a second opinion.**
+>
+> Submit your project → ask one focused question → get real feedback.
+
+[Try Critique →](https://critique-qqz9.onrender.com/) · [Discover Projects →](https://critique-qqz9.onrender.com/discover)
 
 ---
 
-## Why Critique?
+## What is Critique?
 
-Getting useful feedback on something you've built is hard. Most platforms reward engagement and reach, not honest answers.
+Critique is built around a simple idea:
 
-Critique focuses on one thing: helping makers get useful answers to specific questions.
+Instead of asking people:
 
-## How It Works
+> "What do you think of my project?"
 
-1. **Share** — Add something you've built.
-2. **Ask** — Ask the one question you genuinely want answered.
-3. **Learn** — Get structured feedback from real people.
-
-## Why One Question?
-
-Most feedback requests are too broad: *"What do you think of my project?"*
-
-Critique intentionally focuses each project around one specific question, for example:
+ask:
 
 > "Is it immediately clear what this tool does?"
 
-This makes feedback easier to give and more useful to receive.
+Each project has one focused question so reviewers know exactly what to evaluate. This turns project feedback into something structured and actionable — useful for product feedback, developer feedback, and maker feedback alike.
 
-## Who It's For
+## Why this exists
 
-- Indie hackers validating a product idea
-- Open-source maintainers improving their projects
-- Developers looking for honest UX feedback
-- Designers testing whether a concept is clear
-- Students learning from real user responses
-- Makers of any kind who want actionable input
+Generic feedback is often vague:
+
+- "Looks great."
+- "Cool project."
+- "I like it."
+
+These comments are nice, but they rarely help a maker decide what to change next. Critique is designed to turn feedback into clearer signals — clarity, intent to use, and written suggestions tied to one specific question.
+
+## How it works
+
+### 1. Share
+
+Add something you've built.
+
+### 2. Ask
+
+Ask one specific question.
+
+### 3. Learn
+
+Get structured feedback from other people.
+
+## Who is it for?
+
+- Indie hackers validating a product
+- Open-source maintainers improving a project
+- Developers testing a new tool
+- Designers testing an idea
+- Students looking for outside feedback
+- Makers preparing for a launch
 
 ## Features
 
-### For Makers
+### For makers
 
-- Submit a project with title, description, and link
+- Submit a project
 - Ask one focused question
-- View clarity and would-use results
-- Read private written feedback (visible only to you)
-- Manage and delete projects from My Projects
+- Collect clarity feedback
+- Collect would-use feedback
+- Read written responses privately
+- Manage your projects
 
-### For Reviewers
+### For reviewers
 
-- Discover projects chronologically
-- Rate clarity (Very clear / Mostly clear / Confusing)
-- Say whether you'd use it (Yes / Maybe / No)
-- Leave optional written suggestions
+- Discover projects
+- Answer focused questions
+- Rate clarity
+- Share whether you'd use the project
+- Leave optional suggestions
 - Respond once per project
+
+## Why open source?
+
+Critique is open source so developers can inspect how it works, report problems, improve the product, and help shape the platform.
+
+[View Source](https://github.com/BistaDinesh03/critique) · [Contribute](CONTRIBUTING.md) · [Security](SECURITY.md)
 
 ## Security
 
@@ -106,18 +132,18 @@ Critique includes:
 
 See [SECURITY.md](SECURITY.md).
 
-## Tech Stack
+## Tech stack
 
-| Layer          | Technology                                      |
-|----------------|-------------------------------------------------|
-| Backend        | FastAPI, SQLAlchemy                             |
-| Database       | PostgreSQL (production), SQLite (development)   |
-| Frontend       | HTML, CSS, Vanilla JavaScript                   |
-| Authentication | GitHub OAuth                                    |
-| Testing        | pytest (44 tests)                               |
-| Deployment     | Render                                          |
+| Layer          | Technology                    |
+| -------------- | ----------------------------- |
+| Backend        | FastAPI, SQLAlchemy           |
+| Database       | PostgreSQL (production), SQLite (development) |
+| Frontend       | HTML, CSS, Vanilla JavaScript |
+| Authentication | GitHub OAuth                  |
+| Testing        | pytest                        |
+| Deployment     | Render                        |
 
-## Quick Start
+## Quick start
 
 ### Requirements
 
@@ -126,74 +152,74 @@ See [SECURITY.md](SECURITY.md).
 
 ### Clone
 
-```powershell
+```bash
 git clone https://github.com/BistaDinesh03/critique.git
 cd critique
 ```
 
 ### Install
 
-```powershell
+```bash
 python -m pip install -r backend/requirements.txt
 ```
 
 ### Configure
 
-```powershell
-Copy-Item .env.example .env
+```bash
+cp .env.example .env
 ```
 
 Edit `.env` with your GitHub OAuth credentials and a secret key.
 
 Generate a secret key:
 
-```powershell
+```bash
 python -c "import secrets; print(secrets.token_hex(32))"
 ```
 
 ### Run
 
-```powershell
+```bash
 cd backend
 python -m uvicorn app.main:app --reload
 ```
 
-Open [http://127.0.0.1:8000](http://127.0.0.1:8000)
+Open [http://127.0.0.1:8000](http://127.0.0.1:8000).
 
 ### Test
 
-```powershell
+```bash
 cd backend
 python -m pytest tests/ -v
 ```
 
-## Environment Variables
+## Environment variables
 
-| Variable               | Required | Description                                      |
-|------------------------|----------|--------------------------------------------------|
-| `GITHUB_CLIENT_ID`     | Yes      | GitHub OAuth App Client ID                       |
-| `GITHUB_CLIENT_SECRET` | Yes      | GitHub OAuth App Client Secret                   |
-| `GITHUB_REDIRECT_URI`  | Yes      | OAuth callback URL                               |
-| `SECRET_KEY`           | Yes      | Random string for session signing                |
-| `DATABASE_URL`         | Yes      | SQLite (dev) or PostgreSQL (production)          |
-| `APP_ENV`              | No       | `development` or `production`                    |
-| `APP_URL`              | No       | Base URL of the application                      |
-| `SESSION_COOKIE_SECURE`| No       | `true` in production (HTTPS)                     |
+| Variable                | Required | Description                                      |
+| ----------------------- | -------- | ------------------------------------------------ |
+| `GITHUB_CLIENT_ID`      | Yes      | GitHub OAuth App Client ID                       |
+| `GITHUB_CLIENT_SECRET`  | Yes      | GitHub OAuth App Client Secret                   |
+| `GITHUB_REDIRECT_URI`   | Yes      | OAuth callback URL                               |
+| `SECRET_KEY`            | Yes      | Random string for session signing                |
+| `DATABASE_URL`          | No       | Default: `sqlite:///./critique.db`               |
+| `APP_ENV`               | No       | `development` or `production`                    |
+| `APP_URL`               | No       | Base URL of the application                      |
+| `SESSION_COOKIE_SECURE` | No       | Set to `true` in production (HTTPS)              |
 
 Never commit `.env` to the repository.
 
-## GitHub OAuth Setup
+## GitHub OAuth setup
 
 1. Go to [GitHub Settings → Developer settings → OAuth Apps](https://github.com/settings/developers)
 2. Click **New OAuth App**
 3. Set:
-   - **Homepage URL**: `http://127.0.0.1:8000` (local) or your production URL
-   - **Callback URL**: `http://127.0.0.1:8000/auth/callback` (local) or your production callback
+   - **Homepage URL**: `http://127.0.0.1:8000` (local) or `https://critique-qqz9.onrender.com` (production)
+   - **Callback URL**: `http://127.0.0.1:8000/auth/callback` (local) or `https://critique-qqz9.onrender.com/auth/callback` (production)
 4. Register and copy the Client ID and Client Secret
 
 Full instructions: [docs/github-oauth-setup.md](docs/github-oauth-setup.md)
 
-## Project Structure
+## Project structure
 
 ```
 backend/          # FastAPI application
@@ -207,9 +233,16 @@ render.yaml       # Render deployment config
 
 ## Contributing
 
-Found a bug? Have a UX idea? Want to improve the code or documentation?
+Contributions are welcome. You can help with:
 
-Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
+- Bug reports
+- Feature ideas
+- UX improvements
+- Documentation
+- Security reports
+- Pull requests
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md).
 
 ## License
 
@@ -217,6 +250,14 @@ MIT — see [LICENSE](LICENSE).
 
 ---
 
-<p align="center">
-  <sub>If Critique is useful to you, consider giving the repository a star.</sub>
-</p>
+## Try Critique
+
+Have something you've built?
+
+Ask one question.  
+Get real answers.
+
+[Try Critique →](https://critique-qqz9.onrender.com/) · [Discover Projects →](https://critique-qqz9.onrender.com/discover) · [View Source →](https://github.com/BistaDinesh03/critique)
+
+If Critique is useful to you, consider giving the repository a star.
+
