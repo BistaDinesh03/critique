@@ -4,19 +4,22 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 from app.config import settings
 
 # Create database engine
-# SQLite needs check_same_thread=False; PostgreSQL uses standard connection
 if settings.DATABASE_URL.startswith("sqlite"):
     engine = create_engine(
         settings.DATABASE_URL,
         connect_args={"check_same_thread": False},
     )
 else:
-    engine = create_engine(settings.DATABASE_URL)
+    # PostgreSQL with connection pooling optimized for Render free tier
+    engine = create_engine(
+        settings.DATABASE_URL,
+        pool_size=5,
+        max_overflow=3,
+        pool_pre_ping=True,
+    )
 
-# Session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Base class for models
 Base = declarative_base()
 
 
@@ -30,6 +33,6 @@ def get_db():
 
 
 def init_db():
-    """Create all tables in the database."""
-    from app import models  # noqa: F401 - ensure models are imported
+    """Create all tables in the database. Safe for repeated execution."""
+    from app import models  # noqa: F401
     Base.metadata.create_all(bind=engine)

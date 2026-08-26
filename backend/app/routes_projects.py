@@ -59,13 +59,40 @@ def list_projects(
     page_size: int = Query(10, ge=1, le=50),
     db: Session = Depends(get_db),
 ):
-    """List projects with pagination. Public endpoint."""
+    """List projects with pagination. Public endpoint. Optimized with single query."""
     total = db.query(func.count(Project.id)).scalar()
     total_pages = (total + page_size - 1) // page_size if total > 0 else 0
     offset = (page - 1) * page_size
 
+    # Single optimized query with subqueries for question and response count
+    question_subq = (
+        db.query(
+            Question.project_id,
+            Question.text.label("question_text"),
+        )
+        .filter(Question.is_active == True)
+        .distinct(Question.project_id)
+        .order_by(Question.project_id, Question.created_at.desc())
+        .subquery()
+    )
+
+    response_count_subq = (
+        db.query(
+            Response.question_id,
+            func.count(Response.id).label("response_count"),
+        )
+        .group_by(Response.question_id)
+        .subquery()
+    )
+
     projects = (
-        db.query(Project)
+        db.query(
+            Project,
+            question_subq.c.question_text,
+            func.coalesce(response_count_subq.c.response_count, 0).label("response_count"),
+        )
+        .outerjoin(question_subq, question_subq.c.project_id == Project.id)
+        .outerjoin(response_count_subq, response_count_subq.c.question_id == question_subq.c.project_id)
         .order_by(Project.created_at.desc())
         .offset(offset)
         .limit(page_size)
@@ -73,24 +100,7 @@ def list_projects(
     )
 
     items = []
-    for project in projects:
-        question = (
-            db.query(Question)
-            .filter(Question.project_id == project.id, Question.is_active == True)
-            .order_by(Question.created_at.desc())
-            .first()
-        )
-
-        response_count = 0
-        question_text = None
-        if question:
-            question_text = question.text
-            response_count = (
-                db.query(func.count(Response.id))
-                .filter(Response.question_id == question.id)
-                .scalar()
-            )
-
+    for project, question_text, response_count in projects:
         items.append(
             ProjectListItem(
                 id=project.id,
@@ -114,40 +124,47 @@ def list_projects(
     )
 
 
-
-
 @router.get("/my/list")
 def list_my_projects(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
     """List projects owned by the current user."""
+    question_subq = (
+        db.query(
+            Question.project_id,
+            Question.text.label("question_text"),
+        )
+        .filter(Question.is_active == True)
+        .distinct(Question.project_id)
+        .order_by(Question.project_id, Question.created_at.desc())
+        .subquery()
+    )
+
+    response_count_subq = (
+        db.query(
+            Response.question_id,
+            func.count(Response.id).label("response_count"),
+        )
+        .group_by(Response.question_id)
+        .subquery()
+    )
+
     projects = (
-        db.query(Project)
+        db.query(
+            Project,
+            question_subq.c.question_text,
+            func.coalesce(response_count_subq.c.response_count, 0).label("response_count"),
+        )
+        .outerjoin(question_subq, question_subq.c.project_id == Project.id)
+        .outerjoin(response_count_subq, response_count_subq.c.question_id == question_subq.c.project_id)
         .filter(Project.owner_id == user.id)
         .order_by(Project.created_at.desc())
         .all()
     )
 
     items = []
-    for project in projects:
-        question = (
-            db.query(Question)
-            .filter(Question.project_id == project.id, Question.is_active == True)
-            .order_by(Question.created_at.desc())
-            .first()
-        )
-
-        response_count = 0
-        question_text = None
-        if question:
-            question_text = question.text
-            response_count = (
-                db.query(func.count(Response.id))
-                .filter(Response.question_id == question.id)
-                .scalar()
-            )
-
+    for project, question_text, response_count in projects:
         items.append(
             ProjectListItem(
                 id=project.id,
@@ -163,6 +180,7 @@ def list_my_projects(
         )
 
     return items
+
 
 @router.get("/{project_id}", response_model=ProjectWithQuestion)
 def get_project(project_id: int, db: Session = Depends(get_db)):
@@ -205,6 +223,3 @@ def delete_project(
 
     db.delete(project)
     db.commit()
-
-
-

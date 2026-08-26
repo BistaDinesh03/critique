@@ -3,13 +3,22 @@ from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
+from starlette.middleware.base import BaseHTTPMiddleware
 from app.config import settings
 from app.database import init_db
 from app.auth import router as auth_router
 from app.routes_projects import router as projects_router
 from app.routes_responses import router as responses_router
 from app.routes_results import router as results_router
-from app.csrf import generate_csrf_token
+
+
+class CacheControlMiddleware(BaseHTTPMiddleware):
+    """Add cache headers to static files."""
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        if request.url.path.startswith("/static/"):
+            response.headers["Cache-Control"] = "public, max-age=86400"
+        return response
 
 
 @asynccontextmanager
@@ -25,6 +34,9 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+# Add cache middleware
+app.add_middleware(CacheControlMiddleware)
 
 # Include routers
 app.include_router(auth_router)
@@ -44,12 +56,11 @@ def _read_frontend_file(filename: str) -> str:
     return file_path.read_text(encoding="utf-8")
 
 
-
-
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request, exc):
     """Generic error handler that doesn't leak stack traces."""
     return {"detail": "Internal server error"}
+
 
 @app.get("/", response_class=HTMLResponse)
 def homepage():
@@ -57,12 +68,11 @@ def homepage():
     return HTMLResponse(content=_read_frontend_file("index.html"))
 
 
-
-
 @app.get("/my-projects", response_class=HTMLResponse)
 def my_projects_page():
     """Serve the my projects page."""
     return HTMLResponse(content=_read_frontend_file("my_projects.html"))
+
 
 @app.get("/discover", response_class=HTMLResponse)
 def discover_page():
@@ -86,5 +96,3 @@ def project_results_page(project_id: int):
 def health_check():
     """Health check endpoint for monitoring."""
     return {"status": "ok"}
-
-
