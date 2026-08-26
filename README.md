@@ -1,6 +1,6 @@
 ﻿<p align="center">
   <div align="center">
-  <img src="static/logo.svg" alt="Critique" width="56" style="background: #f5f5f5; border-radius: 10px; padding: 8px; display: inline-block;" />
+  <img src="docs/logo-readme.svg" alt="Critique" width="56" />
 </div>
 </p>
 
@@ -262,4 +262,5 @@ Get real answers.
 [Try Critique →](https://critique-qqz9.onrender.com/) · [Discover Projects →](https://critique-qqz9.onrender.com/discover) · [View Source →](https://github.com/BistaDinesh03/critique)
 
 If Critique is useful to you, consider giving the repository a star.
+
 
