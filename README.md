@@ -28,6 +28,20 @@
 
 ---
 
+## Looking for early users
+
+Critique is looking for its first makers and reviewers.
+
+**Have something you're building?**
+Submit your project, ask one question you genuinely want answered, and get honest feedback from other people.
+
+**Want to help another maker?**
+Browse Discover, choose a project, and give the maker useful feedback.
+
+[Try Critique](https://critique-qqz9.onrender.com/) · [View projects](https://critique-qqz9.onrender.com/discover)
+
+---
+
 ## Why Critique?
 
 Getting useful feedback on something you've built is hard. Most platforms reward engagement and reach, not honest answers.
