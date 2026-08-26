@@ -1,16 +1,14 @@
 ﻿import os
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect
 from sqlalchemy.orm import sessionmaker, declarative_base
 from app.config import settings
 
-# Create database engine
 if settings.DATABASE_URL.startswith("sqlite"):
     engine = create_engine(
         settings.DATABASE_URL,
         connect_args={"check_same_thread": False},
     )
 else:
-    # PostgreSQL with connection pooling optimized for Render free tier
     engine = create_engine(
         settings.DATABASE_URL,
         pool_size=5,
@@ -33,6 +31,9 @@ def get_db():
 
 
 def init_db():
-    """Create all tables in the database. Safe for repeated execution."""
+    """Create all tables if they don't already exist. Skips check if tables present."""
     from app import models  # noqa: F401
-    Base.metadata.create_all(bind=engine)
+    inspector = inspect(engine)
+    existing_tables = inspector.get_table_names()
+    if not existing_tables:
+        Base.metadata.create_all(bind=engine)

@@ -1,5 +1,8 @@
 ﻿<p align="center">
+  <picture>
+  <source srcset="static/logo.svg" media="(prefers-color-scheme: dark)" style="background: #ffffff; border-radius: 8px; padding: 4px;">
   <img src="static/logo.svg" alt="Critique" width="56" />
+</picture>
 </p>
 
 <h1 align="center">Critique</h1>
