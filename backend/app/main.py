@@ -10,6 +10,7 @@ from app.auth import router as auth_router
 from app.routes_projects import router as projects_router
 from app.routes_responses import router as responses_router
 from app.routes_results import router as results_router
+from app.routes_badge import router as badge_router
 
 
 class CacheControlMiddleware(BaseHTTPMiddleware):
@@ -43,6 +44,7 @@ app.include_router(auth_router)
 app.include_router(projects_router)
 app.include_router(responses_router)
 app.include_router(results_router)
+app.include_router(badge_router)
 
 # Serve static files
 static_dir = Path(__file__).resolve().parent.parent.parent / "static"
@@ -96,3 +98,4 @@ def project_results_page(project_id: int):
 def health_check():
     """Health check endpoint for monitoring."""
     return {"status": "ok"}
+
