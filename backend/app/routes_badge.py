@@ -41,10 +41,9 @@ def get_badge(project_id: int, db: Session = Depends(get_db)):
     label = "reviews" if count != 1 else "review"
 
     svg = f'''<svg xmlns="http://www.w3.org/2000/svg"
-     width="210" height="40" viewBox="0 0 210 40"
-     role="img" aria-label="Critique — See {count_text} {label}">
+     width="215" height="40" viewBox="0 0 215 40">
 
-  <rect width="210" height="40" rx="20" fill="#16181A"/>
+  <rect width="215" height="40" rx="20" fill="#16181A"/>
 
   <g transform="translate(8 7)">
     <path d="M1 19h12M13 19h4"
@@ -72,9 +71,9 @@ def get_badge(project_id: int, db: Session = Depends(get_db)):
         font-family="Arial,sans-serif"
         font-size="11">{label}</text>
 
-  <text x="175" y="25" fill="#56E83F"
+  <text x="178" y="25" fill="#56E83F"
         font-family="Arial,sans-serif"
-        font-size="11" font-weight="700">→</text>
+        font-size="11" font-weight="700">↗</text>
 </svg>'''
 
     return FastAPIResponse(
