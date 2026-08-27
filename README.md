@@ -153,6 +153,24 @@ See [SECURITY.md](SECURITY.md).
 | Testing        | pytest                        |
 | Deployment     | Render                        |
 
+## Uptime Monitoring
+
+The production instance exposes a lightweight health check:
+GET https://critique-qqz9.onrender.com/health
+
+text
+
+Returns {"status":"ok"} with no database or authentication overhead.
+
+To monitor uptime:
+
+1. Create a free [UptimeRobot](https://uptimerobot.com) account.
+2. Add a new monitor with type **HTTP(S)**.
+3. Set the URL to https://critique-qqz9.onrender.com/health.
+4. Set the monitoring interval to 5 minutes.
+
+UptimeRobot will alert you if the service becomes unreachable.
+
 ## Quick start
 
 ### Requirements
