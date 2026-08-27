@@ -34,7 +34,7 @@
 
 Built something similar? I'd love your honest opinion.
 
-[Give feedback on this project](https://critique-qqz9.onrender.com/project/5)
+[![Critique feedback](https://critique-qqz9.onrender.com/badge/5.svg)](https://critique-qqz9.onrender.com/project/5)
 
 ---
 
