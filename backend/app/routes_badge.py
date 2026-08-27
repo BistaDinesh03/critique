@@ -9,9 +9,9 @@ router = APIRouter(prefix="/badge", tags=["badge"])
 
 
 def format_count(count: int) -> str:
-    """Format count with thousand separator for 1000+."""
+    """Format count for display. 1000+ shows as 1k+."""
     if count >= 1000:
-        return f"{count:,}"
+        return "1k+"
     return str(count)
 
 
@@ -38,19 +38,76 @@ def get_badge(project_id: int, db: Session = Depends(get_db)):
         )
 
     count_text = format_count(count)
-    label = "feedback" if count != 1 else "feedback"
 
-    # Calculate text width based on count length for proper scaling
-    text_width = 70 + (len(count_text) - 1) * 8
-    badge_width = 44 + text_width
+    svg = f'''<svg xmlns="http://www.w3.org/2000/svg"
+     width="150"
+     height="40"
+     viewBox="0 0 150 40"
+     role="img"
+     aria-label="Critique {count_text} feedback">
 
-    svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="{badge_width}" height="28" viewBox="0 0 {badge_width} 28">
-  <rect width="{badge_width}" height="28" rx="6" fill="#16181A"/>
-  <path d="M13 18h8" fill="none" stroke="#56E83F" stroke-width="2.5" stroke-linecap="round"/>
-  <path d="M21 18h2" fill="none" stroke="#56E83F" stroke-width="2.5" stroke-linecap="round"/>
-  <path d="M23 18c3 0 5.5-1.7 6-4.7.4-3-1.3-5.1-3.9-5.1-2.1 0-3.4 1.3-3.4 3" fill="none" stroke="#56E83F" stroke-width="1.8" stroke-linecap="round"/>
-  <path d="M22 15l.4 2.5 2.6-.9" fill="none" stroke="#56E83F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-  <text x="36" y="18.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="600" fill="#ffffff">{count_text} {label}</text>
+  <rect width="150" height="40" rx="8" fill="#16181A"/>
+
+  <g transform="translate(7 6)">
+    <path d="M1 19h13"
+          fill="none"
+          stroke="#FFFFFF"
+          stroke-width="5"
+          stroke-linecap="round"/>
+    <path d="M14 19h4"
+          fill="none"
+          stroke="#56E83F"
+          stroke-width="5"
+          stroke-linecap="round"/>
+    <path d="M18 19
+             C25 19 31 15 32 9
+             C33 4 29 0 24 0
+             C19 0 16 3 16 7"
+          fill="none"
+          stroke="#FFFFFF"
+          stroke-width="3.5"
+          stroke-linecap="round"/>
+    <path d="M16 7l1 5 5-2"
+          fill="none"
+          stroke="#56E83F"
+          stroke-width="3"
+          stroke-linecap="round"
+          stroke-linejoin="round"/>
+  </g>
+
+  <path d="M55 9v22"
+        stroke="#34383B"
+        stroke-width="1"/>
+
+  <circle cx="68" cy="14.5" r="3"
+          fill="#56E83F"/>
+  <circle cx="76" cy="16" r="2.3"
+          fill="#8C9297"/>
+  <path d="M62.5 27
+           C62.5 22.5 65 20 68 20
+           C71 20 73.5 22.5 73.5 27"
+        fill="none"
+        stroke="#56E83F"
+        stroke-width="2.5"
+        stroke-linecap="round"/>
+
+  <text x="83"
+        y="25"
+        fill="#FFFFFF"
+        font-family="Arial, Helvetica, sans-serif"
+        font-size="15"
+        font-weight="700">
+    {count_text}
+  </text>
+
+  <text x="105"
+        y="25"
+        fill="#9CA1A5"
+        font-family="Arial, Helvetica, sans-serif"
+        font-size="10.5">
+    feedback
+  </text>
+
 </svg>'''
 
     return FastAPIResponse(
