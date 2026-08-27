@@ -30,6 +30,14 @@
 
 ---
 
+## Feedback
+
+Built something similar? I'd love your honest opinion.
+
+[Give feedback on this project](https://critique-qqz9.onrender.com/project/5)
+
+---
+
 ## Early access — looking for 20 makers
 
 Critique is currently in its early stage. We're looking for 20 makers and developers to try it with something they've built.
