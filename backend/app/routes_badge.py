@@ -73,7 +73,7 @@ def get_badge(project_id: int, db: Session = Depends(get_db)):
 
   <text x="178" y="25" fill="#56E83F"
         font-family="Arial,sans-serif"
-        font-size="11" font-weight="700">↗</text>
+        font-size="11" font-weight="700">&#8599;</text>
 </svg>'''
 
     return FastAPIResponse(
@@ -81,3 +81,4 @@ def get_badge(project_id: int, db: Session = Depends(get_db)):
         media_type="image/svg+xml",
         headers={"Cache-Control": "no-cache"},
     )
+
