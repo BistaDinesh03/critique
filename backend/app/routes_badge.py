@@ -38,76 +38,43 @@ def get_badge(project_id: int, db: Session = Depends(get_db)):
         )
 
     count_text = format_count(count)
+    label = "reviews" if count != 1 else "review"
 
     svg = f'''<svg xmlns="http://www.w3.org/2000/svg"
-     width="150"
-     height="40"
-     viewBox="0 0 150 40"
-     role="img"
-     aria-label="Critique {count_text} feedback">
+     width="210" height="40" viewBox="0 0 210 40"
+     role="img" aria-label="Critique — See {count_text} {label}">
 
-  <rect width="150" height="40" rx="8" fill="#16181A"/>
+  <rect width="210" height="40" rx="20" fill="#16181A"/>
 
-  <g transform="translate(7 6)">
-    <path d="M1 19h13"
-          fill="none"
-          stroke="#FFFFFF"
-          stroke-width="5"
+  <g transform="translate(8 7)">
+    <path d="M1 19h12M13 19h4"
+          fill="none" stroke="#fff" stroke-width="4"
           stroke-linecap="round"/>
-    <path d="M14 19h4"
-          fill="none"
-          stroke="#56E83F"
-          stroke-width="5"
+    <path d="M17 19C23 19 28 16 29 11C30 6 27 2 23 2C19 2 17 4 17 8"
+          fill="none" stroke="#fff" stroke-width="3"
           stroke-linecap="round"/>
-    <path d="M18 19
-             C25 19 31 15 32 9
-             C33 4 29 0 24 0
-             C19 0 16 3 16 7"
-          fill="none"
-          stroke="#FFFFFF"
-          stroke-width="3.5"
-          stroke-linecap="round"/>
-    <path d="M16 7l1 5 5-2"
-          fill="none"
-          stroke="#56E83F"
-          stroke-width="3"
-          stroke-linecap="round"
-          stroke-linejoin="round"/>
+    <path d="M17 8l1 5 5-2"
+          fill="none" stroke="#56E83F" stroke-width="2.5"
+          stroke-linecap="round" stroke-linejoin="round"/>
   </g>
 
-  <path d="M55 9v22"
-        stroke="#34383B"
-        stroke-width="1"/>
+  <text x="43" y="25" fill="#fff"
+        font-family="Arial,sans-serif"
+        font-size="12" font-weight="700">Critique</text>
 
-  <circle cx="68" cy="14.5" r="3"
-          fill="#56E83F"/>
-  <circle cx="76" cy="16" r="2.3"
-          fill="#8C9297"/>
-  <path d="M62.5 27
-           C62.5 22.5 65 20 68 20
-           C71 20 73.5 22.5 73.5 27"
-        fill="none"
-        stroke="#56E83F"
-        stroke-width="2.5"
-        stroke-linecap="round"/>
+  <circle cx="99" cy="20" r="2" fill="#555B60"/>
 
-  <text x="83"
-        y="25"
-        fill="#FFFFFF"
-        font-family="Arial, Helvetica, sans-serif"
-        font-size="15"
-        font-weight="700">
-    {count_text}
-  </text>
+  <text x="108" y="25" fill="#56E83F"
+        font-family="Arial,sans-serif"
+        font-size="12" font-weight="700">{count_text}</text>
 
-  <text x="105"
-        y="25"
-        fill="#9CA1A5"
-        font-family="Arial, Helvetica, sans-serif"
-        font-size="10.5">
-    feedback
-  </text>
+  <text x="128" y="25" fill="#D1D5D8"
+        font-family="Arial,sans-serif"
+        font-size="11">{label}</text>
 
+  <text x="175" y="25" fill="#56E83F"
+        font-family="Arial,sans-serif"
+        font-size="11" font-weight="700">→</text>
 </svg>'''
 
     return FastAPIResponse(
