@@ -36,6 +36,23 @@ Built something similar? I'd love your honest opinion.
 
 [![Critique feedback](https://critique-qqz9.onrender.com/badge/5.svg)](https://critique-qqz9.onrender.com/project/5)
 
+### Add the badge to your README
+
+Any Critique project gets a dynamic badge that shows how many people have
+given feedback and links directly to the project's Critique page. The count
+updates automatically whenever someone submits feedback.
+
+1. Open your project's page on Critique (e.g. `https://critique-qqz9.onrender.com/project/5`).
+2. Take the project id from the URL — the number after `/project/`.
+3. Paste this into your README, replacing `5` with your project id:
+
+```markdown
+[![Critique this project](https://critique-qqz9.onrender.com/badge/5.svg)](https://critique-qqz9.onrender.com/project/5)
+```
+
+The badge works in any GitHub README and points visitors straight to your
+Critique page, so they can ask their one question and give real feedback.
+
 ---
 
 ## Early access — looking for 20 makers
