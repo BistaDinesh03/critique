@@ -17,13 +17,20 @@
             font-size: var(--text-3xl);
             font-weight: 700;
             color: var(--text-primary);
-            margin-bottom: var(--space-4);
+            margin-bottom: var(--space-3);
             letter-spacing: -0.02em;
             line-height: 1.2;
         }
 
+        .hero .subheadline {
+            font-size: var(--text-xl);
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: var(--space-4);
+        }
+
         .hero .supporting {
-            font-size: var(--text-lg);
+            font-size: var(--text-base);
             color: var(--text-secondary);
             max-width: 520px;
             margin: 0 auto var(--space-5);
@@ -38,40 +45,30 @@
             margin-bottom: var(--space-6);
         }
 
-        .example-box {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-lg);
-            padding: var(--space-5);
-            max-width: 480px;
-            margin: 0 auto;
-            text-align: left;
-        }
-
-        .example-bad {
+        .trust-strip {
+            display: flex;
+            gap: var(--space-5);
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: var(--space-8);
+            font-size: var(--text-sm);
             color: var(--text-muted);
-            font-size: var(--text-sm);
-            margin-bottom: var(--space-3);
-            padding: var(--space-3) var(--space-4);
-            background: var(--surface-muted);
-            border-radius: var(--radius-md);
+            font-weight: 500;
         }
 
-        .example-good {
-            color: var(--text-primary);
-            font-size: var(--text-sm);
-            font-weight: 600;
-            padding: var(--space-3) var(--space-4);
-            background: rgba(37, 99, 235, 0.04);
-            border-left: 3px solid var(--accent);
-            border-radius: 0 var(--radius-md) var(--radius-md) 0;
+        .trust-strip span {
+            display: flex;
+            align-items: center;
+            gap: var(--space-1);
         }
 
-        .example-arrow {
-            text-align: center;
-            color: var(--text-muted);
-            font-size: var(--text-sm);
-            margin: var(--space-2) 0;
+        .trust-strip span::before {
+            content: "";
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--success);
         }
 
         .how-it-works {
@@ -87,7 +84,7 @@
 
         .steps {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
             gap: var(--space-4);
         }
 
@@ -117,20 +114,106 @@
             line-height: 1.5;
         }
 
-        .one-question {
+        .comparison {
             margin-bottom: var(--space-8);
             text-align: center;
         }
 
-        .one-question h2 {
+        .comparison h2 {
+            font-size: var(--text-2xl);
+            font-weight: 700;
+            margin-bottom: var(--space-5);
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-4);
+            max-width: 600px;
+            margin: 0 auto;
+            text-align: left;
+        }
+
+        .comparison-bad {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: var(--space-5);
+        }
+
+        .comparison-good {
+            background: var(--surface);
+            border: 1px solid var(--accent);
+            border-radius: var(--radius-lg);
+            padding: var(--space-5);
+        }
+
+        .comparison-label {
+            font-size: var(--text-xs);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: var(--space-3);
+        }
+
+        .comparison-bad .comparison-label {
+            color: var(--danger);
+        }
+
+        .comparison-good .comparison-label {
+            color: var(--success);
+        }
+
+        .comparison-question {
+            font-size: var(--text-sm);
+            font-weight: 600;
+            margin-bottom: var(--space-3);
+            color: var(--text-primary);
+        }
+
+        .comparison-answers {
+            font-size: var(--text-sm);
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        .loop {
+            margin-bottom: var(--space-8);
+            text-align: center;
+        }
+
+        .loop h2 {
             font-size: var(--text-2xl);
             font-weight: 700;
             margin-bottom: var(--space-4);
         }
 
-        .one-question p {
+        .loop-steps {
+            font-size: var(--text-sm);
             color: var(--text-secondary);
-            max-width: 480px;
+            max-width: 300px;
+            margin: 0 auto var(--space-4);
+            line-height: 1.8;
+        }
+
+        .early-community {
+            text-align: center;
+            margin-bottom: var(--space-8);
+            padding: var(--space-6);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+        }
+
+        .early-community h2 {
+            font-size: var(--text-xl);
+            font-weight: 700;
+            margin-bottom: var(--space-3);
+        }
+
+        .early-community p {
+            color: var(--text-secondary);
+            max-width: 420px;
             margin: 0 auto var(--space-4);
             font-size: var(--text-sm);
         }
@@ -180,11 +263,18 @@
             margin-bottom: var(--space-4);
         }
 
-        .trust-line {
-            text-align: center;
-            color: var(--text-muted);
-            font-size: var(--text-sm);
-            margin-top: var(--space-4);
+        @media (max-width: 600px) {
+            .comparison-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .steps {
+                grid-template-columns: 1fr;
+            }
+
+            .trust-strip {
+                gap: var(--space-3);
+            }
         }
     </style>
 </head>
@@ -204,21 +294,20 @@
 
     <main class="container">
         <section class="hero">
-            <h2>Ask one question.<br>Get real answers.</h2>
-            <p class="supporting">Show people what you built, ask the question you're stuck on, and get honest human feedback.</p>
+            <h2>Stop getting "Looks good."</h2>
+            <p class="subheadline">Get feedback you can actually use.</p>
+            <p class="supporting">Share what you built, ask one specific question, and get focused feedback from other builders.</p>
             <div class="hero-actions">
                 <a href="#submit" class="btn btn-primary">Get feedback on my project</a>
-                <a href="/discover" class="btn btn-secondary">Explore projects</a>
+                <a href="/discover" class="btn btn-secondary">Give feedback to a builder</a>
             </div>
 
-            <div class="example-box">
-                <div class="example-bad">"What do you think of my project?"</div>
-                <div class="example-arrow">Too broad</div>
-                <div class="example-good">"Is it immediately clear what this product does?"</div>
-                <div class="example-arrow">Useful feedback</div>
+            <div class="trust-strip">
+                <span>Human feedback</span>
+                <span>One focused question</span>
+                <span>Open source</span>
+                <span>Free to try</span>
             </div>
-
-            <p class="trust-line">Built for developers who want honest feedback.</p>
         </section>
 
         <section class="how-it-works">
@@ -227,24 +316,63 @@
                 <div class="step">
                     <div class="step-number">01</div>
                     <div class="step-title">Share your project</div>
-                    <div class="step-desc">Add your project, description, URL, and optional screenshot.</div>
+                    <div class="step-desc">Submit something you've built.</div>
                 </div>
                 <div class="step">
                     <div class="step-number">02</div>
-                    <div class="step-title">Ask one question</div>
-                    <div class="step-desc">Ask the one thing you genuinely want people to answer.</div>
+                    <div class="step-title">Ask one specific question</div>
+                    <div class="step-desc">Ask the thing you genuinely want answered.</div>
                 </div>
                 <div class="step">
                     <div class="step-number">03</div>
-                    <div class="step-title">Get real feedback</div>
-                    <div class="step-desc">People respond with clarity, usefulness, and written suggestions.</div>
+                    <div class="step-title">Get useful feedback</div>
+                    <div class="step-desc">Get responses focused on your question.</div>
                 </div>
             </div>
         </section>
 
-        <section class="one-question">
-            <h2>Better questions get better feedback.</h2>
-            <p>A focused question gives people something specific to answer instead of making them figure out what kind of feedback you want.</p>
+        <section class="comparison">
+            <h2>Better questions lead to better feedback.</h2>
+            <div class="comparison-grid">
+                <div class="comparison-bad">
+                    <div class="comparison-label">Bad question</div>
+                    <div class="comparison-question">"What do you think of my app?"</div>
+                    <div class="comparison-answers">
+                        "Looks good."<br>
+                        "Nice."<br>
+                        "I like it."
+                    </div>
+                </div>
+                <div class="comparison-good">
+                    <div class="comparison-label">Better question</div>
+                    <div class="comparison-question">"Is it immediately clear what this app does?"</div>
+                    <div class="comparison-answers">
+                        One specific question gives people something concrete to answer — and gives you feedback you can actually act on.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="loop">
+            <h2>The Critique loop</h2>
+            <div class="loop-steps">
+                Submit a project<br>
+                ↓<br>
+                Ask one question<br>
+                ↓<br>
+                Give feedback to another builder<br>
+                ↓<br>
+                Get feedback on your project<br>
+                ↓<br>
+                Improve
+            </div>
+            <a href="/discover" class="btn btn-secondary">Explore projects</a>
+        </section>
+
+        <section class="early-community">
+            <h2>We're looking for our first 20 builders.</h2>
+            <p>Critique is still early. We're looking for developers who want to try it with something they've built and help shape the product.</p>
+            <a href="#submit" class="btn btn-primary">Get feedback on my project</a>
         </section>
 
         <section id="submit" class="card">
@@ -293,7 +421,7 @@
         <section class="final-cta">
             <h2>Built something?</h2>
             <p>Get a second opinion from real people.</p>
-            <a href="#submit" class="btn btn-primary">Get feedback</a>
+            <a href="#submit" class="btn btn-primary">Get feedback on my project</a>
         </section>
     </main>
 
