@@ -45,30 +45,118 @@
             margin-bottom: var(--space-6);
         }
 
-        .trust-strip {
+        .real-activity {
             display: flex;
-            gap: var(--space-5);
+            gap: var(--space-6);
             justify-content: center;
             flex-wrap: wrap;
             margin-bottom: var(--space-8);
-            font-size: var(--text-sm);
+            padding: var(--space-5);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .activity-item {
+            text-align: center;
+        }
+
+        .activity-value {
+            font-size: var(--text-2xl);
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .activity-label {
+            font-size: var(--text-xs);
             color: var(--text-muted);
-            font-weight: 500;
+            margin-top: var(--space-1);
         }
 
-        .trust-strip span {
+        .projects-section {
+            margin-bottom: var(--space-8);
+            text-align: center;
+        }
+
+        .projects-section h2 {
+            font-size: var(--text-2xl);
+            font-weight: 700;
+            margin-bottom: var(--space-2);
+        }
+
+        .projects-section .subtitle {
+            color: var(--text-muted);
+            font-size: var(--text-sm);
+            margin-bottom: var(--space-5);
+        }
+
+        .project-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: var(--space-4);
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: left;
+        }
+
+        .project-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+        }
+
+        .project-screenshot {
+            width: 100%;
+            aspect-ratio: 16/9;
+            object-fit: cover;
+            display: block;
+            background: var(--surface-muted);
+        }
+
+        .project-card-body {
+            padding: var(--space-4);
+        }
+
+        .project-title {
+            font-size: var(--text-base);
+            font-weight: 700;
+            margin-bottom: var(--space-2);
+            color: var(--text-primary);
+            overflow-wrap: anywhere;
+        }
+
+        .project-description {
+            font-size: var(--text-sm);
+            color: var(--text-secondary);
+            margin-bottom: var(--space-3);
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .project-question {
+            font-size: var(--text-sm);
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: var(--space-3);
+            padding: var(--space-2) var(--space-3);
+            background: var(--surface-muted);
+            border-left: 2px solid var(--accent);
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+            overflow-wrap: anywhere;
+        }
+
+        .project-footer {
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            gap: var(--space-1);
-        }
-
-        .trust-strip span::before {
-            content: "";
-            display: inline-block;
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: var(--success);
+            font-size: var(--text-xs);
+            color: var(--text-muted);
         }
 
         .how-it-works {
@@ -156,13 +244,8 @@
             margin-bottom: var(--space-3);
         }
 
-        .comparison-bad .comparison-label {
-            color: var(--danger);
-        }
-
-        .comparison-good .comparison-label {
-            color: var(--success);
-        }
+        .comparison-bad .comparison-label { color: var(--danger); }
+        .comparison-good .comparison-label { color: var(--success); }
 
         .comparison-question {
             font-size: var(--text-sm);
@@ -185,7 +268,14 @@
         .loop h2 {
             font-size: var(--text-2xl);
             font-weight: 700;
-            margin-bottom: var(--space-4);
+            margin-bottom: var(--space-3);
+        }
+
+        .loop p {
+            color: var(--text-secondary);
+            max-width: 420px;
+            margin: 0 auto var(--space-4);
+            font-size: var(--text-sm);
         }
 
         .loop-steps {
@@ -263,18 +353,17 @@
             margin-bottom: var(--space-4);
         }
 
+        .my-projects-link {
+            text-align: center;
+            margin-top: var(--space-4);
+            font-size: var(--text-sm);
+        }
+
         @media (max-width: 600px) {
-            .comparison-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .steps {
-                grid-template-columns: 1fr;
-            }
-
-            .trust-strip {
-                gap: var(--space-3);
-            }
+            .comparison-grid { grid-template-columns: 1fr; }
+            .steps { grid-template-columns: 1fr; }
+            .project-grid { grid-template-columns: 1fr; }
+            .real-activity { gap: var(--space-4); padding: var(--space-4); }
         }
     </style>
 </head>
@@ -295,19 +384,36 @@
     <main class="container">
         <section class="hero">
             <h2>Stop getting "Looks good."</h2>
-            <p class="subheadline">Get feedback you can actually use.</p>
+            <p class="subheadline">Ask one question. Get real answers.</p>
             <p class="supporting">Share what you built, ask one specific question, and get focused feedback from other builders.</p>
             <div class="hero-actions">
-                <a href="#submit" class="btn btn-primary">Get feedback on my project</a>
-                <a href="/discover" class="btn btn-secondary">Give feedback to a builder</a>
+                <a href="#submit" class="btn btn-primary">Get feedback</a>
+                <a href="/discover" class="btn btn-secondary">Give feedback</a>
             </div>
+        </section>
 
-            <div class="trust-strip">
-                <span>Human feedback</span>
-                <span>One focused question</span>
-                <span>Open source</span>
-                <span>Free to try</span>
+        <section class="real-activity" id="real-activity" style="display:none;">
+            <div class="activity-item">
+                <div class="activity-value" id="stat-projects">0</div>
+                <div class="activity-label">Projects</div>
             </div>
+            <div class="activity-item">
+                <div class="activity-value" id="stat-responses">0</div>
+                <div class="activity-label">Feedback responses</div>
+            </div>
+            <div class="activity-item">
+                <div class="activity-value" id="stat-questions">0</div>
+                <div class="activity-label">Questions</div>
+            </div>
+        </section>
+
+        <section class="projects-section">
+            <h2>Projects looking for feedback</h2>
+            <p class="subtitle">Real projects from real builders.</p>
+            <div id="homepage-projects" class="project-grid"></div>
+            <p style="margin-top: var(--space-4);">
+                <a href="/discover" class="btn btn-secondary">Explore all projects</a>
+            </p>
         </section>
 
         <section class="how-it-works">
@@ -337,47 +443,39 @@
                 <div class="comparison-bad">
                     <div class="comparison-label">Bad question</div>
                     <div class="comparison-question">"What do you think of my app?"</div>
-                    <div class="comparison-answers">
-                        "Looks good."<br>
-                        "Nice."<br>
-                        "I like it."
-                    </div>
+                    <div class="comparison-answers">"Looks good."<br>"Nice."<br>"I like it."</div>
                 </div>
                 <div class="comparison-good">
                     <div class="comparison-label">Better question</div>
                     <div class="comparison-question">"Is it immediately clear what this app does?"</div>
-                    <div class="comparison-answers">
-                        One specific question gives people something concrete to answer — and gives you feedback you can actually act on.
-                    </div>
+                    <div class="comparison-answers">One specific question gives people something concrete to answer — and gives you feedback you can actually act on.</div>
                 </div>
             </div>
         </section>
 
         <section class="loop">
             <h2>The Critique loop</h2>
+            <p>Critique works best when builders give feedback as well as receive it.</p>
             <div class="loop-steps">
-                Submit a project<br>
-                ↓<br>
-                Ask one question<br>
-                ↓<br>
-                Give feedback to another builder<br>
-                ↓<br>
-                Get feedback on your project<br>
-                ↓<br>
-                Improve
+                Submit your project<br>↓<br>
+                Ask one focused question<br>↓<br>
+                Help another builder<br>↓<br>
+                Get feedback<br>↓<br>
+                Improve your project
             </div>
             <a href="/discover" class="btn btn-secondary">Explore projects</a>
         </section>
 
         <section class="early-community">
-            <h2>We're looking for our first 20 builders.</h2>
-            <p>Critique is still early. We're looking for developers who want to try it with something they've built and help shape the product.</p>
-            <a href="#submit" class="btn btn-primary">Get feedback on my project</a>
+            <h2>Help us grow Critique</h2>
+            <p>Critique is still early, and we're looking for more builders to try it, give feedback, and help shape the product.</p>
+            <a href="#submit" class="btn btn-primary">Get feedback</a>
         </section>
 
         <section id="submit" class="card">
             <form id="project-form">
-                <h2 style="font-size: var(--text-xl); font-weight: 700; margin-bottom: var(--space-5);">Submit your project</h2>
+                <h2 style="font-size: var(--text-xl); font-weight: 700; margin-bottom: var(--space-2);">Get feedback on something you've built</h2>
+                <p style="color: var(--text-muted); font-size: var(--text-sm); margin-bottom: var(--space-5);">Share your project, ask one question you genuinely want answered, and get focused feedback.</p>
 
                 <span class="form-section-label">Your project</span>
 
@@ -408,20 +506,24 @@
                 <div class="form-group">
                     <div class="question-highlight">
                         <label for="question">Ask ONE question</label>
-                        <textarea class="form-textarea" id="question" name="question" required maxlength="500" placeholder="Is it immediately clear what this product does?" style="min-height:80px;"></textarea>
-                        <p class="form-helper">Focused questions produce better answers. What do you genuinely want to know?</p>
+                        <textarea class="form-textarea" id="question" name="question" required maxlength="500" placeholder="What do you genuinely want another developer to answer?" style="min-height:80px;"></textarea>
+                        <p class="form-helper">Focused questions produce better answers.</p>
                     </div>
                 </div>
 
                 <button type="submit" class="btn btn-primary" style="width:100%;">Submit for feedback</button>
                 <div class="message" id="message"></div>
+
+                <p class="my-projects-link">
+                    <a href="/my-projects">View my projects</a>
+                </p>
             </form>
         </section>
 
         <section class="final-cta">
             <h2>Built something?</h2>
             <p>Get a second opinion from real people.</p>
-            <a href="#submit" class="btn btn-primary">Get feedback on my project</a>
+            <a href="#submit" class="btn btn-primary">Get feedback</a>
         </section>
     </main>
 
@@ -435,6 +537,12 @@
             return '';
         }
 
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
         async function checkAuth() {
             try {
                 const response = await fetch('/auth/check');
@@ -443,6 +551,57 @@
                     document.getElementById('logout-btn').style.display = 'inline';
                 }
             } catch (e) {}
+        }
+
+        async function loadHomepageProjects() {
+            try {
+                const response = await fetch('/api/projects/?page=1&page_size=3');
+                if (!response.ok) return;
+                const data = await response.json();
+
+                // Update real activity stats
+                const totalProjects = data.total || 0;
+                let totalResponses = 0;
+                data.items.forEach(function(p) { totalResponses += (p.response_count || 0); });
+
+                document.getElementById('stat-projects').textContent = totalProjects;
+                document.getElementById('stat-responses').textContent = totalResponses;
+                document.getElementById('stat-questions').textContent = totalProjects;
+                document.getElementById('real-activity').style.display = 'flex';
+
+                // Render project cards
+                const container = document.getElementById('homepage-projects');
+                if (data.items.length === 0) {
+                    container.innerHTML = '<p style="color:var(--text-muted);grid-column:1/-1;">No projects yet. Be the first to ask for feedback.</p>';
+                    return;
+                }
+
+                let html = '';
+                data.items.forEach(function(project) {
+                    const screenshot = project.image_url
+                        ? '<img class="project-screenshot" src="' + escapeHtml(project.image_url) + '" alt="Screenshot of ' + escapeHtml(project.title) + '" loading="lazy" onerror="this.style.display='none'">'
+                        : '';
+                    const description = project.description || 'No description';
+                    const question = project.question_text || 'No question';
+                    const count = project.response_count || 0;
+                    const plural = count !== 1 ? 's' : '';
+
+                    html += '<div class="project-card">';
+                    html += screenshot;
+                    html += '<div class="project-card-body">';
+                    html += '<div class="project-title">' + escapeHtml(project.title) + '</div>';
+                    html += '<div class="project-description">' + escapeHtml(description) + '</div>';
+                    html += '<div class="project-question">' + escapeHtml(question) + '</div>';
+                    html += '<div class="project-footer">';
+                    html += '<span>' + count + ' response' + plural + '</span>';
+                    html += '<a href="/project/' + project.id + '" class="btn btn-primary" style="padding:var(--space-1) var(--space-3);font-size:var(--text-xs);">Give feedback</a>';
+                    html += '</div>';
+                    html += '</div></div>';
+                });
+                container.innerHTML = html;
+            } catch (e) {
+                // Silently fail - homepage still works without real data
+            }
         }
 
         document.getElementById('project-form').addEventListener('submit', async function(e) {
@@ -493,6 +652,7 @@
         });
 
         checkAuth();
+        loadHomepageProjects();
     </script>
 </body>
 </html>
