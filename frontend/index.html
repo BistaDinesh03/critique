@@ -1,16 +1,16 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Critique â€” Ask one question. Get real answers.</title>
+    <title>Critique — Ask one question. Get real answers.</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link rel="stylesheet" href="/static/shared.css">
     <style>
         .hero {
             text-align: center;
             margin-bottom: var(--space-8);
-            padding-top: var(--space-6);
+            padding-top: var(--space-8);
         }
 
         .hero h2 {
@@ -32,8 +32,8 @@
         .hero .supporting {
             font-size: var(--text-base);
             color: var(--text-secondary);
-            max-width: 520px;
-            margin: 0 auto var(--space-5);
+            max-width: 560px;
+            margin: 0 auto var(--space-6);
             line-height: 1.5;
         }
 
@@ -42,35 +42,58 @@
             gap: var(--space-3);
             justify-content: center;
             flex-wrap: wrap;
-            margin-bottom: var(--space-6);
+            margin-bottom: var(--space-8);
         }
 
-        .real-activity {
+        .trust-row {
             display: flex;
             gap: var(--space-6);
             justify-content: center;
             flex-wrap: wrap;
             margin-bottom: var(--space-8);
-            padding: var(--space-5);
+            font-size: var(--text-sm);
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .trust-row span {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        .trust-row span::before {
+            content: "";
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--success);
+            flex-shrink: 0;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--space-4);
+            max-width: 500px;
+            margin: 0 auto var(--space-8);
+        }
+
+        .stat-box {
+            text-align: center;
+            padding: var(--space-4);
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: var(--radius-lg);
-            max-width: 500px;
-            margin-left: auto;
-            margin-right: auto;
         }
 
-        .activity-item {
-            text-align: center;
-        }
-
-        .activity-value {
+        .stat-value {
             font-size: var(--text-2xl);
             font-weight: 700;
             color: var(--text-primary);
         }
 
-        .activity-label {
+        .stat-label {
             font-size: var(--text-xs);
             color: var(--text-muted);
             margin-top: var(--space-1);
@@ -78,28 +101,27 @@
 
         .projects-section {
             margin-bottom: var(--space-8);
-            text-align: center;
         }
 
         .projects-section h2 {
             font-size: var(--text-2xl);
             font-weight: 700;
             margin-bottom: var(--space-2);
+            text-align: center;
         }
 
         .projects-section .subtitle {
             color: var(--text-muted);
             font-size: var(--text-sm);
             margin-bottom: var(--space-5);
+            text-align: center;
         }
 
         .project-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: var(--space-4);
-            max-width: 800px;
-            margin: 0 auto;
-            text-align: left;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--space-5);
+            margin-bottom: var(--space-4);
         }
 
         .project-card {
@@ -107,6 +129,12 @@
             border: 1px solid var(--border);
             border-radius: var(--radius-lg);
             overflow: hidden;
+            transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+        }
+
+        .project-card:hover {
+            border-color: var(--accent);
+            box-shadow: var(--shadow-md);
         }
 
         .project-screenshot {
@@ -118,11 +146,11 @@
         }
 
         .project-card-body {
-            padding: var(--space-4);
+            padding: var(--space-5);
         }
 
         .project-title {
-            font-size: var(--text-base);
+            font-size: var(--text-lg);
             font-weight: 700;
             margin-bottom: var(--space-2);
             color: var(--text-primary);
@@ -132,7 +160,7 @@
         .project-description {
             font-size: var(--text-sm);
             color: var(--text-secondary);
-            margin-bottom: var(--space-3);
+            margin-bottom: var(--space-4);
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
@@ -143,11 +171,11 @@
             font-size: var(--text-sm);
             font-weight: 600;
             color: var(--text-primary);
-            margin-bottom: var(--space-3);
-            padding: var(--space-2) var(--space-3);
+            margin-bottom: var(--space-4);
+            padding: var(--space-3) var(--space-4);
             background: var(--surface-muted);
-            border-left: 2px solid var(--accent);
-            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+            border-left: 3px solid var(--accent);
+            border-radius: 0 var(--radius-md) var(--radius-md) 0;
             overflow-wrap: anywhere;
         }
 
@@ -161,33 +189,36 @@
 
         .how-it-works {
             margin-bottom: var(--space-8);
-            text-align: center;
         }
 
         .how-it-works h2 {
             font-size: var(--text-2xl);
             font-weight: 700;
-            margin-bottom: var(--space-5);
+            margin-bottom: var(--space-6);
+            text-align: center;
         }
 
         .steps {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: var(--space-4);
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--space-6);
         }
 
         .step {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-lg);
-            padding: var(--space-5);
+            text-align: center;
         }
 
         .step-number {
-            font-size: var(--text-sm);
-            font-weight: 700;
+            display: inline-block;
+            width: 36px;
+            height: 36px;
+            line-height: 36px;
+            border-radius: 50%;
+            background: var(--surface-muted);
             color: var(--accent);
-            margin-bottom: var(--space-2);
+            font-weight: 700;
+            font-size: var(--text-sm);
+            margin-bottom: var(--space-3);
         }
 
         .step-title {
@@ -200,40 +231,42 @@
             font-size: var(--text-sm);
             color: var(--text-secondary);
             line-height: 1.5;
+            max-width: 220px;
+            margin: 0 auto;
         }
 
         .comparison {
             margin-bottom: var(--space-8);
-            text-align: center;
         }
 
         .comparison h2 {
             font-size: var(--text-2xl);
             font-weight: 700;
             margin-bottom: var(--space-5);
+            text-align: center;
         }
 
         .comparison-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: var(--space-4);
-            max-width: 600px;
+            gap: var(--space-5);
+            max-width: 700px;
             margin: 0 auto;
-            text-align: left;
+        }
+
+        .comparison-bad, .comparison-good {
+            border-radius: var(--radius-lg);
+            padding: var(--space-5);
         }
 
         .comparison-bad {
             background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: var(--radius-lg);
-            padding: var(--space-5);
         }
 
         .comparison-good {
             background: var(--surface);
-            border: 1px solid var(--accent);
-            border-radius: var(--radius-lg);
-            padding: var(--space-5);
+            border: 2px solid var(--accent);
         }
 
         .comparison-label {
@@ -248,7 +281,7 @@
         .comparison-good .comparison-label { color: var(--success); }
 
         .comparison-question {
-            font-size: var(--text-sm);
+            font-size: var(--text-base);
             font-weight: 600;
             margin-bottom: var(--space-3);
             color: var(--text-primary);
@@ -281,7 +314,7 @@
         .loop-steps {
             font-size: var(--text-sm);
             color: var(--text-secondary);
-            max-width: 300px;
+            max-width: 280px;
             margin: 0 auto var(--space-4);
             line-height: 1.8;
         }
@@ -303,7 +336,7 @@
 
         .early-community p {
             color: var(--text-secondary);
-            max-width: 420px;
+            max-width: 440px;
             margin: 0 auto var(--space-4);
             font-size: var(--text-sm);
         }
@@ -359,11 +392,16 @@
             font-size: var(--text-sm);
         }
 
-        @media (max-width: 600px) {
-            .comparison-grid { grid-template-columns: 1fr; }
+        @media (max-width: 768px) {
+            .project-grid { grid-template-columns: repeat(2, 1fr); }
             .steps { grid-template-columns: 1fr; }
+            .comparison-grid { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 600px) {
             .project-grid { grid-template-columns: 1fr; }
-            .real-activity { gap: var(--space-4); padding: var(--space-4); }
+            .stats-grid { grid-template-columns: 1fr; }
+            .trust-row { gap: var(--space-3); font-size: var(--text-xs); }
         }
     </style>
 </head>
@@ -381,29 +419,36 @@
         </nav>
     </header>
 
-    <main class="container">
+    <main class="container-wide" style="max-width: 1100px;">
         <section class="hero">
             <h2>Stop getting "Looks good."</h2>
             <p class="subheadline">Ask one question. Get real answers.</p>
             <p class="supporting">Share what you built, ask one specific question, and get focused feedback from other builders.</p>
             <div class="hero-actions">
-                <a href="#submit" class="btn btn-primary">Get feedback</a>
-                <a href="/discover" class="btn btn-secondary">Give feedback</a>
+                <a href="#submit" class="btn btn-primary">Get feedback on my project</a>
+                <a href="/discover" class="btn btn-secondary">Give feedback to a builder</a>
+            </div>
+
+            <div class="trust-row">
+                <span>Human feedback</span>
+                <span>One focused question</span>
+                <span>Open source</span>
+                <span>Free to try</span>
             </div>
         </section>
 
-        <section class="real-activity" id="real-activity" style="display:none;">
-            <div class="activity-item">
-                <div class="activity-value" id="stat-projects">0</div>
-                <div class="activity-label">Projects</div>
+        <section class="stats-grid" id="real-activity" style="display:none;">
+            <div class="stat-box">
+                <div class="stat-value" id="stat-projects">0</div>
+                <div class="stat-label">Projects</div>
             </div>
-            <div class="activity-item">
-                <div class="activity-value" id="stat-responses">0</div>
-                <div class="activity-label">Feedback responses</div>
+            <div class="stat-box">
+                <div class="stat-value" id="stat-responses">0</div>
+                <div class="stat-label">Feedback responses</div>
             </div>
-            <div class="activity-item">
-                <div class="activity-value" id="stat-questions">0</div>
-                <div class="activity-label">Questions</div>
+            <div class="stat-box">
+                <div class="stat-value" id="stat-questions">0</div>
+                <div class="stat-label">Questions asked</div>
             </div>
         </section>
 
@@ -411,7 +456,7 @@
             <h2>Projects looking for feedback</h2>
             <p class="subtitle">Real projects from real builders.</p>
             <div id="homepage-projects" class="project-grid"></div>
-            <p style="margin-top: var(--space-4);">
+            <p style="text-align:center; margin-top: var(--space-4);">
                 <a href="/discover" class="btn btn-secondary">Explore all projects</a>
             </p>
         </section>
@@ -448,7 +493,7 @@
                 <div class="comparison-good">
                     <div class="comparison-label">Better question</div>
                     <div class="comparison-question">"Is it immediately clear what this app does?"</div>
-                    <div class="comparison-answers">One specific question gives people something concrete to answer â€” and gives you feedback you can actually act on.</div>
+                    <div class="comparison-answers">One specific question gives people something concrete to answer — and gives you feedback you can actually act on.</div>
                 </div>
             </div>
         </section>
@@ -457,22 +502,22 @@
             <h2>The Critique loop</h2>
             <p>Critique works best when builders give feedback as well as receive it.</p>
             <div class="loop-steps">
-                Submit your project<br>â†“<br>
-                Ask one focused question<br>â†“<br>
-                Help another builder<br>â†“<br>
-                Get feedback<br>â†“<br>
-                Improve your project
+                Submit a project<br>↓<br>
+                Ask one question<br>↓<br>
+                Give feedback<br>↓<br>
+                Get feedback<br>↓<br>
+                Improve
             </div>
             <a href="/discover" class="btn btn-secondary">Explore projects</a>
         </section>
 
         <section class="early-community">
-            <h2>Help us grow Critique</h2>
-            <p>Critique is still early, and we're looking for more builders to try it, give feedback, and help shape the product.</p>
-            <a href="#submit" class="btn btn-primary">Get feedback</a>
+            <h2>Help shape Critique</h2>
+            <p>Critique is still early. I'm looking for developers who want to try it with something they've built and help improve the product.</p>
+            <a href="#submit" class="btn btn-primary">Get feedback on my project</a>
         </section>
 
-        <section id="submit" class="card">
+        <section id="submit" class="card" style="max-width: 720px; margin: 0 auto;">
             <form id="project-form">
                 <h2 style="font-size: var(--text-xl); font-weight: 700; margin-bottom: var(--space-2);">Get feedback on something you've built</h2>
                 <p style="color: var(--text-muted); font-size: var(--text-sm); margin-bottom: var(--space-5);">Share your project, ask one question you genuinely want answered, and get focused feedback.</p>
@@ -523,7 +568,7 @@
         <section class="final-cta">
             <h2>Built something?</h2>
             <p>Get a second opinion from real people.</p>
-            <a href="#submit" class="btn btn-primary">Get feedback</a>
+            <a href="#submit" class="btn btn-primary">Get feedback on my project</a>
         </section>
     </main>
 
@@ -545,21 +590,26 @@
 
         async function checkAuth() {
             try {
-                const response = await fetch('/auth/check');
-                if (response.ok) {
+                const response = await fetch('/auth/check', { credentials: 'same-origin' });
+                if (response.status === 200) {
                     document.getElementById('login-btn').style.display = 'none';
                     document.getElementById('logout-btn').style.display = 'inline';
+                } else {
+                    document.getElementById('login-btn').style.display = 'inline';
+                    document.getElementById('logout-btn').style.display = 'none';
                 }
-            } catch (e) {}
+            } catch (e) {
+                document.getElementById('login-btn').style.display = 'inline';
+                document.getElementById('logout-btn').style.display = 'none';
+            }
         }
 
         async function loadHomepageProjects() {
             try {
-                const response = await fetch('/api/projects/?page=1&page_size=3');
+                const response = await fetch('/api/projects/?page=1&page_size=6');
                 if (!response.ok) return;
                 const data = await response.json();
 
-                // Update real activity stats
                 const totalProjects = data.total || 0;
                 let totalResponses = 0;
                 data.items.forEach(function(p) { totalResponses += (p.response_count || 0); });
@@ -567,12 +617,11 @@
                 document.getElementById('stat-projects').textContent = totalProjects;
                 document.getElementById('stat-responses').textContent = totalResponses;
                 document.getElementById('stat-questions').textContent = totalProjects;
-                document.getElementById('real-activity').style.display = 'flex';
+                document.getElementById('real-activity').style.display = 'grid';
 
-                // Render project cards
                 const container = document.getElementById('homepage-projects');
                 if (data.items.length === 0) {
-                    container.innerHTML = '<p style="color:var(--text-muted);grid-column:1/-1;">No projects yet. Be the first to ask for feedback.</p>';
+                    container.innerHTML = '<p style="color:var(--text-muted);grid-column:1/-1;text-align:center;">No projects yet. Be the first to ask for feedback.</p>';
                     return;
                 }
 
@@ -600,7 +649,7 @@
                 });
                 container.innerHTML = html;
             } catch (e) {
-                // Silently fail - homepage still works without real data
+                // Silently fail
             }
         }
 
