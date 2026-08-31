@@ -579,7 +579,7 @@
                 let html = '';
                 data.items.forEach(function(project) {
                     const screenshot = project.image_url
-                        ? '<img class="project-screenshot" src="' + escapeHtml(project.image_url) + '" alt="Screenshot of ' + escapeHtml(project.title) + '" loading="lazy" onerror="this.style.display='none'">'
+                        ? '<img class="project-screenshot" src="' + escapeHtml(project.image_url) + '" alt="Screenshot of ' + escapeHtml(project.title) + '" loading="lazy" onerror="this.style.display=\'none\'">'
                         : '';
                     const description = project.description || 'No description';
                     const question = project.question_text || 'No question';
