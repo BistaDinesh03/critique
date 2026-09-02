@@ -23,9 +23,23 @@
         }
 
         .project-list {
-            display: flex;
-            flex-direction: column;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
             gap: var(--space-4);
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 1099px) {
+            .project-list {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 699px) {
+            .project-list {
+                grid-template-columns: 1fr;
+            }
         }
 
         .project-screenshot { width: 100%; border-radius: var(--radius-md); margin-bottom: var(--space-3); object-fit: cover; max-height: 180px; }
