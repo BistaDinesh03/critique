@@ -725,13 +725,13 @@
                     msg.className = 'alert alert-error';
                     msg.textContent = 'Error: ' + JSON.stringify(data);
                 }
+            } catch (error) {
+                msg.className = 'alert alert-error';
+                msg.textContent = 'Network error.';
             } finally {
                 const submitBtn = document.getElementById('submit-btn');
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Submit for feedback';
-            } catch (error) {
-                msg.className = 'alert alert-error';
-                msg.textContent = 'Network error.';
             }
         });
 
