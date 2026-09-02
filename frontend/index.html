@@ -530,48 +530,61 @@
 
         <section id="submit" class="card" style="max-width: 720px; margin: 0 auto;">
             <form id="project-form">
-                <h2 style="font-size: var(--text-xl); font-weight: 700; margin-bottom: var(--space-2);">Get feedback on something you've built</h2>
-                <p style="color: var(--text-muted); font-size: var(--text-sm); margin-bottom: var(--space-5);">Share your project, ask one question you genuinely want answered, and get focused feedback.</p>
+                <h2 style="font-size: var(--text-xl); font-weight: 700; margin-bottom: var(--space-1);">Get feedback on something you've built</h2>
+                <p style="color: var(--text-muted); font-size: var(--text-sm); margin-bottom: var(--space-5);">Share your project and ask one question you genuinely want answered.</p>
 
-                <span class="form-section-label">Your project</span>
+                <div style="display:flex;gap:var(--space-3);margin-bottom:var(--space-5);font-size:var(--text-xs);font-weight:600;color:var(--text-muted);">
+                    <span style="background:var(--surface-muted);padding:var(--space-1) var(--space-3);border-radius:999px;">01 Project</span>
+                    <span style="background:var(--surface-muted);padding:var(--space-1) var(--space-3);border-radius:999px;">02 Question</span>
+                </div>
+
+                <span class="form-section-label">Step 1 — Your project</span>
+                <p style="color:var(--text-muted);font-size:var(--text-sm);margin-bottom:var(--space-4);">Tell us what you built.</p>
 
                 <div class="form-group">
-                    <label class="form-label" for="title">Project title</label>
-                    <input class="form-input" type="text" id="title" name="title" required maxlength="200" placeholder="Akiya Scout">
+                    <label class="form-label" for="title">Project title <span style="font-weight:400;color:var(--text-muted);">(required)</span></label>
+                    <input class="form-input" type="text" id="title" name="title" required maxlength="200" placeholder="e.g. Akiya Scout">
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label" for="description">Short description</label>
-                    <textarea class="form-textarea" id="description" name="description" maxlength="5000" placeholder="Find abandoned houses in Japan"></textarea>
+                    <label class="form-label" for="description">Short description <span style="font-weight:400;color:var(--text-muted);">(required)</span></label>
+                    <textarea class="form-textarea" id="description" name="description" maxlength="5000" placeholder="What does your project do? One or two sentences is enough."></textarea>
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label" for="url">Project URL</label>
-                    <input class="form-input" type="url" id="url" name="url" maxlength="500" placeholder="https://example.com">
+                    <label class="form-label" for="url">Project URL <span style="font-weight:400;color:var(--text-muted);">(required)</span></label>
+                    <input class="form-input" type="url" id="url" name="url" maxlength="500" placeholder="https://your-project.com">
                 </div>
 
                 <div class="form-group">
                     <label class="form-label" for="image_url">Screenshot URL <span style="font-weight:400;color:var(--text-muted);">(optional)</span></label>
-                    <input class="form-input" type="url" id="image_url" name="image_url" maxlength="500" placeholder="https://example.com/screenshot.png">
+                    <input class="form-input" type="url" id="image_url" name="image_url" maxlength="500" placeholder="https://your-project.com/screenshot.png">
                 </div>
 
                 <hr style="border:none;border-top:1px solid var(--border);margin:var(--space-5) 0;">
 
-                <span class="form-section-label">Your question</span>
+                <span class="form-section-label">Step 2 — Your question</span>
+                <p style="color:var(--text-muted);font-size:var(--text-sm);margin-bottom:var(--space-4);">Ask the one thing you really want to know.</p>
 
                 <div class="form-group">
                     <div class="question-highlight">
-                        <label for="question">Ask ONE question</label>
-                        <textarea class="form-textarea" id="question" name="question" required maxlength="500" placeholder="What do you genuinely want another developer to answer?" style="min-height:80px;"></textarea>
-                        <p class="form-helper">Focused questions produce better answers.</p>
+                        <label for="question">Your ONE question <span style="font-weight:400;color:var(--accent);">(required)</span></label>
+                        <textarea class="form-textarea" id="question" name="question" required maxlength="500" placeholder="e.g. Is it immediately clear what this product does?" style="min-height:80px;"></textarea>
+                        <p class="form-helper">Be specific. One clear question leads to more useful feedback.</p>
                     </div>
                 </div>
 
-                <button type="submit" class="btn btn-primary" style="width:100%;">Submit for feedback</button>
+                <div style="font-size:var(--text-xs);color:var(--text-muted);margin-bottom:var(--space-4);">
+                    <p style="margin-bottom:var(--space-1);"><strong style="color:var(--danger);">Too broad:</strong> "What do you think of my app?"</p>
+                    <p><strong style="color:var(--success);">Better:</strong> "Is it immediately clear what my app does?"</p>
+                </div>
+
+                <button type="submit" class="btn btn-primary" id="submit-btn" style="width:100%;">Submit for feedback</button>
+                <p style="text-align:center;font-size:var(--text-xs);color:var(--text-muted);margin-top:var(--space-2);">Free to use. Human feedback. No AI-generated responses.</p>
                 <div class="message" id="message"></div>
 
                 <p class="my-projects-link">
-                    <a href="/my-projects">View my projects</a>
+                    <a href="/my-projects" style="color:var(--text-muted);">View my projects</a>
                 </p>
             </form>
         </section>
@@ -682,6 +695,10 @@
             };
 
             try {
+                const submitBtn = document.getElementById('submit-btn');
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Submitting...';
+
                 const response = await fetch('/api/projects/', {
                     method: 'POST',
                     headers: {
@@ -705,6 +722,12 @@
                     msg.className = 'alert alert-error';
                     msg.textContent = 'Error: ' + JSON.stringify(data);
                 }
+            } finally {
+                const submitBtn = document.getElementById('submit-btn');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit for feedback';
+            }
+
             } catch (error) {
                 msg.className = 'alert alert-error';
                 msg.textContent = 'Network error.';
