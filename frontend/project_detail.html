@@ -250,15 +250,15 @@
             if (q) {
                 html += '<div class="question-block"><div class="question-label">The Maker\'s Question</div><div class="question-text">' + escapeHtml(q.text) + '</div></div>';
                 html += '<div class="response-form-card"><form id="response-form">';
-                html += '<div class="form-section"><h3>How clear is it?</h3><div class="radio-group">';
-                html += '<div class="radio-option"><input type="radio" id="c1" name="clarity" value="very_clear" required><label for="c1">Very clear</label></div>';
-                html += '<div class="radio-option"><input type="radio" id="c2" name="clarity" value="mostly_clear"><label for="c2">Mostly clear</label></div>';
-                html += '<div class="radio-option"><input type="radio" id="c3" name="clarity" value="confusing"><label for="c3">Confusing</label></div>';
+                html += '<div class="form-section"><h3>How clear is it?</h3><div class="radio-cards">';
+                html += '<label class="radio-card"><input type="radio" id="c1" name="clarity" value="very_clear" required><span class="radio-card-label"><span class="radio-card-title">Very clear</span><span class="radio-card-desc">I understood the project quickly.</span></span></label>';
+                html += '<label class="radio-card"><input type="radio" id="c2" name="clarity" value="mostly_clear"><span class="radio-card-label"><span class="radio-card-title">Mostly clear</span><span class="radio-card-desc">I understood it, but needed some explanation.</span></span></label>';
+                html += '<label class="radio-card"><input type="radio" id="c3" name="clarity" value="confusing"><span class="radio-card-label"><span class="radio-card-title">Confusing</span><span class="radio-card-desc">I was not sure what it does.</span></span></label>';
                 html += '</div></div>';
-                html += '<div class="form-section"><h3>Would you use it?</h3><div class="radio-group">';
-                html += '<div class="radio-option"><input type="radio" id="u1" name="would_use" value="yes" required><label for="u1">Yes</label></div>';
-                html += '<div class="radio-option"><input type="radio" id="u2" name="would_use" value="maybe"><label for="u2">Maybe</label></div>';
-                html += '<div class="radio-option"><input type="radio" id="u3" name="would_use" value="no"><label for="u3">No</label></div>';
+                html += '<div class="form-section"><h3>Would you use it?</h3><div class="radio-cards">';
+                html += '<label class="radio-card"><input type="radio" id="u1" name="would_use" value="yes" required><span class="radio-card-label"><span class="radio-card-title">Yes</span><span class="radio-card-desc">I would use this.</span></span></label>';
+                html += '<label class="radio-card"><input type="radio" id="u2" name="would_use" value="maybe"><span class="radio-card-label"><span class="radio-card-title">Maybe</span><span class="radio-card-desc">I might use this in some cases.</span></span></label>';
+                html += '<label class="radio-card"><input type="radio" id="u3" name="would_use" value="no"><span class="radio-card-label"><span class="radio-card-title">No</span><span class="radio-card-desc">I would not use this.</span></span></label>';
                 html += '</div></div>';
                 html += '<div class="form-section"><h3>What would you change? <span style="font-weight:400;color:var(--text-muted);">(optional)</span></h3><textarea class="form-textarea" id="suggestion" maxlength="2000" placeholder="Your honest feedback..."></textarea></div>';
                 html += '<button type="submit" class="btn btn-primary" id="submit-btn" style="width:100%;">Submit feedback</button>';
@@ -309,6 +309,7 @@
                     data = {};
                 }
                 if (response.ok) {
+                    CritiqueUI.showToast('Feedback submitted', 'success');
                     msg.className = 'alert alert-success';
                     msg.textContent = 'Thank you! Your feedback has been submitted.';
                     document.getElementById('response-form').reset();
