@@ -468,3 +468,238 @@ img {
     }
 }
 
+
+
+/* ============================================
+   Toast System
+   ============================================ */
+
+#toast-container {
+    position: fixed;
+    bottom: var(--space-4);
+    right: var(--space-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    z-index: 1000;
+    max-width: 360px;
+}
+
+.toast {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: var(--space-3) var(--space-4);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    cursor: pointer;
+    transition: opacity var(--transition-fast), transform var(--transition-fast);
+}
+
+.toast-hide {
+    opacity: 0;
+    transform: translateY(8px);
+}
+
+.toast-icon {
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.toast-success .toast-icon {
+    color: var(--success);
+}
+
+.toast-error .toast-icon {
+    color: var(--danger);
+}
+
+.toast-info .toast-icon {
+    color: var(--accent);
+}
+
+.toast-text {
+    color: var(--text-primary);
+}
+
+/* ============================================
+   Modal System
+   ============================================ */
+
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 900;
+    padding: var(--space-4);
+}
+
+.modal {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    padding: var(--space-6);
+    max-width: 420px;
+    width: 100%;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+}
+
+.modal-title {
+    font-size: var(--text-lg);
+    font-weight: 700;
+    margin-bottom: var(--space-3);
+    color: var(--text-primary);
+}
+
+.modal-body {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    margin-bottom: var(--space-5);
+    line-height: 1.5;
+}
+
+.modal-actions {
+    display: flex;
+    gap: var(--space-3);
+    justify-content: flex-end;
+}
+
+/* ============================================
+   Skeleton Loaders
+   ============================================ */
+
+.skeleton {
+    background: linear-gradient(90deg, var(--surface-muted) 25%, #e8e8e8 50%, var(--surface-muted) 75%);
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.5s infinite;
+    border-radius: var(--radius-md);
+}
+
+@keyframes skeleton-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+.skeleton-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.skeleton-card .skeleton-img {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: 0;
+}
+
+.skeleton-card .skeleton-body {
+    padding: var(--space-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.skeleton-line {
+    height: 12px;
+    border-radius: 4px;
+}
+
+.skeleton-line.w-75 { width: 75%; }
+.skeleton-line.w-50 { width: 50%; }
+.skeleton-line.w-100 { width: 100%; }
+
+/* ============================================
+   Radio Cards (for feedback form)
+   ============================================ */
+
+.radio-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: var(--space-3);
+}
+
+.radio-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    padding: var(--space-4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: border-color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.radio-card:hover {
+    border-color: var(--accent);
+}
+
+.radio-card input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+}
+
+.radio-card input[type="radio"]:focus-visible + .radio-card-label {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+    border-radius: 2px;
+}
+
+.radio-card input[type="radio"]:checked ~ .radio-card-label {
+    font-weight: 600;
+}
+
+.radio-card input[type="radio"]:checked + .radio-card-label {
+    border-color: var(--accent);
+    background: rgba(37, 99, 235, 0.03);
+}
+
+.radio-card input[type="radio"]:checked + .radio-card-label::after {
+    content: "✓";
+    position: absolute;
+    top: var(--space-2);
+    right: var(--space-2);
+    font-size: var(--text-sm);
+    color: var(--accent);
+    font-weight: 700;
+}
+
+.radio-card-label {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+.radio-card-title {
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.radio-card-desc {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
+@media (max-width: 600px) {
+    #toast-container {
+        bottom: var(--space-3);
+        right: var(--space-3);
+        left: var(--space-3);
+        max-width: none;
+    }
+
+    .modal {
+        padding: var(--space-5);
+    }
+}

@@ -220,7 +220,8 @@ async function loadMyProjects() {
                     html += '<div class="card-actions">';
                     html += '<a href="/project/' + p.id + '" class="btn btn-secondary">View</a>';
                     html += '<a href="/project/' + p.id + '/results" class="btn btn-primary">Results</a>';
-                    html += '<button onclick="deleteProject(' + p.id + ')" class="btn btn-danger">Delete</button>';
+                    html += '<button onclick="copyProjectLink(' + p.id + ')" class="btn btn-ghost" aria-label="Copy project link">Copy link</button>';
+                    html += '<button onclick="deleteProject(' + p.id + ', \'' + escapeHtml(p.title).replace(/\'/g, '\\\'') + '\')" class="btn btn-ghost" style="color:var(--danger);" aria-label="Delete project">Delete</button>';
                     html += '</div></div></div>';
                 });
                 html += '</div>';
@@ -230,25 +231,53 @@ async function loadMyProjects() {
             }
         }
 
-        async function deleteProject(projectId) {
-            if (!confirm('Delete this project? This cannot be undone.')) return;
-            const csrfToken = getCsrfToken();
-            try {
-                const response = await fetch('/api/projects/' + projectId, {
-                    method: 'DELETE',
-                    headers: { 'X-CSRF-Token': csrfToken },
-                });
-                if (response.status === 204) {
-                    loadMyProjects();
-                } else if (response.status === 401) {
-                    alert('Please login.');
-                } else if (response.status === 403) {
-                    alert('You cannot delete this project.');
-                } else {
-                    alert('Failed to delete. Try again.');
+        function deleteProject(projectId, projectTitle) {
+            CritiqueUI.showConfirmModal({
+                title: 'Delete project?',
+                message: 'This will permanently delete "' + projectTitle + '" and its feedback. This action cannot be undone.',
+                confirmText: 'Delete project',
+                cancelText: 'Cancel',
+                destructive: true,
+                onConfirm: function(success, fail) {
+                    const csrfToken = getCsrfToken();
+                    fetch('/api/projects/' + projectId, {
+                        method: 'DELETE',
+                        headers: { 'X-CSRF-Token': csrfToken },
+                    })
+                    .then(function(response) {
+                        if (response.status === 204) {
+                            success();
+                            CritiqueUI.showToast('Project deleted', 'success');
+                            loadMyProjects();
+                        } else if (response.status === 401) {
+                            fail();
+                            CritiqueUI.showToast('Please login.', 'error');
+                        } else if (response.status === 403) {
+                            fail();
+                            CritiqueUI.showToast('You cannot delete this project.', 'error');
+                        } else {
+                            fail();
+                            CritiqueUI.showToast('Could not delete the project. Please try again.', 'error');
+                        }
+                    })
+                    .catch(function() {
+                        fail();
+                        CritiqueUI.showToast('Connection problem. Check your connection and try again.', 'error');
+                    });
                 }
-            } catch (e) {
-                alert('Network error.');
+            });
+        }
+
+        function copyProjectLink(projectId) {
+            var url = window.location.origin + '/project/' + projectId;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(url).then(function() {
+                    CritiqueUI.showToast('Project link copied', 'success');
+                }).catch(function() {
+                    CritiqueUI.showToast('Could not copy the link', 'error');
+                });
+            } else {
+                CritiqueUI.showToast('Could not copy the link', 'error');
             }
         }
 
@@ -272,6 +301,7 @@ async function loadMyProjects() {
 
             try { checkAuth(); } catch(e) {}
     </script>
+    <script src="/static/ui.js"></script>
 </body>
 </html>
 
