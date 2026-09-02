@@ -45,21 +45,23 @@ No AI. No likes. No vanity metrics.
 
 ## Live badge for your README
 
-\\\markdown
+[![Critique](https://critique-qqz9.onrender.com/badge/11.svg)](https://critique-qqz9.onrender.com/project/11)
+
+```markdown
 [![Critique](https://critique-qqz9.onrender.com/badge/PROJECT_ID.svg)](https://critique-qqz9.onrender.com/project/PROJECT_ID)
-\\\
+```
 
 Shows feedback count. Updates automatically. Links straight to your project.
 
 ## Run locally
 
-\\\ash
+```bash
 git clone https://github.com/BistaDinesh03/critique.git
 cd critique
 pip install -r backend/requirements.txt
 cp .env.example .env
 cd backend && uvicorn app.main:app --reload
-\\\
+```
 
 Open http://127.0.0.1:8000  
 GitHub OAuth setup → [docs/github-oauth-setup.md](docs/github-oauth-setup.md)
