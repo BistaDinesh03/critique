@@ -627,6 +627,9 @@
                 document.getElementById('logout-btn').style.display = 'none';
             }
         }
+        
+        // Run auth check immediately on script load
+        checkAuth();
 
         async function loadHomepageProjects() {
             try {
@@ -652,7 +655,7 @@
                 let html = '';
                 data.items.forEach(function(project) {
                     const screenshot = project.image_url
-                        ? '<img class="project-screenshot" src="' + escapeHtml(project.image_url) + '" alt="Screenshot of ' + escapeHtml(project.title) + '" loading="lazy" onerror="this.style.display=\'none\'">'
+                        ? '<img class="project-screenshot" src="' + escapeHtml(project.image_url) + '" alt="Screenshot of ' + escapeHtml(project.title) + '" loading="lazy">'
                         : '';
                     const description = project.description || 'No description';
                     const question = project.question_text || 'No question';
@@ -726,15 +729,12 @@
                 const submitBtn = document.getElementById('submit-btn');
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Submit for feedback';
-            }
-
             } catch (error) {
                 msg.className = 'alert alert-error';
                 msg.textContent = 'Network error.';
             }
         });
 
-        try { checkAuth(); } catch(e) {}
         loadHomepageProjects();
     </script>
 </body>
