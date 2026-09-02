@@ -464,11 +464,11 @@
         </section>
 
         <section class="projects-section">
-            <h2>Projects looking for feedback</h2>
-            <p class="subtitle">Real projects from real builders.</p>
+            <h2>Help a builder improve something</h2>
+            <p class="subtitle">Real projects. Real questions. Human feedback.</p>
             <div id="homepage-projects" class="project-grid"></div>
             <p style="text-align:center; margin-top: var(--space-4);">
-                <a href="/discover" class="btn btn-secondary">Explore all projects</a>
+                <a href="/discover" class="btn btn-secondary">Explore all projects →</a>
             </p>
         </section>
 
@@ -645,7 +645,7 @@
 
                 const container = document.getElementById('homepage-projects');
                 if (data.items.length === 0) {
-                    container.innerHTML = '<p style="color:var(--text-muted);grid-column:1/-1;text-align:center;">No projects yet. Be the first to ask for feedback.</p>';
+                    container.innerHTML = '<p style="color:var(--text-muted);grid-column:1/-1;text-align:center;">No projects waiting for feedback yet. Be the first to ask a question.</p>';
                     return;
                 }
 
