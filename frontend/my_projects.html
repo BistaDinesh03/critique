@@ -42,25 +42,55 @@
             }
         }
 
-        .project-screenshot { width: 100%; border-radius: var(--radius-md); margin-bottom: var(--space-3); object-fit: cover; max-height: 180px; }
+        .project-screenshot {
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            object-fit: cover;
+            display: block;
+            background: var(--surface-muted);
+        }
 
         .project-card {
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: var(--radius-lg);
-            padding: var(--space-5);
+            overflow: hidden;
+            transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .project-card:hover {
+            border-color: var(--accent);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+            transform: translateY(-2px);
+        }
+
+        .project-card-body {
+            padding: var(--space-4);
+            display: flex;
+            flex-direction: column;
+            flex: 1;
         }
 
         .project-title {
-            font-size: var(--text-lg);
+            font-size: var(--text-base);
             font-weight: 700;
             margin-bottom: var(--space-1);
+            color: var(--text-primary);
+            line-height: 1.3;
+            overflow-wrap: anywhere;
         }
 
         .project-description {
             color: var(--text-secondary);
             font-size: var(--text-sm);
             margin-bottom: var(--space-3);
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            line-height: 1.4;
         }
 
         .project-meta {
@@ -69,10 +99,26 @@
             margin-bottom: var(--space-4);
         }
 
+        .response-badge {
+            display: inline-block;
+            padding: var(--space-1) var(--space-3);
+            border-radius: 999px;
+            font-size: var(--text-xs);
+            font-weight: 600;
+            background: var(--surface-muted);
+            color: var(--text-secondary);
+        }
+
         .card-actions {
+            margin-top: auto;
             display: flex;
             gap: var(--space-2);
             flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .card-actions .btn-danger {
+            margin-left: auto;
         }
 
         @media (max-width: 600px) {
@@ -167,14 +213,15 @@ async function loadMyProjects() {
                 projects.forEach(function(p) {
                     html += '<div class="project-card">';
                     if (p.image_url) { html += '<img class="project-screenshot" src="' + escapeHtml(p.image_url) + '" alt="Screenshot" loading="lazy" onerror="this.style.display=\'none\'">'; }
-                    html += '<div class="project-title">' + escapeHtml(p.title) + '</div>';
+                    html += '<div class="project-card-body">';
+                    html += '<div class="project-title">' + escapeHtml(p.title) + '</span></div>';
                     if (p.description) html += '<div class="project-description">' + escapeHtml(p.description) + '</div>';
-                    html += '<div class="project-meta">' + p.response_count + ' response' + (p.response_count !== 1 ? 's' : '') + '</div>';
+                    html += '<div class="project-meta"><span class="response-badge">' + p.response_count === 0 ? 'No responses yet' : p.response_count + ' response' + (p.response_count !== 1 ? 's' : '') + '</div>';
                     html += '<div class="card-actions">';
                     html += '<a href="/project/' + p.id + '" class="btn btn-secondary">View</a>';
                     html += '<a href="/project/' + p.id + '/results" class="btn btn-primary">Results</a>';
                     html += '<button onclick="deleteProject(' + p.id + ')" class="btn btn-danger">Delete</button>';
-                    html += '</div></div>';
+                    html += '</div></div></div>';
                 });
                 html += '</div>';
                 content.innerHTML = html;
