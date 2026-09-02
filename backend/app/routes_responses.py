@@ -1,4 +1,5 @@
 ﻿import hashlib
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -60,6 +61,15 @@ def create_response(
         ip_hash=ip_hash,
     )
     db.add(response)
+
+    # Increment project feedback counters
+    project.feedback_count = (project.feedback_count or 0) + 1
+    project.last_feedback_at = datetime.now(timezone.utc)
+
+    # Increment user feedback counters
+    user.feedback_given_count = (user.feedback_given_count or 0) + 1
+    user.feedback_score = (user.feedback_score or 0) + 1
+
     db.commit()
     db.refresh(response)
 

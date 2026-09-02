@@ -13,13 +13,19 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    github_id = Column(Integer, unique=True, nullable=True)  # nullable for non-GitHub users
+    github_id = Column(Integer, unique=True, nullable=True)
     username = Column(String(100), unique=True, nullable=False)
     avatar_url = Column(String(500), nullable=True)
     created_at = Column(DateTime, default=utc_now)
 
+    # New fields for ranking/reputation
+    feedback_given_count = Column(Integer, default=0, nullable=False)
+    feedback_helpful_count = Column(Integer, default=0, nullable=False)
+    feedback_score = Column(Integer, default=0, nullable=False)
+
     # Relationships
     projects = relationship("Project", back_populates="owner", cascade="all, delete-orphan")
+    project_views = relationship("ProjectView", back_populates="user", cascade="all, delete-orphan")
 
 
 class Project(Base):
@@ -32,12 +38,19 @@ class Project(Base):
     image_url = Column(String(500), nullable=True)
     created_at = Column(DateTime, default=utc_now)
 
+    # New fields for ranking
+    feedback_count = Column(Integer, default=0, nullable=False)
+    last_feedback_at = Column(DateTime, nullable=True)
+    last_served_at = Column(DateTime, nullable=True)
+    discover_impressions = Column(Integer, default=0, nullable=False)
+
     # Foreign keys
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
     # Relationships
     owner = relationship("User", back_populates="projects")
     questions = relationship("Question", back_populates="project", cascade="all, delete-orphan")
+    views = relationship("ProjectView", back_populates="project", cascade="all, delete-orphan")
 
 
 class Question(Base):
@@ -73,3 +86,16 @@ class Response(Base):
     # Relationships
     question = relationship("Question", back_populates="responses")
     user = relationship("User")
+
+
+class ProjectView(Base):
+    __tablename__ = "project_views"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False, index=True)
+    viewed_at = Column(DateTime, default=utc_now, nullable=False)
+
+    # Relationships
+    user = relationship("User", back_populates="project_views")
+    project = relationship("Project", back_populates="views")

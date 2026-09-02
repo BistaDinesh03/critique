@@ -1,6 +1,6 @@
 ﻿from contextlib import asynccontextmanager
 from fastapi import FastAPI
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -36,23 +36,19 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Add cache middleware
 app.add_middleware(CacheControlMiddleware)
 
-# Include routers
 app.include_router(auth_router)
 app.include_router(projects_router)
 app.include_router(responses_router)
 app.include_router(results_router)
 app.include_router(badge_router)
 
-# Serve static files
 static_dir = Path(__file__).resolve().parent.parent.parent / "static"
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 
 def _read_frontend_file(filename: str) -> str:
-    """Read a file from the frontend directory."""
     frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"
     file_path = frontend_dir / filename
     return file_path.read_text(encoding="utf-8")
@@ -61,41 +57,34 @@ def _read_frontend_file(filename: str) -> str:
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request, exc):
     """Generic error handler that doesn't leak stack traces."""
-    return {"detail": "Internal server error"}
+    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
 
 
 @app.get("/", response_class=HTMLResponse)
 def homepage():
-    """Serve the submission form."""
     return HTMLResponse(content=_read_frontend_file("index.html"))
 
 
 @app.get("/my-projects", response_class=HTMLResponse)
 def my_projects_page():
-    """Serve the my projects page."""
     return HTMLResponse(content=_read_frontend_file("my_projects.html"))
 
 
 @app.get("/discover", response_class=HTMLResponse)
 def discover_page():
-    """Serve the discovery page."""
     return HTMLResponse(content=_read_frontend_file("discover.html"))
 
 
 @app.get("/project/{project_id}", response_class=HTMLResponse)
 def project_detail_page(project_id: int):
-    """Serve the project detail page."""
     return HTMLResponse(content=_read_frontend_file("project_detail.html"))
 
 
 @app.get("/project/{project_id}/results", response_class=HTMLResponse)
 def project_results_page(project_id: int):
-    """Serve the project results page."""
     return HTMLResponse(content=_read_frontend_file("project_results.html"))
 
 
 @app.get("/health")
 def health_check():
-    """Health check endpoint for monitoring."""
     return {"status": "ok"}
-
