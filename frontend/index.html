@@ -712,6 +712,7 @@
                 });
                 const data = await response.json();
                 if (response.ok) {
+                    CritiqueUI.showToast('Project submitted', 'success');
                     msg.className = 'alert alert-success';
                     msg.textContent = 'Project submitted successfully!';
                     document.getElementById('project-form').reset();
