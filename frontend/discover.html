@@ -262,8 +262,8 @@
                     '<h3 class="project-title">' + escapeHtml(project.title) + '</h3>' +
                     '<p class="project-description">' + escapeHtml(description) + '</p>' +
                     '<div class="question-box"><div class="question-label">The Question</div><div class="question-text">' + escapeHtml(questionText) + '</div></div>' +
-                    '<div class="card-footer"><span class="response-count">' + responseCount + ' response' + plural + '</span>' +
-                    '<a href="/project/' + project.id + '" class="btn btn-primary" aria-label="View and respond to ' + escapeHtml(project.title) + '">View &amp; Respond</a></div>' +
+                    '<div class="card-footer"><span class="response-badge">' + (responseCount === 0 ? 'Needs feedback' : responseCount + ' response' + plural) + '</span>' +
+                    '<a href="/project/' + project.id + '" class="btn btn-primary" aria-label="View and respond to ' + escapeHtml(project.title) + '">Review project →</a></div>' +
                     '</div>';
                 listContainer.appendChild(card);
             });
