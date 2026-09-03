@@ -262,7 +262,7 @@
                     html += '<a href="/project/' + p.id + '/results" class="btn btn-primary">View Feedback</a>';
                     html += '<button onclick="copyLink(' + p.id + ')" class="btn btn-secondary">Share</button>';
                     html += '<span class="spacer"></span>';
-                    html += '<button onclick="deleteProject(' + p.id + ', \\'' + escapeHtml(p.title).replace(/\\'/g, '&apos;') + '\\')" class="btn-delete">Delete</button>';
+                    html += '<button onclick="deleteProject(' + p.id + ')" data-title="' + escapeHtml(p.title) + '" class="btn-delete">Delete</button>';
                     html += '</div>';
                     html += '</div>';
                     html += '</div>';
@@ -285,7 +285,8 @@
             }
         }
 
-        function deleteProject(projectId, projectTitle) {
+        function deleteProject(projectId) {
+            var projectTitle = event.target.getAttribute('data-title') || 'This project';
             CritiqueUI.showConfirmModal({
                 title: 'Delete project?',
                 message: 'This will permanently delete "' + projectTitle + '" and its feedback.',
