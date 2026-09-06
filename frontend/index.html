@@ -37,6 +37,38 @@
             line-height: 1.5;
         }
 
+        .social-proof {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--space-3);
+            margin-top: var(--space-4);
+        }
+
+        .avatar-stack {
+            display: flex;
+            align-items: center;
+        }
+
+        .avatar-stack img {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 2px solid var(--surface);
+            margin-left: -8px;
+            object-fit: cover;
+        }
+
+        .avatar-stack img:first-child {
+            margin-left: 0;
+        }
+
+        .social-proof-text {
+            font-size: var(--text-sm);
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
         .hero-actions {
             display: flex;
             gap: var(--space-3);
@@ -737,6 +769,41 @@
         });
 
         loadHomepageProjects();
+        loadSocialProof();
+
+        async function loadSocialProof() {
+            try {
+                const response = await fetch('/api/stats');
+                if (!response.ok) return;
+                const data = await response.json();
+
+                const proofContainer = document.getElementById('social-proof');
+                const avatarStack = document.getElementById('avatar-stack');
+                const proofText = document.getElementById('social-proof-text');
+
+                if (data.total_builders > 0) {
+                    proofContainer.style.display = 'flex';
+                }
+
+                let avatarsHtml = '';
+                data.builders.slice(0, 4).forEach(function(b) {
+                    if (b.avatar_url) {
+                        avatarsHtml += '<img src="' + escapeHtml(b.avatar_url) + '" alt="' + escapeHtml(b.username) + '" loading="lazy">';
+                    }
+                });
+                avatarStack.innerHTML = avatarsHtml;
+
+                if (data.total_builders === 1) {
+                    proofText.textContent = 'Join 1 builder already using Critique';
+                } else if (data.total_builders > 1) {
+                    proofText.textContent = 'Join ' + data.total_builders + ' builders already using Critique';
+                } else {
+                    proofText.textContent = 'Be one of the first builders to use Critique';
+                }
+            } catch (e) {
+                // Silently fail - social proof is enhancement
+            }
+        }
     </script>
     <script src="/static/ui.js"></script>
 </body>
