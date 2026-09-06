@@ -848,8 +848,8 @@
             }
         });
 
-        loadHomepageProjects();
-        loadSocialProof();
+        try { loadHomepageProjects(); } catch(e) { console.error('Homepage projects error:', e); }
+        try { loadSocialProof(); } catch(e) { console.error('Social proof error:', e); }
 
         async function loadSocialProof() {
             try {
