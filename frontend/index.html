@@ -868,7 +868,7 @@
                 let avatarsHtml = '';
                 data.builders.slice(0, 4).forEach(function(b) {
                     if (b.avatar_url) {
-                        avatarsHtml += '<img src="' + escapeHtml(b.avatar_url) + '" alt="' + escapeHtml(b.username) + '" loading="lazy">';
+                        avatarsHtml += '<img src="' + escapeHtml(b.avatar_url) + '" alt="' + escapeHtml(b.username) + '" width="32" height="32">';
                     }
                 });
                 avatarStack.innerHTML = avatarsHtml;
