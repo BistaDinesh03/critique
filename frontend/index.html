@@ -815,6 +815,7 @@
                 });
                 const data = await response.json();
                 if (response.ok) {
+                    window.CritiqueAnalytics.trackEvent('project_submit', null);
                     CritiqueUI.showToast('Project submitted', 'success');
                     msg.className = 'alert alert-success';
                     msg.textContent = 'Project submitted successfully!';

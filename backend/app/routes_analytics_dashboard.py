@@ -1,4 +1,4 @@
-﻿from fastapi import APIRouter, Depends
+﻿from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.database import get_db
@@ -7,6 +7,9 @@ from app.auth import get_current_user
 
 router = APIRouter(prefix="/api/analytics", tags=["analytics"])
 
+# Owner usernames allowed to view dashboard
+OWNER_USERNAMES = {"BistaDinesh03"}
+
 
 @router.get("/dashboard")
 def get_analytics_dashboard(
@@ -14,14 +17,15 @@ def get_analytics_dashboard(
     current_user: User = Depends(get_current_user),
 ):
     """Owner-only analytics dashboard."""
-    # Only allow the platform owner (first user)
-    if current_user.id != 1:
-        from fastapi import HTTPException
+    if current_user.username not in OWNER_USERNAMES:
         raise HTTPException(status_code=403, detail="Not authorized")
 
-    # Count events
     total_page_views = db.query(func.count(AnalyticsEvent.id)).filter(
         AnalyticsEvent.event_name == "page_view"
+    ).scalar() or 0
+
+    total_discover_views = db.query(func.count(AnalyticsEvent.id)).filter(
+        AnalyticsEvent.event_name == "discover_view"
     ).scalar() or 0
 
     total_project_views = db.query(func.count(AnalyticsEvent.id)).filter(
@@ -40,10 +44,8 @@ def get_analytics_dashboard(
         AnalyticsEvent.event_name == "project_submit"
     ).scalar() or 0
 
-    # Unique visitors
     unique_visitors = db.query(func.count(func.distinct(AnalyticsEvent.visitor_id))).scalar() or 0
 
-    # Calculate conversion rates
     homepage_to_project = round((total_project_views / total_page_views) * 100, 1) if total_page_views > 0 else 0
     project_to_feedback = round((total_feedback_starts / total_project_views) * 100, 1) if total_project_views > 0 else 0
     feedback_to_submit = round((total_feedback_submits / total_feedback_starts) * 100, 1) if total_feedback_starts > 0 else 0
@@ -52,6 +54,7 @@ def get_analytics_dashboard(
     return {
         "totals": {
             "page_views": total_page_views,
+            "discover_views": total_discover_views,
             "project_views": total_project_views,
             "feedback_starts": total_feedback_starts,
             "feedback_submits": total_feedback_submits,

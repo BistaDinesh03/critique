@@ -251,7 +251,7 @@
                 html += '<div class="question-block"><div class="question-label">The Maker\'s Question</div><div class="question-text">' + escapeHtml(q.text) + '</div></div>';
                 html += '<div class="response-form-card"><form id="response-form">';
                 html += '<div class="form-section"><h3>How clear is it?</h3><div class="radio-cards">';
-                html += '<label class="radio-card"><input type="radio" id="c1" name="clarity" value="very_clear" required><span class="radio-card-label"><span class="radio-card-title">Very clear</span><span class="radio-card-desc">I understood the project quickly.</span></span></label>';
+                html += '<label class="radio-card"><input type="radio" id="c1" name="clarity" value="very_clear" required onclick="trackFeedbackStart()"><span class="radio-card-label"><span class="radio-card-title">Very clear</span><span class="radio-card-desc">I understood the project quickly.</span></span></label>';
                 html += '<label class="radio-card"><input type="radio" id="c2" name="clarity" value="mostly_clear"><span class="radio-card-label"><span class="radio-card-title">Mostly clear</span><span class="radio-card-desc">I understood it, but needed some explanation.</span></span></label>';
                 html += '<label class="radio-card"><input type="radio" id="c3" name="clarity" value="confusing"><span class="radio-card-label"><span class="radio-card-title">Confusing</span><span class="radio-card-desc">I was not sure what it does.</span></span></label>';
                 html += '</div></div>';
@@ -276,6 +276,10 @@
             content.innerHTML = html;
             const form = document.getElementById('response-form');
             if (form) form.addEventListener('submit', handleSubmit);
+        }
+
+        function trackFeedbackStart() {
+            window.CritiqueAnalytics.trackEvent('feedback_start', projectId);
         }
 
         async function handleSubmit(e) {
@@ -309,6 +313,7 @@
                     data = {};
                 }
                 if (response.ok) {
+                    window.CritiqueAnalytics.trackEvent('feedback_submit', projectId);
                     CritiqueUI.showToast('Feedback submitted', 'success');
                     msg.className = 'alert alert-success';
                     msg.textContent = 'Thank you! Your feedback has been submitted.';

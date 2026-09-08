@@ -3,18 +3,30 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from app.models import AnalyticsEvent
 
+VISITOR_COOKIE_NAME = "critique_visitor"
+VISITOR_COOKIE_MAX_AGE = 60 * 60 * 24 * 365  # 1 year
+
 
 def _generate_visitor_id() -> str:
-    """Generate a random anonymous visitor ID."""
     return secrets.token_hex(16)
 
 
 def get_or_create_visitor_id(request) -> str:
-    """Get existing visitor ID from cookie or create new."""
-    visitor_id = request.cookies.get("critique_visitor")
+    visitor_id = request.cookies.get(VISITOR_COOKIE_NAME)
     if not visitor_id:
         visitor_id = _generate_visitor_id()
     return visitor_id
+
+
+def set_visitor_cookie(response, visitor_id: str):
+    response.set_cookie(
+        VISITOR_COOKIE_NAME,
+        visitor_id,
+        max_age=VISITOR_COOKIE_MAX_AGE,
+        httponly=False,
+        samesite="lax",
+        secure=False,
+    )
 
 
 def track_event(
@@ -24,7 +36,6 @@ def track_event(
     user_id: int = None,
     project_id: int = None,
 ) -> bool:
-    """Record an analytics event. Returns True on success, False on failure."""
     try:
         event = AnalyticsEvent(
             event_name=event_name,
