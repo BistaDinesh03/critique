@@ -9,8 +9,22 @@ function trackPageView() {
 }
 
 function trackEvent(eventName, projectId) {
-    var url = '/api/analytics/track?event_name=' + eventName;
-    if (projectId) url += '&project_id=' + projectId;
+    // Strict validation - never send invalid events
+    var VALID_EVENTS = [
+        'page_view',
+        'discover_view',
+        'project_view',
+        'feedback_start',
+        'feedback_submit',
+        'project_submit'
+    ];
+    if (!eventName || VALID_EVENTS.indexOf(eventName) === -1) {
+        return; // Silently skip invalid events
+    }
+    var url = '/api/analytics/track?event_name=' + encodeURIComponent(eventName);
+    if (projectId && !isNaN(projectId)) {
+        url += '&project_id=' + parseInt(projectId);
+    }
     fetch(url, { method: 'POST', credentials: 'same-origin' }).catch(function() {});
 }
 
@@ -19,7 +33,6 @@ function getProjectId() {
     return match ? parseInt(match[1]) : null;
 }
 
-// Expose for page-specific use
 window.CritiqueAnalytics = {
     trackEvent: trackEvent,
     getProjectId: getProjectId,
