@@ -813,6 +813,17 @@ img {
     flex-wrap: wrap;
 }
 
+.footer-brand-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-bottom: 2px;
+}
+
+.footer-brand-row img {
+    display: block;
+}
+
 .footer-brand h3 {
     font-size: var(--text-base);
     font-weight: 700;
