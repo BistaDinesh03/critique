@@ -613,6 +613,128 @@
             }
         }
 
+
+
+        /* ===== Submit Form ===== */
+        .form-header {
+            margin-bottom: var(--space-5);
+        }
+
+        .form-header h2 {
+            font-size: var(--text-xl);
+            font-weight: 700;
+            margin-bottom: var(--space-1);
+            letter-spacing: -0.01em;
+        }
+
+        .form-subtitle {
+            color: var(--text-muted);
+            font-size: var(--text-sm);
+            line-height: 1.5;
+        }
+
+        .form-section {
+            margin-bottom: var(--space-5);
+        }
+
+        .section-heading {
+            font-size: var(--text-sm);
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: var(--space-4);
+            padding-bottom: var(--space-2);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .section-heading-accent {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+
+        .form-required {
+            font-weight: 400;
+            color: var(--text-muted);
+        }
+
+        .form-optional-tag {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            background: var(--surface-muted);
+            padding: 1px 6px;
+            border-radius: 3px;
+            margin-left: var(--space-1);
+        }
+
+        .form-optional .form-label {
+            color: var(--text-muted);
+        }
+
+        .form-examples {
+            font-size: var(--text-xs);
+            color: var(--text-muted);
+            line-height: 1.6;
+            padding: var(--space-3);
+            background: var(--surface-muted);
+            border-radius: var(--radius-md);
+            margin-top: var(--space-3);
+        }
+
+        .form-examples p {
+            margin-bottom: var(--space-1);
+        }
+
+        .form-examples p:last-child {
+            margin-bottom: 0;
+        }
+
+        .example-bad {
+            color: var(--danger);
+            font-weight: 600;
+        }
+
+        .example-good {
+            color: var(--success);
+            font-weight: 600;
+        }
+
+        .form-question-section {
+            background: rgba(37, 99, 235, 0.02);
+            border: 1px solid rgba(37, 99, 235, 0.1);
+            border-radius: var(--radius-lg);
+            padding: var(--space-5);
+            margin-bottom: var(--space-5);
+        }
+
+        .form-question-section .section-heading {
+            border-bottom-color: rgba(37, 99, 235, 0.15);
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: var(--space-3) var(--space-5);
+            font-size: var(--text-base);
+            font-weight: 600;
+            min-height: 48px;
+        }
+
+        .form-reassurance {
+            text-align: center;
+            font-size: var(--text-xs);
+            color: var(--text-muted);
+            margin-top: var(--space-3);
+        }
+
+        @media (max-width: 600px) {
+            .form-question-section {
+                padding: var(--space-4);
+                margin-left: calc(-1 * var(--space-2));
+                margin-right: calc(-1 * var(--space-2));
+            }
+        }
+
         .final-cta {
             text-align: center;
             margin-top: var(--space-8);
@@ -816,64 +938,57 @@
             <p class="reciprocity">Give feedback to a builder. Get feedback on your own.</p>
         </section>
 
-        <section id="submit" class="card" style="max-width: 720px; margin: 0 auto;">
+        <section id="submit" class="card" style="max-width: 620px; margin: 0 auto;">
             <form id="project-form">
-                <h2 style="font-size: var(--text-xl); font-weight: 700; margin-bottom: var(--space-1);">Get feedback on something you've built</h2>
-                <p style="color: var(--text-muted); font-size: var(--text-sm); margin-bottom: var(--space-5);">Share your project and ask one question you genuinely want answered.</p>
-
-                <div style="display:flex;gap:var(--space-3);margin-bottom:var(--space-5);font-size:var(--text-xs);font-weight:600;color:var(--text-muted);">
-                    <span style="background:var(--surface-muted);padding:var(--space-1) var(--space-3);border-radius:999px;">01 Project</span>
-                    <span style="background:var(--surface-muted);padding:var(--space-1) var(--space-3);border-radius:999px;">02 Question</span>
+                <div class="form-header">
+                    <h2>Get feedback on something you've built</h2>
+                    <p class="form-subtitle">Share your project and ask one question you genuinely want answered. Takes about a minute.</p>
                 </div>
 
-                <span class="form-section-label">Step 1 — Your project</span>
-                <p style="color:var(--text-muted);font-size:var(--text-sm);margin-bottom:var(--space-4);">Tell us what you built.</p>
+                <div class="form-section">
+                    <h3 class="section-heading">Your project</h3>
 
-                <div class="form-group">
-                    <label class="form-label" for="title">Project title <span style="font-weight:400;color:var(--text-muted);">(required)</span></label>
-                    <input class="form-input" type="text" id="title" name="title" required maxlength="200" placeholder="e.g. Akiya Scout">
-                </div>
+                    <div class="form-group">
+                        <label class="form-label" for="title">Project title <span class="form-required">(required)</span></label>
+                        <input class="form-input" type="text" id="title" name="title" required maxlength="200" placeholder="e.g. Akiya Scout">
+                    </div>
 
-                <div class="form-group">
-                    <label class="form-label" for="description">Short description <span style="font-weight:400;color:var(--text-muted);">(required)</span></label>
-                    <textarea class="form-textarea" id="description" name="description" maxlength="5000" placeholder="What does your project do? One or two sentences is enough."></textarea>
-                </div>
+                    <div class="form-group">
+                        <label class="form-label" for="description">Short description <span class="form-required">(required)</span></label>
+                        <textarea class="form-textarea" id="description" name="description" maxlength="5000" placeholder="What does your project do? One or two sentences is enough." style="min-height:72px;"></textarea>
+                    </div>
 
-                <div class="form-group">
-                    <label class="form-label" for="url">Project URL <span style="font-weight:400;color:var(--text-muted);">(required)</span></label>
-                    <input class="form-input" type="url" id="url" name="url" maxlength="500" placeholder="https://your-project.com">
-                </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="url">Project URL <span class="form-required">(required)</span></label>
+                            <input class="form-input" type="url" id="url" name="url" maxlength="500" placeholder="https://your-project.com">
+                        </div>
+                    </div>
 
-                <div class="form-group">
-                    <label class="form-label" for="image_url">Screenshot URL <span style="font-weight:400;color:var(--text-muted);">(optional)</span></label>
-                    <input class="form-input" type="url" id="image_url" name="image_url" maxlength="500" placeholder="https://your-project.com/screenshot.png">
-                </div>
-
-                <hr style="border:none;border-top:1px solid var(--border);margin:var(--space-5) 0;">
-
-                <span class="form-section-label">Step 2 — Your question</span>
-                <p style="color:var(--text-muted);font-size:var(--text-sm);margin-bottom:var(--space-4);">Ask the one thing you really want to know.</p>
-
-                <div class="form-group">
-                    <div class="question-highlight">
-                        <label for="question">Your ONE question <span style="font-weight:400;color:var(--accent);">(required)</span></label>
-                        <textarea class="form-textarea" id="question" name="question" required maxlength="500" placeholder="e.g. Is it immediately clear what this product does?" style="min-height:80px;"></textarea>
-                        <p class="form-helper">Be specific. One clear question leads to more useful feedback.</p>
+                    <div class="form-group form-optional">
+                        <label class="form-label" for="image_url">Screenshot URL <span class="form-optional-tag">optional</span></label>
+                        <input class="form-input" type="url" id="image_url" name="image_url" maxlength="500" placeholder="https://your-project.com/screenshot.png">
                     </div>
                 </div>
 
-                <div style="font-size:var(--text-xs);color:var(--text-muted);margin-bottom:var(--space-4);">
-                    <p style="margin-bottom:var(--space-1);"><strong style="color:var(--danger);">Too broad:</strong> "What do you think of my app?"</p>
-                    <p><strong style="color:var(--success);">Better:</strong> "Is it immediately clear what my app does?"</p>
+                <div class="form-section form-question-section">
+                    <h3 class="section-heading section-heading-accent">Your question</h3>
+
+                    <div class="form-group">
+                        <label class="form-label" for="question">Ask ONE question <span class="form-required">(required)</span></label>
+                        <textarea class="form-textarea" id="question" name="question" required maxlength="500" placeholder="e.g. Is it immediately clear what this product does?" style="min-height:80px;"></textarea>
+                        <p class="form-helper">Be specific. One clear question leads to more useful feedback.</p>
+                    </div>
+
+                    <div class="form-examples">
+                        <p><span class="example-bad">Too broad:</span> "What do you think of my app?"</p>
+                        <p><span class="example-good">Better:</span> "Is it immediately clear what my app does?"</p>
+                    </div>
                 </div>
 
-                <button type="submit" class="btn btn-primary" id="submit-btn" style="width:100%;">Submit for feedback</button>
-                <p style="text-align:center;font-size:var(--text-xs);color:var(--text-muted);margin-top:var(--space-2);">Free to use. Human feedback. No AI-generated responses.</p>
+                <button type="submit" class="btn btn-primary btn-submit" id="submit-btn">Submit for feedback</button>
+                <p class="form-reassurance">Free to use. Human feedback. No AI-generated responses.</p>
                 <div class="message" id="message"></div>
-
-                <p class="my-projects-link">
-                    <a href="/my-projects" style="color:var(--text-muted);">View my projects</a>
-                </p>
             </form>
         </section>
 
