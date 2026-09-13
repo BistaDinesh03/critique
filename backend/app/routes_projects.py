@@ -300,7 +300,7 @@ def delete_project(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
     _: None = Depends(require_csrf),
-    __: None = Depends(rate_limit("project_create")),
+    __: None = Depends(rate_limit("project_delete")),
 ):
     """Delete a project. Only the owner can delete it."""
     project = db.query(Project).filter(Project.id == project_id).first()
@@ -318,3 +318,4 @@ def delete_project(
     db.query(ProjectView).filter(ProjectView.project_id == project_id).delete()
     db.delete(project)
     db.commit()
+

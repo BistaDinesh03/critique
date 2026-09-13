@@ -9,6 +9,7 @@ RATE_LIMITS = {
     "project_create": {"max_requests": 5, "window": 300},
     "response_submit": {"max_requests": 10, "window": 300},
     "analytics": {"max_requests": 60, "window": 60},
+    "project_delete": {"max_requests": 20, "window": 300},
 }
 
 
