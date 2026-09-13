@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://critique-qqz9.onrender.com">
+  <a href="https://critique.page">
     <img src="https://img.shields.io/badge/Try%20Critique-Free-brightgreen?style=for-the-badge" alt="Try Critique">
   </a>
   &nbsp;
@@ -63,10 +63,10 @@ No AI. No likes. No vanity metrics.
 
 Drop this into any project README and start collecting feedback automatically:
 
-[![Critique](https://critique-qqz9.onrender.com/badge/11.svg)](https://critique-qqz9.onrender.com/project/11)
+[![Critique](https://critique.page/badge/11.svg)](https://critique.page/project/11)
 
 ```markdown
-[![Critique](https://critique-qqz9.onrender.com/badge/PROJECT_ID.svg)](https://critique-qqz9.onrender.com/project/PROJECT_ID)
+[![Critique](https://critique.page/badge/PROJECT_ID.svg)](https://critique.page/project/PROJECT_ID)
 ```
 
 The badge shows the number of responses, updates automatically, and links straight to your project page.  
@@ -85,7 +85,7 @@ This is the easiest way to get continuous feedback from people who already care 
 
 ### Try it in 30 seconds
 
-1. Go to **[critique-qqz9.onrender.com](https://critique-qqz9.onrender.com)**  
+1. Go to **[critique.page](https://critique.page)**  
 2. Sign in with GitHub  
 3. Post your project + one specific question  
 4. Share the link (or add the badge to your README)
