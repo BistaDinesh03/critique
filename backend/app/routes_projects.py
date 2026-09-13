@@ -2,7 +2,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.database import get_db
-from app.models import Project, Question, Response, User, ProjectView
+from app.models import Project, Question, Response, User, ProjectView, AnalyticsEvent
 from app.schemas import (
     ProjectCreate,
     ProjectOut,
@@ -315,7 +315,10 @@ def delete_project(
         db.query(Response).filter(Response.question_id == question.id).delete()
         db.delete(question)
 
+    # Delete dependent records that reference this project
+    db.query(AnalyticsEvent).filter(AnalyticsEvent.project_id == project_id).delete()
     db.query(ProjectView).filter(ProjectView.project_id == project_id).delete()
+
     db.delete(project)
     db.commit()
 
