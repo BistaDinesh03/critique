@@ -14,6 +14,7 @@ from app.routes_badge import router as badge_router
 from app.routes_stats import router as stats_router
 from app.routes_analytics import router as analytics_router
 from app.routes_analytics_dashboard import router as analytics_dashboard_router
+from app.routes_seo import router as seo_router
 
 
 class CacheControlMiddleware(BaseHTTPMiddleware):
@@ -49,6 +50,7 @@ app.include_router(badge_router)
 app.include_router(stats_router)
 app.include_router(analytics_router)
 app.include_router(analytics_dashboard_router)
+app.include_router(seo_router)
 
 static_dir = Path(__file__).resolve().parent.parent.parent / "static"
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
@@ -104,6 +106,7 @@ def google_verification():
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
+
 
 
 
