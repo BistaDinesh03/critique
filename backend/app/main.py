@@ -91,6 +91,16 @@ def project_results_page(project_id: int):
     return HTMLResponse(content=_read_frontend_file("project_results.html"))
 
 
+
+
+@app.get("/google8ffd0ae5f931d1e6.html", response_class=HTMLResponse)
+def google_verification():
+    """Serve Google Search Console verification file."""
+    static_dir = Path(__file__).resolve().parent.parent.parent / "static"
+    file_path = static_dir / "google8ffd0ae5f931d1e6.html"
+    return HTMLResponse(content=file_path.read_text(encoding="utf-8"))
+
+
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
