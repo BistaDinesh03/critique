@@ -1,100 +1,118 @@
-﻿<p align="center">
+<p align="center">
   <img src="docs/logo-readme.svg" alt="Critique" width="56" />
 </p>
 
 <h1 align="center">Critique</h1>
 
 <p align="center">
-  <strong>Get feedback that actually helps you improve your project.</strong><br>
-  One focused question. Real human answers. No fluff.
+  <strong>Ask one question. Get real answers.</strong><br>
+  A focused feedback platform for builders.
 </p>
 
 <p align="center">
-  <a href="https://critique.page">
-    <img src="https://img.shields.io/badge/Try%20Critique-Free-brightgreen?style=for-the-badge" alt="Try Critique">
-  </a>
-  &nbsp;
-  <a href="https://github.com/BistaDinesh03/critique">
-    <img src="https://img.shields.io/badge/GitHub-Source-black?style=for-the-badge" alt="Source">
-  </a>
-  &nbsp;
-  <a href="CONTRIBUTING.md">
-    <img src="https://img.shields.io/badge/Contribute-Welcome-blue?style=for-the-badge" alt="Contribute">
-  </a>
-</p>
-
-<p align="center">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License"></a>
+  <a href="https://critique.page"><strong>Live demo</strong></a> ·
+  <a href="https://github.com/BistaDinesh03/critique">GitHub</a> ·
+  <a href="LICENSE">MIT License</a>
 </p>
 
 ---
 
-### The problem with most feedback
+## What is Critique?
 
-> "What do you think of my project?"  
-> → "Looks good!" or silence.
+Most feedback requests are too broad:
 
-That’s useless.
+> "What do you think of my project?"
+> → "Looks good!"
 
-**Critique forces a better question:**
+Critique fixes this by forcing one focused question:
 
-> "Would you understand what this does in 10 seconds?"  
-> "Would you actually use this?"  
-> "What’s the most confusing part?"
+> "Would you understand what this does in 10 seconds?"
 
-You get clear, actionable signal instead of polite noise.
-
-**One specific question → real human answers → clear signal to improve.**
-
-No AI. No likes. No vanity metrics.
+You submit a project, ask one specific question, and receive structured human feedback — clarity, would-use, and optional written suggestions. No AI, no likes, no vanity metrics.
 
 ---
 
-### How it works
+## How it works
 
-1. **Share** — Add what you built  
-2. **Ask** — One focused question  
-3. **Get feedback** — Clarity score, would-use score, and written answers  
+1. **Share** — Add what you built
+2. **Ask** — One focused question
+3. **Get feedback** — Clarity and would-use scores, plus written answers
 4. **Improve** — Act on real signal
 
 ---
 
-### Live badge for your README
+## Preview
 
-Drop this into any project README and start collecting feedback automatically:
+<p align="center">
+  <img src="static/og-image.png" alt="Critique — Ask one question. Get real answers." width="640" />
+</p>
 
-[![Critique](https://critique.page/badge/11.svg)](https://critique.page/project/11)
+*(The image above is Critique's social preview card, not a UI screenshot.)*
+
+---
+
+## README feedback badge
+
+Drop this into any project README to show how many responses your project has received:
 
 ```markdown
 [![Critique](https://critique.page/badge/PROJECT_ID.svg)](https://critique.page/project/PROJECT_ID)
 ```
 
-The badge shows the number of responses, updates automatically, and links straight to your project page.  
-This is the easiest way to get continuous feedback from people who already care about your work.
+Replace `PROJECT_ID` with your project ID. The badge renders live from the database and links directly to your project page.
 
 ---
 
-### Who is this for?
+## Key features
 
-- Indie hackers & solo founders shipping side projects  
-- Open-source maintainers who want real signal  
-- Students and builders tired of “looks good” comments  
-- Anyone who wants feedback that actually helps them improve
-
----
-
-### Try it in 30 seconds
-
-1. Go to **[critique.page](https://critique.page)**  
-2. Sign in with GitHub  
-3. Post your project + one specific question  
-4. Share the link (or add the badge to your README)
-
-That’s it. Real people start answering.
+- **One focused question** per project — no generic "any thoughts?" posts
+- **Structured feedback** — clarity (very clear / mostly clear / confusing) and would-use (yes / maybe / no)
+- **Written suggestions** — optional free-text feedback from reviewers
+- **Privacy controls** — written feedback is visible only to the project owner
+- **GitHub OAuth** — sign in with an existing GitHub account
+- **Dynamic badges** — embeddable SVG that shows the live response count
+- **Discover** — public feed of projects looking for feedback
+- **My Projects** — manage your submissions and view results
+- **Deterministic ranking** — projects are surfaced based on need, freshness, and question quality (no ML, no ads)
 
 ---
 
-### Run locally
+## Engineering
+
+Critique is built as a small, focused FastAPI application.
+
+| Area | Implementation |
+|------|----------------|
+| Backend | FastAPI + SQLAlchemy 2.x |
+| Database | PostgreSQL (production) / SQLite (development) |
+| Frontend | Vanilla HTML/CSS/JS — no build step |
+| Auth | GitHub OAuth with signed session cookies |
+| Deployment | Render |
+
+**Security protections:**
+
+- CSRF protection via double-submit cookie on all state-changing requests
+- Session cookies are `HttpOnly`, `SameSite=Lax`, and `Secure` in production
+- Input validation with Pydantic (`pattern`, `max_length`, URL scheme checks)
+- HTML escaping of all user content in the frontend (XSS protection)
+- Ownership checks on every mutation — server-side session, never client headers
+- Rate limiting on auth, project creation, feedback submission, deletion, and analytics
+- Analytics events validated against a strict allowlist (`page_view`, `discover_view`, `project_view`, `feedback_start`, `feedback_submit`, `project_submit`)
+- No third-party tracking scripts, no IP addresses stored (only SHA-256 hashes for duplicate detection)
+
+**Testing:**
+
+```bash
+cd backend && python -m pytest tests/ -v
+```
+
+78 tests covering API behavior, CSRF, rate limiting, IDOR/ownership, privacy, ranking, XSS, analytics validation, and SEO endpoints.
+
+---
+
+## Run locally
+
+**Requirements:** Python 3.11+, Git
 
 ```bash
 git clone https://github.com/BistaDinesh03/critique.git
@@ -104,25 +122,43 @@ cp .env.example .env
 cd backend && uvicorn app.main:app --reload
 ```
 
-Open http://127.0.0.1:8000  
+Open http://127.0.0.1:8000
 
-GitHub OAuth setup → [docs/github-oauth-setup.md](docs/github-oauth-setup.md)
-
----
-
-### Stack
-
-FastAPI · SQLAlchemy · PostgreSQL / SQLite · Vanilla JS · GitHub OAuth · Render
+GitHub OAuth setup: [docs/github-oauth-setup.md](docs/github-oauth-setup.md)
 
 ---
 
-### Contribute
+## Project structure
 
-Bug reports, ideas, and PRs are very welcome.  
-See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md).
+```text
+backend/
+  app/
+    auth.py            GitHub OAuth + sessions
+    csrf.py            CSRF protection
+    database.py        Engine + migrations
+    models.py          SQLAlchemy models
+    ranking.py         Discover ranking
+    rate_limit.py      In-memory rate limiting
+    routes_*.py        API routes
+    schemas.py         Pydantic validation
+    routes_seo.py      sitemap.xml + robots.txt
+  tests/               78 pytest tests
+frontend/              HTML pages (vanilla JS)
+static/                CSS, JS, logo, favicon, OG image
+docs/                  Setup guides
+render.yaml            Deployment config
+```
 
 ---
 
-### License
+## Contributing
 
-MIT
+Bug reports, ideas, and pull requests are welcome.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines, and [SECURITY.md](SECURITY.md) for reporting vulnerabilities.
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE).
