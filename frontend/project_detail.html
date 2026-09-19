@@ -279,10 +279,99 @@
             content.innerHTML = html;
             const form = document.getElementById('response-form');
             if (form) form.addEventListener('submit', handleSubmit);
+            // Restore any saved feedback draft from before OAuth
+            maybeRestoreAfterLogin();
         }
 
         function trackFeedbackStart() {
             window.CritiqueAnalytics.trackEvent('feedback_start', projectId);
+        }
+
+        // ===== Feedback form state persistence =====
+        function feedbackStorageKey() {
+            return 'critique_feedback_' + projectId;
+        }
+
+        function saveFeedbackDraft() {
+            try {
+                var clarityEl = document.querySelector('input[name="clarity"]:checked');
+                var wouldEl = document.querySelector('input[name="would_use"]:checked');
+                var suggestionEl = document.getElementById('suggestion');
+                var draft = {
+                    clarity: clarityEl ? clarityEl.value : null,
+                    would_use: wouldEl ? wouldEl.value : null,
+                    suggestion: suggestionEl ? suggestionEl.value : ''
+                };
+                sessionStorage.setItem(feedbackStorageKey(), JSON.stringify(draft));
+            } catch (e) {}
+        }
+
+        function restoreFeedbackDraft() {
+            try {
+                var raw = sessionStorage.getItem(feedbackStorageKey());
+                if (!raw) return false;
+                var draft = JSON.parse(raw);
+                if (!draft || typeof draft !== 'object') return false;
+                if (draft.clarity) {
+                    var c = document.querySelector('input[name="clarity"][value="' + draft.clarity + '"]');
+                    if (c) c.checked = true;
+                }
+                if (draft.would_use) {
+                    var w = document.querySelector('input[name="would_use"][value="' + draft.would_use + '"]');
+                    if (w) w.checked = true;
+                }
+                if (draft.suggestion) {
+                    var s = document.getElementById('suggestion');
+                    if (s) s.value = draft.suggestion;
+                }
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        function clearFeedbackDraft() {
+            try {
+                sessionStorage.removeItem(feedbackStorageKey());
+            } catch (e) {}
+        }
+
+        // ===== Safe return_to helper =====
+        function currentPathForReturn() {
+            return window.location.pathname;
+        }
+
+        function showInlineLoginPrompt(msg, message) {
+            window.CritiqueAnalytics.trackEvent('login_prompt_shown', projectId);
+            msg.className = 'alert alert-error';
+            msg.innerHTML = '';
+            var text = document.createElement('p');
+            text.textContent = message || 'Sign in with GitHub to submit your feedback.';
+            text.style.marginBottom = '10px';
+            msg.appendChild(text);
+            var link = document.createElement('a');
+            link.href = '/auth/login?return_to=' + encodeURIComponent(currentPathForReturn());
+            link.className = 'btn btn-primary';
+            link.textContent = 'Login with GitHub';
+            link.addEventListener('click', function() {
+                saveFeedbackDraft();
+                window.CritiqueAnalytics.trackEvent('login_started', projectId);
+            });
+            msg.appendChild(link);
+        }
+
+        // Detect return from OAuth: if any draft was saved, restore it
+        // and fire login_success event once.
+        function maybeRestoreAfterLogin() {
+            try {
+                var raw = sessionStorage.getItem(feedbackStorageKey());
+                if (raw) {
+                    // Returning user had a draft
+                    if (restoreFeedbackDraft()) {
+                        window.CritiqueAnalytics.trackEvent('login_success', projectId);
+                    }
+                }
+            } catch (e) {}
         }
 
         async function handleSubmit(e) {
@@ -320,11 +409,12 @@
                     CritiqueUI.showToast('Feedback submitted', 'success');
                     msg.className = 'alert alert-success';
                     msg.textContent = 'Thank you! Your feedback has been submitted.';
+                    clearFeedbackDraft();
                     document.getElementById('response-form').reset();
                     setTimeout(loadProject, 1500);
                 } else if (response.status === 401) {
-                    msg.className = 'alert alert-error';
-                    msg.textContent = 'Please login to submit feedback.';
+                    saveFeedbackDraft();
+                    showInlineLoginPrompt(msg, 'Sign in with GitHub to submit your feedback.');
                 } else if (response.status === 403) {
                     msg.className = 'alert alert-error';
                     msg.textContent = 'Session expired. Please refresh.';

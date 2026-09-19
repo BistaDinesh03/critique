@@ -1107,6 +1107,77 @@
             }
         }
 
+        // ===== Project form state persistence =====
+        function projectStorageKey() {
+            return 'critique_project_draft';
+        }
+
+        function saveProjectDraft() {
+            try {
+                var draft = {
+                    title: document.getElementById('title').value,
+                    description: document.getElementById('description').value,
+                    url: document.getElementById('url').value,
+                    image_url: document.getElementById('image_url').value,
+                    question: document.getElementById('question').value
+                };
+                sessionStorage.setItem(projectStorageKey(), JSON.stringify(draft));
+            } catch (e) {}
+        }
+
+        function restoreProjectDraft() {
+            try {
+                var raw = sessionStorage.getItem(projectStorageKey());
+                if (!raw) return false;
+                var draft = JSON.parse(raw);
+                if (!draft || typeof draft !== 'object') return false;
+                if (typeof draft.title === 'string') document.getElementById('title').value = draft.title;
+                if (typeof draft.description === 'string') document.getElementById('description').value = draft.description;
+                if (typeof draft.url === 'string') document.getElementById('url').value = draft.url;
+                if (typeof draft.image_url === 'string') document.getElementById('image_url').value = draft.image_url;
+                if (typeof draft.question === 'string') document.getElementById('question').value = draft.question;
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        function clearProjectDraft() {
+            try {
+                sessionStorage.removeItem(projectStorageKey());
+            } catch (e) {}
+        }
+
+        function showProjectInlineLoginPrompt(msg, message) {
+            window.CritiqueAnalytics.trackEvent('login_prompt_shown', null);
+            msg.className = 'alert alert-error';
+            msg.innerHTML = '';
+            var text = document.createElement('p');
+            text.textContent = message || 'Sign in with GitHub to submit your project.';
+            text.style.marginBottom = '10px';
+            msg.appendChild(text);
+            var link = document.createElement('a');
+            link.href = '/auth/login?return_to=' + encodeURIComponent('/');
+            link.className = 'btn btn-primary';
+            link.textContent = 'Login with GitHub';
+            link.addEventListener('click', function() {
+                saveProjectDraft();
+                window.CritiqueAnalytics.trackEvent('login_started', null);
+            });
+            msg.appendChild(link);
+        }
+
+        function maybeRestoreProjectAfterLogin() {
+            try {
+                var raw = sessionStorage.getItem(projectStorageKey());
+                if (raw) {
+                    if (restoreProjectDraft()) {
+                        window.CritiqueAnalytics.trackEvent('login_success', null);
+                    }
+                }
+            } catch (e) {}
+        }
+
         document.getElementById('project-form').addEventListener('submit', async function(e) {
             e.preventDefault();
             const msg = document.getElementById('message');
@@ -1143,10 +1214,11 @@
                     CritiqueUI.showToast('Project submitted', 'success');
                     msg.className = 'alert alert-success';
                     msg.textContent = 'Project submitted successfully!';
+                    clearProjectDraft();
                     document.getElementById('project-form').reset();
                 } else if (response.status === 401) {
-                    msg.className = 'alert alert-error';
-                    msg.textContent = 'Please login with GitHub to submit.';
+                    saveProjectDraft();
+                    showProjectInlineLoginPrompt(msg, 'Sign in with GitHub to submit your project.');
                 } else if (response.status === 403) {
                     msg.className = 'alert alert-error';
                     msg.textContent = 'Session expired. Please refresh and try again.';
@@ -1166,6 +1238,7 @@
 
         try { loadSocialProof(); } catch(e) { console.error('Social proof error:', e); }
         try { loadHomepageProjects(); } catch(e) { console.error('Homepage projects error:', e); }
+        try { maybeRestoreProjectAfterLogin(); } catch(e) {}
 
         async function loadSocialProof() {
             try {

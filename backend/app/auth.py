@@ -48,16 +48,55 @@ def get_current_user_optional(request: Request, db: Session = Depends(get_db)):
         return None
 
 
+RETURN_TO_COOKIE_NAME = "critique_return_to"
+
+
+def _is_safe_return_path(path: str) -> bool:
+    """Return True if path is a safe same-origin relative path."""
+    if not path:
+        return False
+    # Must start with "/" (relative to origin)
+    if not path.startswith("/"):
+        return False
+    # Reject protocol-relative URLs ("//evil.com")
+    if path.startswith("//"):
+        return False
+    # Reject backslash tricks ("/\evil.com")
+    if path.startswith("/\\"):
+        return False
+    # Reject anything containing a scheme separator
+    if "://" in path:
+        return False
+    # Cap length to prevent abuse
+    if len(path) > 500:
+        return False
+    return True
+
+
 @router.get("/login")
-def github_login(request: Request, _: None = Depends(rate_limit("auth"))):
-    """Redirect to GitHub OAuth authorization page."""
+def github_login(
+    request: Request,
+    return_to: str = None,
+    _: None = Depends(rate_limit("auth")),
+):
+    """Redirect to GitHub OAuth. Optionally stores a safe return path."""
     github_auth_url = (
         "https://github.com/login/oauth/authorize"
         f"?client_id={settings.GITHUB_CLIENT_ID}"
         f"&redirect_uri={settings.GITHUB_REDIRECT_URI}"
         "&scope=read:user"
     )
-    return RedirectResponse(github_auth_url)
+    response = RedirectResponse(github_auth_url)
+    if return_to and _is_safe_return_path(return_to):
+        response.set_cookie(
+            RETURN_TO_COOKIE_NAME,
+            return_to,
+            max_age=600,  # 10 minutes
+            httponly=True,
+            samesite="lax",
+            secure=settings.SESSION_COOKIE_SECURE,
+        )
+    return response
 
 
 @router.get("/callback")
@@ -105,7 +144,13 @@ async def github_callback(
     session_token = create_session_token(user.id)
     csrf_token = generate_csrf_token()
 
-    response = RedirectResponse("/")
+    # Determine redirect target from safe return_to cookie
+    redirect_target = "/"
+    return_to = request.cookies.get(RETURN_TO_COOKIE_NAME)
+    if return_to and _is_safe_return_path(return_to):
+        redirect_target = return_to
+
+    response = RedirectResponse(redirect_target)
     response.set_cookie(
         SESSION_COOKIE_NAME,
         session_token,
@@ -115,6 +160,8 @@ async def github_callback(
         secure=settings.SESSION_COOKIE_SECURE,
     )
     set_csrf_cookie(response, csrf_token)
+    # Clear the return_to cookie
+    response.delete_cookie(RETURN_TO_COOKIE_NAME)
     return response
 
 

@@ -16,6 +16,9 @@ VALID_EVENTS = {
     "feedback_start",
     "feedback_submit",
     "project_submit",
+    "login_prompt_shown",
+    "login_started",
+    "login_success",
 }
 
 
