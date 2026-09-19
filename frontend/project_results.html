@@ -218,7 +218,10 @@
             <img src="/static/logo.svg" alt="Critique" width="32" height="32">
             Critique
         </a>
-        <nav class="navbar-nav" aria-label="Main navigation">
+        <button type="button" class="navbar-toggle" id="navbar-toggle" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="navbar-nav">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+        </button>
+        <nav class="navbar-nav" id="navbar-nav" aria-label="Main navigation">
             <a href="/discover">Discover</a>
             <a href="/my-projects">My Projects</a>
             <a href="/#submit" class="btn-nav">Submit a project</a>
@@ -436,6 +439,37 @@
         </div>
     </footer>
 
+
+
+    <script>
+    (function() {
+        var toggle = document.getElementById('navbar-toggle');
+        var nav = document.getElementById('navbar-nav');
+        if (!toggle || !nav) return;
+
+        toggle.addEventListener('click', function() {
+            var isOpen = nav.classList.toggle('navbar-nav-open');
+            toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        });
+
+        // Close menu when any link inside is clicked
+        nav.addEventListener('click', function(e) {
+            if (e.target.tagName === 'A') {
+                nav.classList.remove('navbar-nav-open');
+                toggle.setAttribute('aria-expanded', 'false');
+            }
+        });
+
+        // Close menu on Escape
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && nav.classList.contains('navbar-nav-open')) {
+                nav.classList.remove('navbar-nav-open');
+                toggle.setAttribute('aria-expanded', 'false');
+                toggle.focus();
+            }
+        });
+    })();
+    </script>
 
 </body>
 </html>
