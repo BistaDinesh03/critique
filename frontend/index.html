@@ -1149,17 +1149,29 @@
         }
 
         function showProjectInlineLoginPrompt(msg, message) {
+            // Avoid duplicate prompts
+            if (msg.dataset.promptShown === 'true') return;
+            msg.dataset.promptShown = 'true';
             window.CritiqueAnalytics.trackEvent('login_prompt_shown', null);
-            msg.className = 'alert alert-error';
+
+            msg.className = 'login-prompt';
             msg.innerHTML = '';
+
+            var title = document.createElement('div');
+            title.className = 'login-prompt-title';
+            title.textContent = 'Almost there';
+            msg.appendChild(title);
+
             var text = document.createElement('p');
+            text.className = 'login-prompt-text';
             text.textContent = message || 'Sign in with GitHub to submit your project.';
-            text.style.marginBottom = '10px';
             msg.appendChild(text);
+
             var link = document.createElement('a');
-            link.href = '/auth/login?return_to=' + encodeURIComponent('/');
+            // Return to homepage with a resume flag so we can scroll back to the submit section
+            link.href = '/auth/login?return_to=' + encodeURIComponent('/?resume=project_submit');
             link.className = 'btn btn-primary';
-            link.textContent = 'Login with GitHub';
+            link.textContent = 'Continue with GitHub';
             link.addEventListener('click', function() {
                 saveProjectDraft();
                 window.CritiqueAnalytics.trackEvent('login_started', null);
@@ -1239,6 +1251,27 @@
         try { loadSocialProof(); } catch(e) { console.error('Social proof error:', e); }
         try { loadHomepageProjects(); } catch(e) { console.error('Homepage projects error:', e); }
         try { maybeRestoreProjectAfterLogin(); } catch(e) {}
+        try { maybeResumeToSubmit(); } catch(e) {}
+
+        function maybeResumeToSubmit() {
+            // If we returned from OAuth with ?resume=project_submit, scroll to the form
+            if (window.location.search.indexOf('resume=project_submit') === -1) return;
+            var form = document.getElementById('submit');
+            if (!form) return;
+            // Scroll smoothly to the submit section
+            setTimeout(function() {
+                form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                // Focus the first input for immediate typing
+                var firstInput = document.getElementById('title');
+                if (firstInput) {
+                    setTimeout(function() { firstInput.focus({ preventScroll: true }); }, 400);
+                }
+            }, 200);
+            // Clean the URL so refreshing doesn't re-trigger
+            if (window.history && window.history.replaceState) {
+                window.history.replaceState({}, '', '/');
+            }
+        }
 
         async function loadSocialProof() {
             try {

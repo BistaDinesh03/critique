@@ -342,17 +342,28 @@
         }
 
         function showInlineLoginPrompt(msg, message) {
+            // Avoid duplicate prompts
+            if (msg.dataset.promptShown === 'true') return;
+            msg.dataset.promptShown = 'true';
             window.CritiqueAnalytics.trackEvent('login_prompt_shown', projectId);
-            msg.className = 'alert alert-error';
+
+            msg.className = 'login-prompt';
             msg.innerHTML = '';
+
+            var title = document.createElement('div');
+            title.className = 'login-prompt-title';
+            title.textContent = 'Almost there';
+            msg.appendChild(title);
+
             var text = document.createElement('p');
+            text.className = 'login-prompt-text';
             text.textContent = message || 'Sign in with GitHub to submit your feedback.';
-            text.style.marginBottom = '10px';
             msg.appendChild(text);
+
             var link = document.createElement('a');
             link.href = '/auth/login?return_to=' + encodeURIComponent(currentPathForReturn());
             link.className = 'btn btn-primary';
-            link.textContent = 'Login with GitHub';
+            link.textContent = 'Continue with GitHub';
             link.addEventListener('click', function() {
                 saveFeedbackDraft();
                 window.CritiqueAnalytics.trackEvent('login_started', projectId);

@@ -1330,3 +1330,47 @@ img {
    Footer
    ============================================ */
 
+
+
+/* ============================================
+   Login Prompt (inline, when 401)
+   ============================================ */
+
+.login-prompt {
+    display: block;
+    background: var(--surface-muted);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4) var(--space-5);
+    margin-top: var(--space-4);
+}
+
+.login-prompt-title {
+    font-size: var(--text-base);
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: var(--space-1);
+}
+
+.login-prompt-text {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    margin-bottom: var(--space-3);
+    line-height: 1.5;
+}
+
+.login-prompt .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+@media (max-width: 600px) {
+    .login-prompt {
+        padding: var(--space-3) var(--space-4);
+    }
+    .login-prompt .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
