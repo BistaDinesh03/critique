@@ -19,6 +19,7 @@ VALID_EVENTS = {
     "login_prompt_shown",
     "login_started",
     "login_success",
+    "feedback_resume",
 }
 
 

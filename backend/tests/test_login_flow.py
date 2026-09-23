@@ -68,3 +68,20 @@ def test_analytics_accepts_new_login_events():
     for event in ["login_prompt_shown", "login_started", "login_success"]:
         response = client.post(f"/api/analytics/track?event_name={event}")
         assert response.status_code == 200, f"Event {event} rejected"
+
+
+def test_safe_return_path_accepts_feedback_resume():
+    """New feedback resume URL is accepted as safe."""
+    assert _is_safe_return_path("/project/5?resume=feedback") is True
+
+
+def test_dashboard_defines_owner_allowlist():
+    """Dashboard module defines owner allowlist."""
+    from app.routes_analytics_dashboard import OWNER_USERNAMES
+    assert "BistaDinesh03" in OWNER_USERNAMES
+
+
+def test_analytics_accepts_feedback_resume_event():
+    """feedback_resume is in the backend allowlist."""
+    response = client.post("/api/analytics/track?event_name=feedback_resume")
+    assert response.status_code == 200

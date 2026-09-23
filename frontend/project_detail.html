@@ -281,6 +281,7 @@
             if (form) form.addEventListener('submit', handleSubmit);
             // Restore any saved feedback draft from before OAuth
             maybeRestoreAfterLogin();
+            maybeResumeToFeedback();
         }
 
         function trackFeedbackStart() {
@@ -361,7 +362,7 @@
             msg.appendChild(text);
 
             var link = document.createElement('a');
-            link.href = '/auth/login?return_to=' + encodeURIComponent(currentPathForReturn());
+            link.href = '/auth/login?return_to=' + encodeURIComponent(currentPathForReturn() + '?resume=feedback');
             link.className = 'btn btn-primary';
             link.textContent = 'Continue with GitHub';
             link.addEventListener('click', function() {
@@ -373,6 +374,31 @@
 
         // Detect return from OAuth: if any draft was saved, restore it
         // and fire login_success event once.
+        function maybeResumeToFeedback() {
+            // If we returned from OAuth with ?resume=feedback, scroll to the feedback form
+            if (window.location.search.indexOf('resume=feedback') === -1) return;
+            var form = document.getElementById('response-form');
+            if (!form) return;
+            setTimeout(function() {
+                form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                var firstRadio = form.querySelector('input[name="clarity"]');
+                if (firstRadio) {
+                    setTimeout(function() { firstRadio.focus({ preventScroll: true }); }, 400);
+                }
+            }, 200);
+            // Clean the URL so refreshing doesn't re-trigger
+            if (window.history && window.history.replaceState) {
+                window.history.replaceState({}, '', window.location.pathname);
+            }
+            // Fire feedback_resume only if a draft was actually restored
+            try {
+                var raw = sessionStorage.getItem(feedbackStorageKey());
+                if (raw) {
+                    window.CritiqueAnalytics.trackEvent('feedback_resume', projectId);
+                }
+            } catch (e) {}
+        }
+
         function maybeRestoreAfterLogin() {
             try {
                 var raw = sessionStorage.getItem(feedbackStorageKey());

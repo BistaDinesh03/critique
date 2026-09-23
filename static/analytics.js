@@ -19,7 +19,8 @@ function trackEvent(eventName, projectId) {
         'project_submit',
         'login_prompt_shown',
         'login_started',
-        'login_success'
+        'login_success',
+        'feedback_resume'
     ];
     if (!eventName || VALID_EVENTS.indexOf(eventName) === -1) {
         return; // Silently skip invalid events

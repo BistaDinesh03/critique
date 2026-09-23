@@ -44,6 +44,22 @@ def get_analytics_dashboard(
         AnalyticsEvent.event_name == "project_submit"
     ).scalar() or 0
 
+    total_login_prompts = db.query(func.count(AnalyticsEvent.id)).filter(
+        AnalyticsEvent.event_name == "login_prompt_shown"
+    ).scalar() or 0
+
+    total_login_starts = db.query(func.count(AnalyticsEvent.id)).filter(
+        AnalyticsEvent.event_name == "login_started"
+    ).scalar() or 0
+
+    total_login_successes = db.query(func.count(AnalyticsEvent.id)).filter(
+        AnalyticsEvent.event_name == "login_success"
+    ).scalar() or 0
+
+    total_feedback_resumes = db.query(func.count(AnalyticsEvent.id)).filter(
+        AnalyticsEvent.event_name == "feedback_resume"
+    ).scalar() or 0
+
     unique_visitors = db.query(func.count(func.distinct(AnalyticsEvent.visitor_id))).scalar() or 0
 
     homepage_to_project = round((total_project_views / total_page_views) * 100, 1) if total_page_views > 0 else 0
@@ -60,6 +76,10 @@ def get_analytics_dashboard(
             "feedback_submits": total_feedback_submits,
             "project_submits": total_project_submits,
             "unique_visitors": unique_visitors,
+            "login_prompts_shown": total_login_prompts,
+            "login_started": total_login_starts,
+            "login_success": total_login_successes,
+            "feedback_resumes": total_feedback_resumes,
         },
         "conversion": {
             "homepage_to_project": f"{homepage_to_project}%",
