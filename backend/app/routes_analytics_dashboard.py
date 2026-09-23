@@ -81,10 +81,10 @@ def get_analytics_dashboard(
             "login_success": total_login_successes,
             "feedback_resumes": total_feedback_resumes,
         },
-        "conversion": {
-            "homepage_to_project": f"{homepage_to_project}%",
-            "project_to_feedback_start": f"{project_to_feedback}%",
-            "feedback_start_to_submit": f"{feedback_to_submit}%",
-            "feedback_to_project_submit": f"{feedback_to_project}%",
+        "event_ratios": {
+            "project_views_per_page_view": f"{homepage_to_project}%",
+            "feedback_starts_per_project_view": f"{project_to_feedback}%",
+            "feedback_submits_per_feedback_start": f"{feedback_to_submit}%",
+            "project_submits_per_feedback_submit": f"{feedback_to_project}%",
         },
     }

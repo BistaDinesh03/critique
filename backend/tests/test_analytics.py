@@ -60,3 +60,47 @@ def test_dashboard_requires_auth():
     assert response.status_code in (401, 403)
 
     cleanup_database()
+
+
+def test_dashboard_event_ratios_naming():
+    from app.auth import get_current_user
+
+    reset_rate_limits()
+    cleanup_database()
+
+    db = SessionLocal()
+    owner = User(github_id=999999999, username="BistaDinesh03")
+    db.add(owner)
+    db.commit()
+    db.refresh(owner)
+    owner_id = owner.id
+    db.close()
+
+    db2 = SessionLocal()
+    owner = db2.query(User).filter(User.id == owner_id).first()
+
+    def mock_get_current_user():
+        return owner
+
+    app.dependency_overrides[get_current_user] = mock_get_current_user
+    try:
+        client = TestClient(app)
+        response = client.get("/api/analytics/dashboard")
+        assert response.status_code == 200
+
+        data = response.json()
+        assert "event_ratios" in data
+        assert "conversion" not in data
+
+        ratios = data["event_ratios"]
+        expected_fields = {
+            "project_views_per_page_view",
+            "feedback_starts_per_project_view",
+            "feedback_submits_per_feedback_start",
+            "project_submits_per_feedback_submit",
+        }
+        assert set(ratios.keys()) == expected_fields
+    finally:
+        app.dependency_overrides.pop(get_current_user, None)
+        db2.close()
+        cleanup_database()
