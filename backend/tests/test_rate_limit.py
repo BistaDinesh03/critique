@@ -107,3 +107,89 @@ def test_rate_limit_resets():
         app.dependency_overrides.clear()
     reset_rate_limits()
     cleanup_database()
+
+def test_cf_connecting_ip_separates_buckets():
+    """Two clients with different CF-Connecting-IP values get separate buckets."""
+    reset_rate_limits()
+    cleanup_database()
+    client = create_authenticated_client()
+    try:
+        for i in range(5):
+            r = client.post("/api/projects/", json=project_payload(f"A{i}"), headers={"CF-Connecting-IP": "203.0.113.10"})
+            assert r.status_code == 201
+        r6 = client.post("/api/projects/", json=project_payload("A-blocked"), headers={"CF-Connecting-IP": "203.0.113.10"})
+        assert r6.status_code == 429
+        rB = client.post("/api/projects/", json=project_payload("B-allowed"), headers={"CF-Connecting-IP": "203.0.113.11"})
+        assert rB.status_code == 201
+    finally:
+        app.dependency_overrides.clear()
+    reset_rate_limits()
+    cleanup_database()
+
+
+def test_cf_connecting_ip_still_enforces_limit():
+    """A single CF-Connecting-IP identity still hits the limit."""
+    reset_rate_limits()
+    cleanup_database()
+    client = create_authenticated_client()
+    try:
+        for i in range(5):
+            r = client.post("/api/projects/", json=project_payload(f"L{i}"), headers={"CF-Connecting-IP": "198.51.100.7"})
+            assert r.status_code == 201
+        r = client.post("/api/projects/", json=project_payload("L6"), headers={"CF-Connecting-IP": "198.51.100.7"})
+        assert r.status_code == 429
+    finally:
+        app.dependency_overrides.clear()
+    reset_rate_limits()
+    cleanup_database()
+
+
+def test_x_forwarded_for_does_not_change_identity():
+    """A spoofed X-Forwarded-For header must not create a new bucket."""
+    reset_rate_limits()
+    cleanup_database()
+    client = create_authenticated_client()
+    try:
+        for i in range(5):
+            r = client.post("/api/projects/", json=project_payload(f"X{i}"), headers={"X-Forwarded-For": f"10.0.0.{i}"})
+            assert r.status_code == 201
+        r = client.post("/api/projects/", json=project_payload("X6"), headers={"X-Forwarded-For": "10.0.0.99"})
+        assert r.status_code == 429, "X-Forwarded-For must not bypass the limit"
+    finally:
+        app.dependency_overrides.clear()
+    reset_rate_limits()
+    cleanup_database()
+
+
+def test_missing_cf_header_falls_back_to_peer():
+    """Without CF-Connecting-IP, the peer IP is used and limits still apply."""
+    reset_rate_limits()
+    cleanup_database()
+    client = create_authenticated_client()
+    try:
+        for i in range(5):
+            r = client.post("/api/projects/", json=project_payload(f"P{i}"))
+            assert r.status_code == 201
+        r = client.post("/api/projects/", json=project_payload("P6"))
+        assert r.status_code == 429
+    finally:
+        app.dependency_overrides.clear()
+    reset_rate_limits()
+    cleanup_database()
+
+
+def test_invalid_cf_header_falls_back_to_peer():
+    """A malformed CF-Connecting-IP is ignored and falls back to the peer IP."""
+    reset_rate_limits()
+    cleanup_database()
+    client = create_authenticated_client()
+    try:
+        for i in range(5):
+            r = client.post("/api/projects/", json=project_payload(f"I{i}"), headers={"CF-Connecting-IP": "not-an-ip"})
+            assert r.status_code == 201
+        r = client.post("/api/projects/", json=project_payload("I6"), headers={"CF-Connecting-IP": "also-not-an-ip"})
+        assert r.status_code == 429
+    finally:
+        app.dependency_overrides.clear()
+    reset_rate_limits()
+    cleanup_database()

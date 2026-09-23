@@ -241,7 +241,11 @@
             }
         }
 
+        let feedbackStartTracked = false;
+        let feedbackFormViewedTracked = false;
+
         function renderProject(data, responses) {
+            feedbackStartTracked = false;
             const content = document.getElementById('content');
             const p = data.project;
             const q = data.question;
@@ -253,8 +257,8 @@
                 html += '<div class="response-form-card"><form id="response-form">';
                 html += '<div class="form-section"><h3>How clear is it?</h3><div class="radio-cards">';
                 html += '<label class="radio-card"><input type="radio" id="c1" name="clarity" value="very_clear" required onclick="trackFeedbackStart()"><span class="radio-card-label"><span class="radio-card-title">Very clear</span><span class="radio-card-desc">I understood the project quickly.</span></span></label>';
-                html += '<label class="radio-card"><input type="radio" id="c2" name="clarity" value="mostly_clear"><span class="radio-card-label"><span class="radio-card-title">Mostly clear</span><span class="radio-card-desc">I understood it, but needed some explanation.</span></span></label>';
-                html += '<label class="radio-card"><input type="radio" id="c3" name="clarity" value="confusing"><span class="radio-card-label"><span class="radio-card-title">Confusing</span><span class="radio-card-desc">I was not sure what it does.</span></span></label>';
+                html += '<label class="radio-card"><input type="radio" id="c2" name="clarity" value="mostly_clear" onclick="trackFeedbackStart()"><span class="radio-card-label"><span class="radio-card-title">Mostly clear</span><span class="radio-card-desc">I understood it, but needed some explanation.</span></span></label>';
+                html += '<label class="radio-card"><input type="radio" id="c3" name="clarity" value="confusing" onclick="trackFeedbackStart()"><span class="radio-card-label"><span class="radio-card-title">Confusing</span><span class="radio-card-desc">I was not sure what it does.</span></span></label>';
                 html += '</div></div>';
                 html += '<div class="form-section"><h3>Would you use it?</h3><div class="radio-cards">';
                 html += '<label class="radio-card"><input type="radio" id="u1" name="would_use" value="yes" required><span class="radio-card-label"><span class="radio-card-title">Yes</span><span class="radio-card-desc">I would use this.</span></span></label>';
@@ -283,12 +287,15 @@
             content.innerHTML = html;
             const form = document.getElementById('response-form');
             if (form) form.addEventListener('submit', handleSubmit);
+            if (form && !feedbackFormViewedTracked) { feedbackFormViewedTracked = true; window.CritiqueAnalytics.trackEvent('feedback_form_viewed', projectId); }
             // Restore any saved feedback draft from before OAuth
             maybeRestoreAfterLogin();
             maybeResumeToFeedback();
         }
 
         function trackFeedbackStart() {
+            if (feedbackStartTracked) return;
+            feedbackStartTracked = true;
             window.CritiqueAnalytics.trackEvent('feedback_start', projectId);
         }
 
@@ -430,6 +437,7 @@
                 suggestion: document.getElementById('suggestion').value.trim() || null,
             };
 
+            window.CritiqueAnalytics.trackEvent('feedback_submit_attempt', projectId);
             try {
                 const response = await fetch('/api/projects/' + projectId + '/responses', {
                     method: 'POST',
@@ -454,16 +462,20 @@
                     document.getElementById('response-form').reset();
                     setTimeout(loadProject, 1500);
                 } else if (response.status === 401) {
+                    window.CritiqueAnalytics.trackEvent('feedback_submit_error', projectId);
                     saveFeedbackDraft();
                     showInlineLoginPrompt(msg, 'Sign in with GitHub to submit your feedback.');
                 } else if (response.status === 403) {
+                    window.CritiqueAnalytics.trackEvent('feedback_submit_error', projectId);
                     msg.className = 'alert alert-error';
                     msg.textContent = 'Session expired. Please refresh.';
                 } else {
+                    window.CritiqueAnalytics.trackEvent('feedback_submit_error', projectId);
                     msg.className = 'alert alert-error';
                     msg.textContent = data.detail || 'Failed to submit.';
                 }
             } catch (e) {
+                window.CritiqueAnalytics.trackEvent('feedback_submit_error', projectId);
                 console.error('Submit error:', e);
                 msg.className = 'alert alert-error';
                 msg.textContent = 'Network error: ' + e.message;
