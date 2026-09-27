@@ -7,6 +7,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from app.config import settings
 from app.database import init_db
 from app.auth import router as auth_router
+from app.csrf import generate_csrf_token, set_csrf_cookie
 from app.routes_projects import router as projects_router
 from app.routes_responses import router as responses_router
 from app.routes_results import router as results_router
@@ -70,27 +71,37 @@ async def unhandled_exception_handler(request, exc):
 
 @app.get("/", response_class=HTMLResponse)
 def homepage():
-    return HTMLResponse(content=_read_frontend_file("index.html"))
+    response = HTMLResponse(content=_read_frontend_file("index.html"))
+    set_csrf_cookie(response, generate_csrf_token())
+    return response
 
 
 @app.get("/my-projects", response_class=HTMLResponse)
 def my_projects_page():
-    return HTMLResponse(content=_read_frontend_file("my_projects.html"))
+    response = HTMLResponse(content=_read_frontend_file("my_projects.html"))
+    set_csrf_cookie(response, generate_csrf_token())
+    return response
 
 
 @app.get("/discover", response_class=HTMLResponse)
 def discover_page():
-    return HTMLResponse(content=_read_frontend_file("discover.html"))
+    response = HTMLResponse(content=_read_frontend_file("discover.html"))
+    set_csrf_cookie(response, generate_csrf_token())
+    return response
 
 
 @app.get("/project/{project_id}", response_class=HTMLResponse)
 def project_detail_page(project_id: int):
-    return HTMLResponse(content=_read_frontend_file("project_detail.html"))
+    response = HTMLResponse(content=_read_frontend_file("project_detail.html"))
+    set_csrf_cookie(response, generate_csrf_token())
+    return response
 
 
 @app.get("/project/{project_id}/results", response_class=HTMLResponse)
 def project_results_page(project_id: int):
-    return HTMLResponse(content=_read_frontend_file("project_results.html"))
+    response = HTMLResponse(content=_read_frontend_file("project_results.html"))
+    set_csrf_cookie(response, generate_csrf_token())
+    return response
 
 
 

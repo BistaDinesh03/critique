@@ -59,6 +59,31 @@ def get_analytics_dashboard(
     total_feedback_resumes = db.query(func.count(AnalyticsEvent.id)).filter(
         AnalyticsEvent.event_name == "feedback_resume"
     ).scalar() or 0
+    total_feedback_submit_attempts = db.query(func.count(AnalyticsEvent.id)).filter(
+        AnalyticsEvent.event_name == "feedback_submit_attempt"
+    ).scalar() or 0
+
+    total_feedback_submit_errors = db.query(func.count(AnalyticsEvent.id)).filter(
+        AnalyticsEvent.event_name == "feedback_submit_error"
+    ).scalar() or 0
+
+    total_auth_method_github = db.query(func.count(AnalyticsEvent.id)).filter(
+        AnalyticsEvent.event_name == "auth_method_selected_github"
+    ).scalar() or 0
+
+    total_auth_method_email = db.query(func.count(AnalyticsEvent.id)).filter(
+        AnalyticsEvent.event_name == "auth_method_selected_email"
+    ).scalar() or 0
+
+    total_email_verification_sent = db.query(func.count(AnalyticsEvent.id)).filter(
+        AnalyticsEvent.event_name == "email_verification_sent"
+    ).scalar() or 0
+
+    total_email_verification_success = db.query(func.count(AnalyticsEvent.id)).filter(
+        AnalyticsEvent.event_name == "email_verification_success"
+    ).scalar() or 0
+
+
 
     unique_visitors = db.query(func.count(func.distinct(AnalyticsEvent.visitor_id))).scalar() or 0
 
@@ -66,6 +91,13 @@ def get_analytics_dashboard(
     project_to_feedback = round((total_feedback_starts / total_project_views) * 100, 1) if total_project_views > 0 else 0
     feedback_to_submit = round((total_feedback_submits / total_feedback_starts) * 100, 1) if total_feedback_starts > 0 else 0
     feedback_to_project = round((total_project_submits / total_feedback_submits) * 100, 1) if total_feedback_submits > 0 else 0
+    attempts_to_submit = round((total_feedback_submits / total_feedback_submit_attempts) * 100, 1) if total_feedback_submit_attempts > 0 else 0
+    errors_to_attempts = round((total_feedback_submit_errors / total_feedback_submit_attempts) * 100, 1) if total_feedback_submit_attempts > 0 else 0
+    attempts_per_start = round((total_feedback_submit_attempts / total_feedback_starts) * 100, 1) if total_feedback_starts > 0 else 0
+    auth_selections_total = total_auth_method_github + total_auth_method_email
+    github_share = round((total_auth_method_github / auth_selections_total) * 100, 1) if auth_selections_total > 0 else 0
+    email_share = round((total_auth_method_email / auth_selections_total) * 100, 1) if auth_selections_total > 0 else 0
+    email_success_rate = round((total_email_verification_success / total_email_verification_sent) * 100, 1) if total_email_verification_sent > 0 else 0
 
     return {
         "totals": {
@@ -80,11 +112,24 @@ def get_analytics_dashboard(
             "login_started": total_login_starts,
             "login_success": total_login_successes,
             "feedback_resumes": total_feedback_resumes,
+            "feedback_submit_attempts": total_feedback_submit_attempts,
+            "feedback_submit_errors": total_feedback_submit_errors,
+            "auth_method_selected_github": total_auth_method_github,
+            "auth_method_selected_email": total_auth_method_email,
+            "email_verification_sent": total_email_verification_sent,
+            "email_verification_success": total_email_verification_success,
         },
         "event_ratios": {
             "project_views_per_page_view": f"{homepage_to_project}%",
             "feedback_starts_per_project_view": f"{project_to_feedback}%",
             "feedback_submits_per_feedback_start": f"{feedback_to_submit}%",
             "project_submits_per_feedback_submit": f"{feedback_to_project}%",
+            # Event ratios (count-to-count), NOT unique-user conversion rates.
+            "feedback_submit_attempts_per_feedback_start": f"{attempts_per_start}%",
+            "feedback_submits_per_feedback_submit_attempt": f"{attempts_to_submit}%",
+            "feedback_submit_errors_per_feedback_submit_attempt": f"{errors_to_attempts}%",
+            "github_auth_method_share": f"{github_share}%",
+            "email_auth_method_share": f"{email_share}%",
+            "email_verification_success_per_email_verification_sent": f"{email_success_rate}%",
         },
     }

@@ -342,6 +342,50 @@
             }
         }
 
+        // ===== Email-flow draft fallback (localStorage, 60-minute TTL) =====
+        // Only written when the user explicitly chooses the email auth path.
+        // Only read when returning from an email verification. Never used
+        // for the GitHub flow. Never server-side. Never cross-device.
+        function emailFallbackKey() {
+            return 'critique_feedback_' + projectId + '_email_fallback';
+        }
+
+        function saveEmailFallbackDraft() {
+            try {
+                var clarityEl = document.querySelector('input[name="clarity"]:checked');
+                var wouldEl = document.querySelector('input[name="would_use"]:checked');
+                var suggestionEl = document.getElementById('suggestion');
+                var draft = {
+                    projectId: parseInt(projectId, 10),
+                    clarity: clarityEl ? clarityEl.value : null,
+                    would_use: wouldEl ? wouldEl.value : null,
+                    suggestion: suggestionEl ? suggestionEl.value : '',
+                    createdAt: Date.now()
+                };
+                localStorage.setItem(emailFallbackKey(), JSON.stringify(draft));
+            } catch (e) {}
+        }
+
+        function readEmailFallbackDraft() {
+            try {
+                var raw = localStorage.getItem(emailFallbackKey());
+                if (!raw) return null;
+                var draft = JSON.parse(raw);
+                if (!draft || typeof draft !== 'object') return null;
+                if (parseInt(draft.projectId, 10) !== parseInt(projectId, 10)) return null;
+                if (typeof draft.createdAt !== 'number') return null;
+                if (Date.now() - draft.createdAt > 60 * 60 * 1000) return null;
+                return draft;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function clearEmailFallbackDraft() {
+            try {
+                localStorage.removeItem(emailFallbackKey());
+            } catch (e) {}
+        }
         function clearFeedbackDraft() {
             try {
                 sessionStorage.removeItem(feedbackStorageKey());
@@ -361,6 +405,11 @@
 
             msg.className = 'login-prompt';
             msg.innerHTML = '';
+            renderLoginChoice(msg, message);
+        }
+
+        function renderLoginChoice(msg, message) {
+            msg.innerHTML = '';
 
             var title = document.createElement('div');
             title.className = 'login-prompt-title';
@@ -369,20 +418,165 @@
 
             var text = document.createElement('p');
             text.className = 'login-prompt-text';
-            text.textContent = message || 'Sign in with GitHub to submit your feedback.';
+            text.textContent = message || 'Your feedback is ready to send.';
             msg.appendChild(text);
 
-            var link = document.createElement('a');
-            link.href = '/auth/login?return_to=' + encodeURIComponent(currentPathForReturn() + '?resume=feedback');
-            link.className = 'btn btn-primary';
-            link.textContent = 'Continue with GitHub';
-            link.addEventListener('click', function() {
+            var label = document.createElement('div');
+            label.className = 'login-prompt-label';
+            label.textContent = 'Continue with:';
+            msg.appendChild(label);
+
+            var ghLink = document.createElement('a');
+            ghLink.href = '/auth/login?return_to=' + encodeURIComponent(currentPathForReturn() + '?resume=feedback');
+            ghLink.className = 'btn btn-primary';
+            ghLink.textContent = 'Continue with GitHub';
+            ghLink.addEventListener('click', function() {
+                window.CritiqueAnalytics.trackEvent('auth_method_selected_github', projectId);
                 saveFeedbackDraft();
                 window.CritiqueAnalytics.trackEvent('login_started', projectId);
             });
-            msg.appendChild(link);
+            msg.appendChild(ghLink);
+
+            var emailBtn = document.createElement('button');
+            emailBtn.type = 'button';
+            emailBtn.className = 'btn btn-secondary';
+            emailBtn.textContent = 'Continue with email';
+            emailBtn.addEventListener('click', function() {
+                window.CritiqueAnalytics.trackEvent('auth_method_selected_email', projectId);
+                saveFeedbackDraft();
+                saveEmailFallbackDraft();
+                renderEmailForm(msg);
+            });
+            msg.appendChild(emailBtn);
+
+            var note = document.createElement('p');
+            note.className = 'login-prompt-note';
+            note.textContent = 'No password required.';
+            msg.appendChild(note);
+
+            var share = document.createElement('p');
+            share.className = 'login-prompt-note';
+            share.textContent = 'Your answer will be shared with the builder.';
+            msg.appendChild(share);
         }
 
+        function renderEmailForm(msg) {
+            msg.innerHTML = '';
+
+            var title = document.createElement('div');
+            title.className = 'login-prompt-title';
+            title.textContent = 'Almost there';
+            msg.appendChild(title);
+
+            var text = document.createElement('p');
+            text.className = 'login-prompt-text';
+            text.textContent = 'Your feedback is ready to send.';
+            msg.appendChild(text);
+
+            var form = document.createElement('form');
+            form.className = 'login-prompt-form';
+            form.setAttribute('novalidate', 'novalidate');
+
+            var emailInput = document.createElement('input');
+            emailInput.type = 'email';
+            emailInput.name = 'email';
+            emailInput.required = true;
+            emailInput.autocomplete = 'email';
+            emailInput.placeholder = 'you@example.com';
+            emailInput.className = 'form-input';
+            form.appendChild(emailInput);
+
+            var sendBtn = document.createElement('button');
+            sendBtn.type = 'submit';
+            sendBtn.className = 'btn btn-primary';
+            sendBtn.textContent = 'Send login link';
+            form.appendChild(sendBtn);
+
+            var errorEl = document.createElement('div');
+            errorEl.className = 'login-prompt-error';
+            errorEl.setAttribute('role', 'alert');
+            form.appendChild(errorEl);
+
+            var backBtn = document.createElement('button');
+            backBtn.type = 'button';
+            backBtn.className = 'btn-link';
+            backBtn.textContent = 'Back';
+            backBtn.addEventListener('click', function() {
+                renderLoginChoice(msg);
+            });
+            form.appendChild(backBtn);
+
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                errorEl.textContent = '';
+                var emailValue = (emailInput.value || '').trim();
+                if (!emailValue || emailValue.indexOf('@') === -1) {
+                    errorEl.textContent = 'Please enter a valid email address.';
+                    return;
+                }
+
+                sendBtn.disabled = true;
+                sendBtn.textContent = 'Sending...';
+
+                try {
+                    var response = await fetch('/auth/email/start', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-Token': getCsrfToken()
+                        },
+                        credentials: 'same-origin',
+                        body: JSON.stringify({
+                            email: emailValue,
+                            return_to: currentPathForReturn() + '?resume=feedback'
+                        })
+                    });
+                    if (response.ok) {
+                        window.CritiqueAnalytics.trackEvent('email_verification_sent', projectId);
+                        renderCheckEmail(msg, emailValue);
+                    } else {
+                        sendBtn.disabled = false;
+                        sendBtn.textContent = 'Send login link';
+                        errorEl.textContent = "Couldn't send the link. Please try again.";
+                    }
+                } catch (err) {
+                    sendBtn.disabled = false;
+                    sendBtn.textContent = 'Send login link';
+                    errorEl.textContent = "Couldn't send the link. Please try again.";
+                }
+            });
+
+            msg.appendChild(form);
+            emailInput.focus();
+        }
+
+        function renderCheckEmail(msg, emailValue) {
+            msg.innerHTML = '';
+
+            var title = document.createElement('div');
+            title.className = 'login-prompt-title';
+            title.textContent = 'Check your email';
+            msg.appendChild(title);
+
+            var text = document.createElement('p');
+            text.className = 'login-prompt-text';
+            text.textContent = 'We sent you a secure login link to ' + emailValue + '.';
+            msg.appendChild(text);
+
+            var hint = document.createElement('p');
+            hint.className = 'login-prompt-note';
+            hint.textContent = 'Click the link in the email to finish submitting your feedback.';
+            msg.appendChild(hint);
+
+            var again = document.createElement('button');
+            again.type = 'button';
+            again.className = 'btn-link';
+            again.textContent = 'Use a different email';
+            again.addEventListener('click', function() {
+                renderEmailForm(msg);
+            });
+            msg.appendChild(again);
+        }
         // Detect return from OAuth: if any draft was saved, restore it
         // and fire login_success event once.
         function maybeResumeToFeedback() {
@@ -414,14 +608,28 @@
             try {
                 var raw = sessionStorage.getItem(feedbackStorageKey());
                 if (raw) {
-                    // Returning user had a draft
+                    // sessionStorage takes priority. Same-tab return from GitHub OAuth.
                     if (restoreFeedbackDraft()) {
                         window.CritiqueAnalytics.trackEvent('login_success', projectId);
+                    }
+                    return;
+                }
+
+                // Fallback: email verification in a new tab on the same device.
+                var fallback = readEmailFallbackDraft();
+                if (fallback) {
+                    var draft = {
+                        clarity: fallback.clarity,
+                        would_use: fallback.would_use,
+                        suggestion: fallback.suggestion
+                    };
+                    sessionStorage.setItem(feedbackStorageKey(), JSON.stringify(draft));
+                    if (restoreFeedbackDraft()) {
+                        window.CritiqueAnalytics.trackEvent('email_verification_success', projectId);
                     }
                 }
             } catch (e) {}
         }
-
         async function handleSubmit(e) {
             e.preventDefault();
             const msg = document.getElementById('message');
@@ -459,12 +667,13 @@
                     msg.className = 'alert alert-success';
                     msg.textContent = 'Thank you! Your feedback has been submitted.';
                     clearFeedbackDraft();
+                    clearEmailFallbackDraft();
                     document.getElementById('response-form').reset();
                     setTimeout(loadProject, 1500);
                 } else if (response.status === 401) {
                     window.CritiqueAnalytics.trackEvent('feedback_submit_error', projectId);
                     saveFeedbackDraft();
-                    showInlineLoginPrompt(msg, 'Sign in with GitHub to submit your feedback.');
+                    showInlineLoginPrompt(msg, 'Your feedback is ready to send.');
                 } else if (response.status === 403) {
                     window.CritiqueAnalytics.trackEvent('feedback_submit_error', projectId);
                     msg.className = 'alert alert-error';

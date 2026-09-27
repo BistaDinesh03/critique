@@ -98,7 +98,12 @@ def test_dashboard_event_ratios_naming():
             "feedback_starts_per_project_view",
             "feedback_submits_per_feedback_start",
             "project_submits_per_feedback_submit",
-        }
+            "feedback_submit_attempts_per_feedback_start",
+            "feedback_submits_per_feedback_submit_attempt",
+            "feedback_submit_errors_per_feedback_submit_attempt",
+            "github_auth_method_share",
+            "email_auth_method_share",
+            "email_verification_success_per_email_verification_sent",        }
         assert set(ratios.keys()) == expected_fields
     finally:
         app.dependency_overrides.pop(get_current_user, None)

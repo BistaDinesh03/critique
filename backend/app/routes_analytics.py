@@ -22,6 +22,10 @@ VALID_EVENTS = {
     "login_started",
     "login_success",
     "feedback_resume",
+    "auth_method_selected_github",
+    "auth_method_selected_email",
+    "email_verification_sent",
+    "email_verification_success",
 }
 
 

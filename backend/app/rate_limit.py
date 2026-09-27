@@ -11,6 +11,8 @@ RATE_LIMITS = {
     "response_submit": {"max_requests": 10, "window": 300},
     "analytics": {"max_requests": 60, "window": 60},
     "project_delete": {"max_requests": 20, "window": 300},
+    "email_login_start": {"max_requests": 3, "window": 900},
+    "email_login_verify": {"max_requests": 10, "window": 60},
 }
 
 

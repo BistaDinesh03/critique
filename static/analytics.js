@@ -20,7 +20,13 @@ function trackEvent(eventName, projectId) {
         'login_prompt_shown',
         'login_started',
         'login_success',
-        'feedback_resume'
+        'feedback_resume',
+        'feedback_submit_attempt',
+        'feedback_submit_error',
+        'auth_method_selected_github',
+        'auth_method_selected_email',
+        'email_verification_sent',
+        'email_verification_success'
     ];
     if (!eventName || VALID_EVENTS.indexOf(eventName) === -1) {
         return; // Silently skip invalid events

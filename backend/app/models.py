@@ -16,6 +16,7 @@ class User(Base):
     github_id = Column(Integer, unique=True, nullable=True)
     username = Column(String(100), unique=True, nullable=False)
     avatar_url = Column(String(500), nullable=True)
+    email = Column(String(320), unique=True, nullable=True, index=True)
     created_at = Column(DateTime, default=utc_now)
 
     feedback_given_count = Column(Integer, default=0, nullable=False)
@@ -100,3 +101,15 @@ class AnalyticsEvent(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=True, index=True)
     created_at = Column(DateTime, default=utc_now, nullable=False, index=True)
+
+class EmailLoginToken(Base):
+    __tablename__ = "email_login_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String(320), nullable=False, index=True)
+    token_hash = Column(String(64), nullable=False, unique=True, index=True)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    used_at = Column(DateTime, nullable=True)
+    requester_ip_hash = Column(String(64), nullable=False)
+    return_to = Column(String(500), nullable=True)

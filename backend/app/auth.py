@@ -6,10 +6,38 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.database import get_db
 from app.models import User
-from app.csrf import generate_csrf_token, set_csrf_cookie
+from app.csrf import generate_csrf_token, set_csrf_cookie, require_csrf
 from app.rate_limit import rate_limit
+import hashlib
+import secrets
+import time
+from datetime import datetime, timedelta, timezone
+from typing import Optional
+from pydantic import BaseModel, Field
+from app.models import EmailLoginToken
+from app.email import send_login_link
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+# --- Per-email cooldown for magic-link requests ---
+# Separate from the IP-based rate limiter in app/rate_limit.py.
+# Keyed on normalized email to prevent one IP from spamming a single inbox
+# and to prevent a single email from being bombed from many IPs.
+_EMAIL_COOLDOWN = {}
+_EMAIL_COOLDOWN_SECONDS = 60
+
+
+def _email_cooldown_check_and_set(normalized_email: str) -> bool:
+    """Return True if a cooldown is active (block request).
+
+    Otherwise record the request time and return False (allow).
+    """
+    now = time.time()
+    last = _EMAIL_COOLDOWN.get(normalized_email)
+    if last is not None and (now - last) < _EMAIL_COOLDOWN_SECONDS:
+        return True
+    _EMAIL_COOLDOWN[normalized_email] = now
+    return False
 
 serializer = URLSafeTimedSerializer(settings.SECRET_KEY, salt="session")
 
@@ -188,4 +216,174 @@ def get_csrf_token(request: Request):
         token = generate_csrf_token()
     return {"csrf_token": token}
 
+# ============================================================================
+# Passwordless email authentication
+# ============================================================================
 
+def _normalize_email(raw: str) -> str:
+    """Trim and lowercase. No Gmail dot/plus folding."""
+    return (raw or "").strip().lower()
+
+
+def _is_plausible_email(addr: str) -> bool:
+    """Conservative format check. Not full RFC validation, by design."""
+    if not addr or len(addr) > 320:
+        return False
+    if " " in addr or "\t" in addr or "\n" in addr:
+        return False
+    if addr.count("@") != 1:
+        return False
+    local, _, domain = addr.partition("@")
+    if not local or not domain:
+        return False
+    if "." not in domain:
+        return False
+    return True
+
+
+def _hash_token(raw_token: str) -> str:
+    return hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+
+
+def _hash_ip(ip: str) -> str:
+    return hashlib.sha256(ip.encode("utf-8")).hexdigest()
+
+
+def _client_ip_for_hash(request: Request) -> str:
+    cf = request.headers.get("cf-connecting-ip")
+    if cf:
+        return cf
+    return request.client.host if request.client else "unknown"
+
+
+class EmailStartRequest(BaseModel):
+    email: str = Field(..., min_length=3, max_length=320)
+    return_to: Optional[str] = None
+
+
+@router.post("/email/start")
+def email_start(
+    payload: EmailStartRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_csrf),
+    __: None = Depends(rate_limit("email_login_start")),
+):
+    """Request a magic link. Always returns a generic success response."""
+    normalized = _normalize_email(payload.email)
+
+    # Per-email cooldown. Silently accept but do not send if on cooldown.
+    cooldown_active = False
+    if _is_plausible_email(normalized):
+        cooldown_active = _email_cooldown_check_and_set(normalized)
+
+    # Validate return_to with the existing safe-return helper.
+    return_to = None
+    if payload.return_to and _is_safe_return_path(payload.return_to):
+        return_to = payload.return_to
+
+    if _is_plausible_email(normalized) and not cooldown_active:
+        raw_token = secrets.token_urlsafe(32)
+        token_hash = _hash_token(raw_token)
+        now = datetime.now(timezone.utc)
+        expires_at = now + timedelta(minutes=15)
+
+        row = EmailLoginToken(
+            email=normalized,
+            token_hash=token_hash,
+            created_at=now,
+            expires_at=expires_at,
+            used_at=None,
+            requester_ip_hash=_hash_ip(_client_ip_for_hash(request)),
+            return_to=return_to,
+        )
+        db.add(row)
+        db.commit()
+
+        # Send. Failure is swallowed intentionally; the response is identical either way.
+        try:
+            send_login_link(normalized, raw_token)
+        except Exception:
+            pass
+
+    # Generic response regardless of whether email exists, is valid, or is on cooldown.
+    return {"ok": True}
+
+
+@router.get("/email/verify")
+def email_verify(
+    token: str,
+    db: Session = Depends(get_db),
+    _: None = Depends(rate_limit("email_login_verify")),
+):
+    """Consume a magic-link token, establish a session, and redirect."""
+    if not token or len(token) > 200:
+        return RedirectResponse("/?error=email_link")
+
+    token_hash = _hash_token(token)
+    now = datetime.now(timezone.utc)
+
+    # Atomic consume: UPDATE ... WHERE used_at IS NULL AND expires_at > now RETURNING *.
+    from sqlalchemy import update as sa_update
+    stmt = (
+        sa_update(EmailLoginToken)
+        .where(EmailLoginToken.token_hash == token_hash)
+        .where(EmailLoginToken.used_at.is_(None))
+        .where(EmailLoginToken.expires_at > now)
+        .values(used_at=now)
+        .returning(
+            EmailLoginToken.id,
+            EmailLoginToken.email,
+            EmailLoginToken.return_to,
+        )
+    )
+    result = db.execute(stmt).first()
+    if not result:
+        db.rollback()
+        return RedirectResponse("/?error=email_link")
+
+    token_id, normalized_email, stored_return_to = result
+    db.commit()
+
+    # Find or create the user.
+    user = db.query(User).filter(User.email == normalized_email).first()
+    if not user:
+        # Synthetic username derived from SHA-256 of normalized email.
+        # "email_" prefix cannot collide with GitHub logins (GitHub usernames
+        # may only contain alphanumerics and hyphens).
+        synthetic = "email_" + hashlib.sha256(normalized_email.encode("utf-8")).hexdigest()[:16]
+        user = User(
+            email=normalized_email,
+            username=synthetic,
+        )
+        db.add(user)
+        try:
+            db.commit()
+        except Exception:
+            # Race: another verification created the user. Reload.
+            db.rollback()
+            user = db.query(User).filter(User.email == normalized_email).first()
+            if not user:
+                return RedirectResponse("/?error=email_link")
+        else:
+            db.refresh(user)
+
+    # Determine redirect target from stored return_to, re-validated.
+    redirect_target = "/"
+    if stored_return_to and _is_safe_return_path(stored_return_to):
+        redirect_target = stored_return_to
+
+    session_token = create_session_token(user.id)
+    csrf_token = generate_csrf_token()
+
+    response = RedirectResponse(redirect_target)
+    response.set_cookie(
+        SESSION_COOKIE_NAME,
+        session_token,
+        httponly=True,
+        max_age=settings.SESSION_COOKIE_MAX_AGE,
+        samesite="lax",
+        secure=settings.SESSION_COOKIE_SECURE,
+    )
+    set_csrf_cookie(response, csrf_token)
+    return response

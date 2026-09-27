@@ -43,6 +43,9 @@ def _migrate_postgresql():
             conn.execute(text("ALTER TABLE users ADD COLUMN feedback_helpful_count INTEGER DEFAULT 0 NOT NULL"))
         if "feedback_score" not in user_cols:
             conn.execute(text("ALTER TABLE users ADD COLUMN feedback_score INTEGER DEFAULT 0 NOT NULL"))
+        if "email" not in user_cols:
+            conn.execute(text("ALTER TABLE users ADD COLUMN email VARCHAR(320)"))
+            conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_users_email ON users (email)"))
     
     # Check projects table
     project_cols = {c["name"] for c in inspector.get_columns("projects")}
@@ -57,13 +60,28 @@ def _migrate_postgresql():
             conn.execute(text("ALTER TABLE projects ADD COLUMN discover_impressions INTEGER DEFAULT 0 NOT NULL"))
 
 
+def _migrate_sqlite():
+    """Add missing columns to existing tables on SQLite."""
+    inspector = inspect(engine)
+    user_cols = {c["name"] for c in inspector.get_columns("users")}
+    with engine.begin() as conn:
+        if "email" not in user_cols:
+            conn.execute(text("ALTER TABLE users ADD COLUMN email VARCHAR(320)"))
+            conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_users_email ON users (email)"))
+
+
 def init_db():
     """Create all tables and run lightweight migrations."""
     from app import models  # noqa: F401
     Base.metadata.create_all(bind=engine)
-    
-    # Add missing columns on PostgreSQL
-    if not settings.DATABASE_URL.startswith("sqlite"):
+
+    # Add missing columns on the appropriate backend
+    if settings.DATABASE_URL.startswith("sqlite"):
+        try:
+            _migrate_sqlite()
+        except Exception:
+            pass  # Columns may already exist
+    else:
         try:
             _migrate_postgresql()
         except Exception:
