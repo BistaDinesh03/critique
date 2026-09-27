@@ -1,5 +1,6 @@
-﻿// Test-only harness: executes the *real* inline JavaScript of a frontend page
-// inside a minimal DOM stub and returns the HTML the page actually produced.
+﻿// Test-only harness: executes every <script> a frontend page declares (inline
+// blocks and local /static/*.js assets) inside a minimal DOM stub and returns
+// the HTML the page actually produced.
 //
 // It exists so pytest can assert on the real rendering boundary (the string that
 // gets assigned to innerHTML) instead of on an isolated helper function.
@@ -7,17 +8,29 @@
 // Usage: node frontend_render_harness.js <scenario.json>
 //   {
 //     "page": "C:/.../frontend/discover.html",
-//     "calls": [{ "fn": "showProjects", "args": [[ {...} ]] }],
+//     "calls": [
+//       { "fn": "showProjects", "args": [[ {...} ]] },
+//       { "clickCreatedContaining": "Continue with email" },
+//       { "dispatchDocumentClickCreated": "Continue with email" }
+//     ],
 //     "fetch": { "/api/projects/?": { "status": 200, "body": { ... } } },
 //     "location": "/project/1/results",
 //     "read": { "byId": "content" }   // or { "created": true }
 //   }
 //
-// Prints a single JSON object on stdout: { errors: [], html, created, ids }.
+// Prints a single JSON object on stdout:
+//   { errors: [], html, created, createdMeta, flags, requests, storage, ids }
+// `created`/`createdMeta` only contain elements that are actually attached to
+// the document (a node the page built but never appended is never shown to
+// anyone); `createdMeta` exposes reflected properties (href, type, name,
+// className) of those elements; `flags` maps element ids to visibility state;
+// `requests` lists every fetch issued after setup; `storage` is a dump of
+// sessionStorage/localStorage after the calls.
 
 'use strict';
 
 const fs = require('fs');
+const path = require('path');
 const vm = require('vm');
 
 // Faithful model of the HTML fragment serialization the browser performs for a
@@ -29,6 +42,13 @@ function serializeText(value) {
     .replace(/\u00A0/g, '&nbsp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
+}
+
+function detachChildren(el) {
+  (el.children || []).forEach((child) => {
+    if (child) child.parentNode = null;
+  });
+  el.children = [];
 }
 
 function makeElement(tagName, created) {
@@ -66,8 +86,31 @@ function makeElement(tagName, created) {
     hasAttribute(k) {
       return k in this.attributes;
     },
+    // The markup this element owns, without anything it may have appended:
+    // used for assertions and for locating the element a test wants to act on.
+    ownInnerHTML() {
+      return state.html !== null ? state.html : serializeText(state.text);
+    },
+    contains(other) {
+      let node = other;
+      const seen = new Set();
+      while (node && !seen.has(node)) {
+        if (node === this) return true;
+        seen.add(node);
+        node = node.parentNode;
+      }
+      return false;
+    },
     appendChild(child) {
       this.children.push(child);
+      if (child) child.parentNode = this;
+      return child;
+    },
+    insertBefore(child, ref) {
+      if (!ref) return this.appendChild(child);
+      const i = this.children.indexOf(ref);
+      if (i < 0) return this.appendChild(child);
+      this.children.splice(i, 0, child);
       if (child) child.parentNode = this;
       return child;
     },
@@ -76,7 +119,10 @@ function makeElement(tagName, created) {
       if (i >= 0) this.children.splice(i, 1);
       return child;
     },
-    addEventListener() {},
+    handlers: [],
+    addEventListener(type, fn) {
+      this.handlers.push({ type, fn });
+    },
     removeEventListener() {},
     dispatchEvent() {
       return true;
@@ -107,6 +153,10 @@ function makeElement(tagName, created) {
       },
       set(value) {
         state.html = value === null || value === undefined ? '' : String(value);
+        // Faithful to the browser: assigning innerHTML replaces the element's
+        // children, so the old ones leave the document (their click targets are
+        // detached by the time outer listeners run).
+        detachChildren(el);
       },
     },
     textContent: {
@@ -118,6 +168,7 @@ function makeElement(tagName, created) {
       set(value) {
         state.text = value === null || value === undefined ? '' : String(value);
         state.html = null;
+        detachChildren(el);
       },
     },
     innerText: {
@@ -129,6 +180,7 @@ function makeElement(tagName, created) {
       set(value) {
         state.text = value === null || value === undefined ? '' : String(value);
         state.html = null;
+        detachChildren(el);
       },
     },
   });
@@ -162,8 +214,14 @@ function makeStorage() {
 }
 
 function makeFetch(routes) {
-  return function fetch(url) {
+  const requests = [];
+  const fetchImpl = function fetch(url, options) {
     const target = String(url);
+    requests.push({
+      url: target,
+      method: (options && options.method) || 'GET',
+      body: options && options.body ? String(options.body) : '',
+    });
     const key = Object.keys(routes).find((k) => target.indexOf(k) !== -1);
     const spec = key ? routes[key] : { status: 404, body: {} };
     const status = spec.status || 200;
@@ -175,15 +233,44 @@ function makeFetch(routes) {
       headers: { get: () => null },
     });
   };
+  fetchImpl.requests = requests;
+  return fetchImpl;
 }
 
-function inlineScripts(html) {
+// Executes every <script> the page declares, in document order: inline blocks
+// and local /static/*.js assets (so shared helpers such as ui.js are the real
+// ones under test). External URLs are skipped.
+function repoRootFor(pagePath) {
+  let dir = path.dirname(path.resolve(pagePath));
+  for (let i = 0; i < 8; i++) {
+    if (fs.existsSync(path.join(dir, 'static', 'ui.js'))) return dir;
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return process.cwd();
+}
+
+function pageScripts(html, root) {
   const out = [];
   const re = /<script\b([^>]*)>([\s\S]*?)<\/script>/gi;
   let m;
   while ((m = re.exec(html)) !== null) {
-    if (/\bsrc\s*=/i.test(m[1])) continue;
-    if (m[2].trim()) out.push(m[2]);
+    const attrs = m[1] || '';
+    const srcMatch = attrs.match(/\bsrc\s*=\s*["']([^"']+)["']/i);
+    if (srcMatch) {
+      const src = srcMatch[1].split('?')[0];
+      if (!/^(https?:)?\/\//i.test(src) && src.startsWith('/')) {
+        const file = path.join(root, src.replace(/^\/+/, ''));
+        if (fs.existsSync(file)) {
+          out.push({ label: src, code: fs.readFileSync(file, 'utf8') });
+        } else {
+          out.push({ label: src, missing: true });
+        }
+      }
+      continue;
+    }
+    if (m[2].trim()) out.push({ label: 'inline', code: m[2] });
   }
   return out;
 }
@@ -203,6 +290,8 @@ async function main() {
   const created = [];
   const elements = new Map();
 
+  const documentHandlers = [];
+
   const documentStub = {
     documentElement: null,
     body: null,
@@ -211,7 +300,13 @@ async function main() {
     title: '',
     readyState: 'complete',
     getElementById(id) {
-      if (!elements.has(id)) elements.set(id, makeElement('div'));
+      if (!elements.has(id)) {
+        const el = makeElement('div');
+        elements.set(id, el);
+        // Mirror the browser: an element with an id is in the document, so it
+        // has a parent and can take part in layout/manipulation.
+        if (documentStub.body) documentStub.body.appendChild(el);
+      }
       return elements.get(id);
     },
     createElement(tag) {
@@ -226,7 +321,9 @@ async function main() {
     querySelectorAll() {
       return [];
     },
-    addEventListener() {},
+    addEventListener(type, fn) {
+      documentHandlers.push({ type, fn });
+    },
     removeEventListener() {},
     write() {},
   };
@@ -288,6 +385,50 @@ async function main() {
     },
   };
 
+  const fetchStub = makeFetch(scenario.fetch || {});
+
+  // --- event plumbing -----------------------------------------------------
+  const eventPathOf = (target) => {
+    const path = [];
+    const seen = new Set();
+    let node = target;
+    while (node && !seen.has(node)) {
+      path.push(node);
+      seen.add(node);
+      node = node.parentNode;
+    }
+    path.push(documentStub, windowStub);
+    return path;
+  };
+
+  const makeEvent = (type, target, path) => ({
+    type,
+    bubbles: type === 'click',
+    cancelable: true,
+    defaultPrevented: false,
+    propagationStopped: false,
+    target,
+    preventDefault() {
+      this.defaultPrevented = true;
+    },
+    stopPropagation() {
+      this.propagationStopped = true;
+    },
+    composedPath() {
+      return path;
+    },
+  });
+
+  const bubbleToDocument = (event, errs) => {
+    try {
+      documentHandlers
+        .filter((h) => h.type === event.type)
+        .forEach((h) => h.fn(event));
+    } catch (e) {
+      errs.push(`document ${event.type}: ${e && e.message ? e.message : String(e)}`);
+    }
+  };
+
   const sandbox = {
     document: documentStub,
     window: windowStub,
@@ -296,7 +437,7 @@ async function main() {
     localStorage,
     sessionStorage,
     navigator: windowStub.navigator,
-    fetch: makeFetch(scenario.fetch || {}),
+    fetch: fetchStub,
     setTimeout(fn, ms) {
       const delay = Math.min(Number(ms) || 0, 2);
       return setTimeout(fn, delay);
@@ -318,6 +459,7 @@ async function main() {
       clearTimeout(id);
     },
     console,
+    URL,
     CritiqueAnalytics: analyticsStub,
     CritiqueUI: {
       showToast() {},
@@ -336,10 +478,14 @@ async function main() {
   };
 
   const ctx = vm.createContext(sandbox);
-  const blocks = inlineScripts(html);
-  blocks.forEach((code, i) => {
+  const blocks = pageScripts(html, repoRootFor(scenario.page));
+  blocks.forEach((block, i) => {
+    if (block.missing) {
+      errors.push(`script ${block.label}: file not found`);
+      return;
+    }
     try {
-      vm.runInContext(code, ctx, { filename: `${scenario.page}#script-${i + 1}` });
+      vm.runInContext(block.code, ctx, { filename: `${scenario.page}#${block.label}-${i + 1}` });
     } catch (e) {
       errors.push(`script ${i + 1}: ${e && e.message ? e.message : String(e)}`);
     }
@@ -349,12 +495,93 @@ async function main() {
   // capture buffers so only the invoked render call is measured.
   await settle(50);
   created.length = 0;
+  fetchStub.requests.length = 0;
   elements.forEach((el) => {
     el.innerHTML = '';
   });
 
   const calls = scenario.calls || [];
   for (const call of calls) {
+    if (call.setValuePlaceholder) {
+      const { placeholder, value } = call.setValuePlaceholder;
+      const target = created.find((el) => el.placeholder === placeholder);
+      if (!target) {
+        errors.push(`setValue: no created element with placeholder ${JSON.stringify(placeholder)}`);
+      } else {
+        target.value = value;
+      }
+      continue;
+    }
+
+    const wantsClick = call.clickCreatedContaining || call.clickId;
+    const wantsSubmit = call.submitCreatedContaining;
+    if (wantsClick || wantsSubmit) {
+      const type = wantsSubmit ? 'submit' : 'click';
+      let target = null;
+      let label = '';
+      if (call.clickId) {
+        label = `#${call.clickId}`;
+        target = elements.get(call.clickId) || null;
+      } else {
+        const needle = wantsSubmit || call.clickCreatedContaining;
+        label = JSON.stringify(needle);
+        target = created.find(
+          (el) => String(el.ownInnerHTML() || '').indexOf(needle) !== -1
+        );
+        // A submit is fired by the form, which is the parent of the button.
+        if (target && wantsSubmit && target.parentNode && target.parentNode.handlers) {
+          target = target.parentNode;
+        }
+      }
+      if (!target) {
+        errors.push(`${type}: no element for ${label}`);
+        continue;
+      }
+
+      // Capture the event path now, exactly as a browser does when it starts
+      // dispatching: a re-render triggered by a handler must not rewrite it.
+      const path = eventPathOf(target);
+      const handlers = target.handlers.filter((h) => h.type === type);
+      if (!handlers.length) {
+        errors.push(`${type}: no ${type} handler on ${label}`);
+        continue;
+      }
+      const event = makeEvent(type, target, path);
+      try {
+        handlers.forEach((h) => h.fn(event));
+      } catch (e) {
+        errors.push(`${type}: ${e && e.message ? e.message : String(e)}`);
+      }
+
+      // A click keeps bubbling to the document unless a handler stopped it.
+      if (type === 'click' && !event.propagationStopped) {
+        bubbleToDocument(event, errors);
+      }
+      continue;
+    }
+
+    // A click that lands straight on the document (i.e. outside the menu).
+    if (call.dispatchDocumentClickId || call.dispatchDocumentClickCreated) {
+      let target = null;
+      let label = '';
+      if (call.dispatchDocumentClickId) {
+        label = `#${call.dispatchDocumentClickId}`;
+        target = elements.get(call.dispatchDocumentClickId) || null;
+      } else {
+        const needle = call.dispatchDocumentClickCreated;
+        label = JSON.stringify(needle);
+        target = created.find(
+          (el) => String(el.ownInnerHTML() || '').indexOf(needle) !== -1
+        );
+      }
+      if (!target) {
+        errors.push(`document click: no element for ${label}`);
+        continue;
+      }
+      bubbleToDocument(makeEvent('click', target, eventPathOf(target)), errors);
+      continue;
+    }
+
     let fn;
     try {
       fn = vm.runInContext(call.fn, ctx);
@@ -381,14 +608,80 @@ async function main() {
     ids[id] = el.innerHTML;
   });
 
-  const createdHtml = created.map((el) => el.innerHTML).filter(Boolean);
+  // Only elements that are actually in the document count as rendered: a node
+  // the page built but never appended is never shown to anyone.
+  const isAttached = (el) => {
+    let node = el;
+    const seen = new Set();
+    while (node && !seen.has(node)) {
+      if (node === documentStub.body) return true;
+      seen.add(node);
+      node = node.parentNode;
+    }
+    return false;
+  };
+  const rendered = created.filter(isAttached);
+
+  const createdHtml = rendered.map((el) => el.ownInnerHTML()).filter(Boolean);
+  const createdMeta = rendered.map((el) => ({
+    tag: el.tagName,
+    className: el.className,
+    href: el.href,
+    type: el.type,
+    name: el.name,
+    placeholder: el.placeholder,
+    text: el.textContent,
+  }));
+
+  // Visibility/state flags keyed by element id, so tests can assert on things
+  // like an open/closed menu rather than on markup alone.
+  const flags = {};
+  const flagOf = (el) => ({
+    hidden: !!el.hidden,
+    ariaExpanded: el.getAttribute ? el.getAttribute('aria-expanded') : null,
+    ariaLabel: el.getAttribute ? el.getAttribute('aria-label') : null,
+  });
+  elements.forEach((el, id) => {
+    flags[id] = flagOf(el);
+  });
+  // Walk the document too: some ids (the injected nav menu) belong to elements
+  // the page built before the capture buffers were reset.
+  const stack = [documentStub.body];
+  const seen = new Set();
+  while (stack.length) {
+    const node = stack.pop();
+    if (!node || seen.has(node)) continue;
+    seen.add(node);
+    if (node.id) flags[node.id] = flagOf(node);
+    (node.children || []).forEach((child) => stack.push(child));
+  }
 
   let out = '';
   const read = scenario.read || {};
   if (read.byId) out = ids[read.byId] || '';
   else if (read.created) out = createdHtml.join('\n');
 
-  process.stdout.write(JSON.stringify({ errors, html: out, created: createdHtml, ids }));
+  const dumpStorage = (storage) => {
+    const out = {};
+    for (let i = 0; i < storage.length; i++) {
+      const key = storage.key(i);
+      out[key] = storage.getItem(key);
+    }
+    return out;
+  };
+
+  process.stdout.write(
+    JSON.stringify({
+      errors,
+      html: out,
+      created: createdHtml,
+      createdMeta,
+      flags,
+      requests: fetchStub.requests,
+      storage: { session: dumpStorage(sessionStorage), local: dumpStorage(localStorage) },
+      ids,
+    })
+  );
 }
 
 process.on('unhandledRejection', (err) => {

@@ -54,12 +54,31 @@
             line-height: 1.5;
         }
 
+        .hero-actions {
+            display: flex;
+            gap: var(--space-3);
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: var(--space-3);
+        }
+
+        .hero-note {
+            font-size: var(--text-sm);
+            color: var(--text-secondary);
+            max-width: 560px;
+            margin: 0 auto;
+            line-height: 1.5;
+        }
+
         .social-proof {
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: var(--space-3);
-            margin-top: var(--space-4);
+            max-width: 560px;
+            margin: var(--space-6) auto 0;
+            padding-top: var(--space-5);
+            border-top: 1px solid var(--border);
         }
 
         .avatar-stack {
@@ -67,31 +86,49 @@
             align-items: center;
         }
 
-        .avatar-stack img {
+        .avatar-stack img,
+        .avatar-stack .avatar-fallback {
             width: 32px;
             height: 32px;
             border-radius: 50%;
             border: 2px solid var(--surface);
             margin-left: -8px;
+            box-sizing: border-box;
+        }
+
+        .avatar-stack > :first-child {
+            margin-left: 0;
+        }
+
+        .avatar-stack img {
             object-fit: cover;
         }
 
-        .avatar-stack img:first-child {
-            margin-left: 0;
+        .avatar-stack .avatar-fallback {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background: var(--surface-muted);
+        }
+
+        .avatar-stack .avatar-fallback svg {
+            display: block;
+            width: 100%;
+            height: 100%;
         }
 
         .social-proof-text {
             font-size: var(--text-sm);
-            color: var(--text-muted);
+            color: var(--text-secondary);
             font-weight: 500;
+            text-align: center;
         }
 
-        .hero-actions {
-            display: flex;
-            gap: var(--space-3);
-            justify-content: center;
-            flex-wrap: wrap;
-            margin-bottom: var(--space-8);
+        .social-proof-sub {
+            font-size: var(--text-xs);
+            color: var(--text-secondary);
+            text-align: center;
         }
 
         .trust-row {
@@ -160,7 +197,7 @@
         }
 
         .projects-section .subtitle {
-            color: var(--text-muted);
+            color: var(--text-secondary);
             font-size: var(--text-sm);
             margin-bottom: var(--space-5);
             text-align: center;
@@ -788,7 +825,7 @@
             .hero { padding-top: var(--space-4); margin-bottom: var(--space-6); }
             .hero h2 { font-size: var(--text-2xl); }
             .hero .subheadline { font-size: var(--text-lg); }
-            .hero-actions { margin-bottom: var(--space-5); }
+            .hero-actions { margin-bottom: var(--space-3); }
         }
     </style>
 </head>
@@ -819,12 +856,13 @@
                 <a href="#submit" class="btn btn-primary">Get feedback on my project</a>
                 <a href="/discover" class="btn btn-secondary">Give feedback to a builder</a>
             </div>
+            <p class="hero-note">No account needed to browse &mdash; you&rsquo;ll sign in when you post.</p>
 
             <div class="social-proof" id="social-proof" style="display:none;">
-                <div class="avatar-stack" id="avatar-stack"></div>
+                <div class="avatar-stack" id="avatar-stack" aria-hidden="true"></div>
                 <p class="social-proof-text" id="social-proof-text"></p>
-                <p class="social-proof-sub" style="font-size:var(--text-xs);color:var(--text-muted);margin-top:var(--space-2);">
-                    Real builders · Real projects · Human feedback
+                <p class="social-proof-sub">
+                    Real builders &middot; Real projects &middot; Human feedback
                 </p>
             </div>
         </section>
@@ -846,7 +884,7 @@
 
         <section class="projects-section">
             <h2>Help a builder improve something</h2>
-            <p class="subtitle">Real projects. Real questions. Human feedback.</p>
+            <p class="subtitle">Pick a project and answer the one question its builder asked.</p>
             <div id="homepage-projects" class="project-grid"></div>
             <p style="text-align:center; margin-top: var(--space-4);">
                 <a href="/discover" class="btn btn-secondary">Explore all projects →</a>
@@ -1155,34 +1193,29 @@
         }
 
         function showProjectInlineLoginPrompt(msg, message) {
-            // Avoid duplicate prompts
-            if (msg.dataset.promptShown === 'true') return;
-            msg.dataset.promptShown = 'true';
-            window.CritiqueAnalytics.trackEvent('login_prompt_shown', null);
+            msg = msg || document.getElementById('message');
+            if (!msg) return;
+            // The prompt re-renders whenever the gate appears again (the submit
+            // handler clears #message first) but the analytics event fires only
+            // once per page.
+            if (msg.dataset.promptShown !== 'true') {
+                msg.dataset.promptShown = 'true';
+                window.CritiqueAnalytics.trackEvent('login_prompt_shown', null);
+            }
 
-            msg.className = 'login-prompt';
-            msg.innerHTML = '';
-
-            var title = document.createElement('div');
-            title.className = 'login-prompt-title';
-            title.textContent = 'Almost there';
-            msg.appendChild(title);
-
-            var text = document.createElement('p');
-            text.className = 'login-prompt-text';
-            text.textContent = message || 'Sign in with GitHub to submit your project.';
-            msg.appendChild(text);
-
-            var link = document.createElement('a');
-            // Return to homepage with a resume flag so we can scroll back to the submit section
-            link.href = '/auth/login?return_to=' + encodeURIComponent('/?resume=project_submit');
-            link.className = 'btn btn-primary';
-            link.textContent = 'Continue with GitHub';
-            link.addEventListener('click', function() {
-                saveProjectDraft();
-                window.CritiqueAnalytics.trackEvent('login_started', null);
+            CritiqueUI.renderAuthChoice(msg, {
+                title: 'Almost there',
+                message: message || 'Your project is ready to submit.',
+                // Return to the homepage with a resume flag so we scroll back to
+                // the submit section after signing in.
+                returnTo: '/?resume=project_submit',
+                context: null,
+                notes: ['No password required.', 'Your draft is saved.'],
+                emailSentHint: 'Click the link in the email to finish submitting your project.',
+                onStart: function() {
+                    saveProjectDraft();
+                }
             });
-            msg.appendChild(link);
         }
 
         function maybeRestoreProjectAfterLogin() {
@@ -1236,7 +1269,7 @@
                     document.getElementById('project-form').reset();
                 } else if (response.status === 401) {
                     saveProjectDraft();
-                    showProjectInlineLoginPrompt(msg, 'Sign in with GitHub to submit your project.');
+                    showProjectInlineLoginPrompt(msg);
                 } else if (response.status === 403) {
                     msg.className = 'alert alert-error';
                     msg.textContent = 'Session expired. Please refresh and try again.';
@@ -1279,6 +1312,57 @@
             }
         }
 
+        // Deterministic local avatar for builders without an image (email
+        // sign-ins). Generated in-page: no external avatar service, nothing
+        // derived from an email address, and stable across page loads.
+        function fallbackAvatarSeed(value) {
+            var str = String(value || '');
+            var hash = 2166136261;
+            for (var i = 0; i < str.length; i++) {
+                hash ^= str.charCodeAt(i);
+                hash = Math.imul(hash, 16777619);
+            }
+            return hash >>> 0;
+        }
+
+        function fallbackAvatarSvg(seedValue) {
+            var palette = ['#2563eb', '#0f766e', '#7c3aed', '#b45309', '#0369a1', '#15803d'];
+            var state = (fallbackAvatarSeed(seedValue) | 1) >>> 0;
+            function next() {
+                state = (state + 0x6D2B79F5) >>> 0;
+                var t = state;
+                t = Math.imul(t ^ (t >>> 15), t | 1);
+                t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+                return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+            }
+            var fill = palette[Math.floor(next() * palette.length)];
+            var cells = '';
+            for (var row = 0; row < 5; row++) {
+                for (var col = 0; col < 3; col++) {
+                    if (next() < 0.45) {
+                        cells += '<rect x="' + col + '" y="' + row + '" width="1" height="1"/>';
+                        if (col < 2) {
+                            cells += '<rect x="' + (4 - col) + '" y="' + row + '" width="1" height="1"/>';
+                        }
+                    }
+                }
+            }
+            return '<svg viewBox="0 0 5 5" width="32" height="32" focusable="false" aria-hidden="true">' +
+                '<rect width="5" height="5" fill="#eef2f7"/>' +
+                '<g fill="' + fill + '">' + cells + '</g></svg>';
+        }
+
+        // Defence in depth: only an absolute https image may be loaded.
+        function isSafeAvatarSrc(url) {
+            if (typeof url !== 'string') return false;
+            try {
+                var parsed = new URL(url);
+                return parsed.protocol === 'https:' && !!parsed.hostname;
+            } catch (e) {
+                return false;
+            }
+        }
+
         async function loadSocialProof() {
             try {
                 const response = await fetch('/api/stats');
@@ -1294,9 +1378,13 @@
                 }
 
                 let avatarsHtml = '';
-                data.builders.slice(0, 4).forEach(function(b) {
-                    if (b.avatar_url) {
-                        avatarsHtml += '<img src="' + escapeHtml(b.avatar_url) + '" alt="' + escapeHtml(b.username) + '" width="32" height="32">';
+                (data.builders || []).slice(0, 4).forEach(function(b) {
+                    var avatarUrl = b.avatar_url;
+                    var seedValue = b.username || '';
+                    if (avatarUrl && isSafeAvatarSrc(avatarUrl)) {
+                        avatarsHtml += '<img src="' + escapeHtml(avatarUrl) + '" alt="" width="32" height="32" decoding="async">';
+                    } else {
+                        avatarsHtml += '<span class="avatar-fallback">' + fallbackAvatarSvg(seedValue) + '</span>';
                     }
                 });
                 avatarStack.innerHTML = avatarsHtml;

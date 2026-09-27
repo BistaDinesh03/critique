@@ -232,13 +232,28 @@
             } catch (e) {}
         }
 
+        function showLoginRequired(container) {
+            if (container.dataset.promptShown !== 'true') {
+                container.dataset.promptShown = 'true';
+                window.CritiqueAnalytics.trackEvent('login_prompt_shown', null);
+            }
+            CritiqueUI.renderAuthChoice(container, {
+                title: 'Sign in required',
+                message: 'Sign in to see and manage your projects.',
+                returnTo: '/my-projects',
+                context: null,
+                notes: ['No password required.'],
+                emailSentHint: 'Click the link in the email to finish signing in.'
+            });
+        }
+
         async function loadProjects() {
             var content = document.getElementById('content');
             try {
                 var response = await fetch('/api/projects/my/list');
                 if (!response.ok) {
                     if (response.status === 401) {
-                        content.innerHTML = '<div class="empty-container"><h2>Sign in required</h2><p>Sign in with GitHub to manage your projects.</p><a href="/auth/login" class="btn btn-primary">Continue with GitHub</a></div>';
+                        showLoginRequired(content);
                     } else {
                         content.innerHTML = '<div class="empty-container"><h2>Could not load projects</h2><p>Something went wrong.</p><button onclick="loadProjects()" class="btn btn-secondary">Try again</button></div>';
                     }
