@@ -203,6 +203,36 @@ def test_feedback_gate_email_link_resumes_the_feedback_flow(tmp_path):
     assert "Check your email" in result["html"]
 
 
+def test_email_send_failure_keeps_the_form_and_says_so(tmp_path):
+    """A rejected magic-link request (429/5xx) must not fail silently.
+
+    The endpoint is rate limited, so this is a path users really hit: the form
+    has to stay usable with a readable error instead of looking like nothing
+    happened or pretending the mail went out.
+    """
+    result = run(
+        tmp_path,
+        "project_detail.html",
+        [
+            {"fn": "showInlineLoginPrompt", "args": []},
+            *EMAIL_OPS,
+        ],
+        fetch={"/auth/email/start": {"status": 429, "body": {}}},
+        location="/project/1",
+    )
+    assert result["errors"] == [], f"page script errors: {result['errors']}"
+    assert len(email_posts(result)) == 1, result["requests"]
+    # The failure is reported, and no success is claimed.
+    assert "Couldn't send the link. Please try again." in result["html"]
+    assert "Check your email" not in result["html"]
+    assert len(events(result, "email_verification_sent")) == 0
+    # The form is still there and re-enabled so the user can retry.
+    assert "Send login link" in result["html"]
+    assert any(
+        m.get("placeholder") == "you@example.com" for m in result["createdMeta"]
+    ), result["createdMeta"]
+
+
 # ---------------------------------------------------------------------------
 # Project submission login gate (homepage)
 # ---------------------------------------------------------------------------
