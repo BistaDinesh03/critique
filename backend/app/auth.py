@@ -1,6 +1,6 @@
 ﻿import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, JSONResponse
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from sqlalchemy.orm import Session
 from app.config import settings
@@ -9,6 +9,7 @@ from app.models import User
 from app.csrf import generate_csrf_token, set_csrf_cookie, require_csrf
 from app.rate_limit import rate_limit
 import hashlib
+import hmac
 import secrets
 import time
 from datetime import datetime, timedelta, timezone
@@ -101,20 +102,101 @@ def _is_safe_return_path(path: str) -> bool:
     return True
 
 
+# ---------------------------------------------------------------------------
+# GitHub OAuth `state` (login CSRF protection)
+#
+# The state is generated at initiation, sent to GitHub, and its signed twin is
+# kept in an httponly cookie that only this browser holds. The callback accepts
+# a state only if that cookie proves we issued it (signature + age) and the
+# query value matches it exactly. The accepted state is then dropped from the
+# cookie, so it is single-use. No state value is ever logged.
+# ---------------------------------------------------------------------------
+
+OAUTH_STATE_COOKIE_NAME = "critique_oauth_state"
+OAUTH_STATE_MAX_AGE = 600  # seconds; mirrors the return_to cookie lifetime
+OAUTH_STATE_MAX_PENDING = 3  # newest-first cap on in-flight attempts per browser
+
+# Separate salt from the session serializer: a state can never be replayed as
+# a session token (or vice versa), and neither can be forged without SECRET_KEY.
+oauth_state_serializer = URLSafeTimedSerializer(settings.SECRET_KEY, salt="oauth_state")
+
+
+def _generate_oauth_state() -> str:
+    """Cryptographically random, URL-safe state value."""
+    return secrets.token_urlsafe(32)
+
+
+def _sign_pending_states(states: list) -> str:
+    """Serialize the browser's pending states into a signed cookie value."""
+    return oauth_state_serializer.dumps({"states": list(states)})
+
+
+def _load_pending_states(raw: Optional[str]) -> list:
+    """Return this browser's pending states, or [] if the cookie is absent,
+    expired, malformed, or signed by someone who is not us."""
+    if not raw:
+        return []
+    try:
+        data = oauth_state_serializer.loads(raw, max_age=OAUTH_STATE_MAX_AGE)
+    except (BadSignature, SignatureExpired, ValueError, TypeError):
+        return []
+    if not isinstance(data, dict):
+        return []
+    states = data.get("states")
+    if not isinstance(states, list):
+        return []
+    return [s for s in states if isinstance(s, str) and s and len(s) <= 128]
+
+
+def _state_is_valid(pending: list, state: Optional[str]) -> bool:
+    """True only if `state` is one of this browser's server-issued pending states.
+
+    Comparison is constant time; non-ASCII input is rejected before comparing
+    (hmac.compare_digest rejects non-ASCII strings).
+    """
+    if not state or not state.isascii():
+        return False
+    return any(hmac.compare_digest(candidate, state) for candidate in pending)
+
+
+def _set_pending_states_cookie(response, pending: list) -> None:
+    """Persist the remaining pending states, or clear the cookie when empty."""
+    if pending:
+        response.set_cookie(
+            OAUTH_STATE_COOKIE_NAME,
+            _sign_pending_states(pending),
+            max_age=OAUTH_STATE_MAX_AGE,
+            httponly=True,
+            samesite="lax",
+            secure=settings.SESSION_COOKIE_SECURE,
+        )
+    else:
+        response.delete_cookie(OAUTH_STATE_COOKIE_NAME)
+
+
 @router.get("/login")
 def github_login(
     request: Request,
     return_to: str = None,
     _: None = Depends(rate_limit("auth")),
 ):
-    """Redirect to GitHub OAuth. Optionally stores a safe return path."""
+    """Redirect to GitHub OAuth with a per-browser, single-use state."""
+    state = _generate_oauth_state()
+    pending = _load_pending_states(request.cookies.get(OAUTH_STATE_COOKIE_NAME))
+    # Newest attempt first; earlier in-flight attempts in this browser stay
+    # valid so opening login in two tabs does not break the first one.
+    pending = [state] + [s for s in pending if s != state]
+    pending = pending[:OAUTH_STATE_MAX_PENDING]
+
     github_auth_url = (
         "https://github.com/login/oauth/authorize"
         f"?client_id={settings.GITHUB_CLIENT_ID}"
         f"&redirect_uri={settings.GITHUB_REDIRECT_URI}"
         "&scope=read:user"
+        f"&state={state}"
     )
     response = RedirectResponse(github_auth_url)
+    _set_pending_states_cookie(response, pending)
     if return_to and _is_safe_return_path(return_to):
         response.set_cookie(
             RETURN_TO_COOKIE_NAME,
@@ -131,10 +213,21 @@ def github_login(
 async def github_callback(
     code: str,
     request: Request,
+    state: Optional[str] = None,
     db: Session = Depends(get_db),
     _: None = Depends(rate_limit("auth")),
 ):
-    """Handle GitHub OAuth callback and create session."""
+    """Handle GitHub OAuth callback, validating state, and create session."""
+    # Validate state before contacting GitHub: missing, unknown, expired,
+    # forged, or replayed states are rejected outright.
+    pending = _load_pending_states(request.cookies.get(OAUTH_STATE_COOKIE_NAME))
+    if not _state_is_valid(pending, state):
+        raise HTTPException(status_code=400, detail="Invalid or missing OAuth state")
+
+    # Single-use: this state is dropped from the browser's pending list on the
+    # response we are about to return, success or failure.
+    remaining = [s for s in pending if not hmac.compare_digest(s, state)]
+
     async with httpx.AsyncClient() as client:
         token_response = await client.post(
             "https://github.com/login/oauth/access_token",
@@ -150,7 +243,13 @@ async def github_callback(
         access_token = token_data.get("access_token")
 
         if not access_token:
-            raise HTTPException(status_code=400, detail="GitHub authentication failed")
+            # Same status and body as the previous HTTPException, but it also
+            # persists consumption of the accepted state.
+            failure = JSONResponse(
+                status_code=400, content={"detail": "GitHub authentication failed"}
+            )
+            _set_pending_states_cookie(failure, remaining)
+            return failure
 
         user_response = await client.get(
             "https://api.github.com/user",
@@ -190,6 +289,8 @@ async def github_callback(
     set_csrf_cookie(response, csrf_token)
     # Clear the return_to cookie
     response.delete_cookie(RETURN_TO_COOKIE_NAME)
+    # Persist consumption of the accepted state (single-use).
+    _set_pending_states_cookie(response, remaining)
     return response
 
 
