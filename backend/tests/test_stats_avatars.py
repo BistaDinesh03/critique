@@ -14,6 +14,7 @@ import uuid
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import func
 
 from app.database import SessionLocal, init_db
 from app.main import app
@@ -83,8 +84,6 @@ def test_stats_reports_the_real_builder_count(db):
     assert response.status_code == 200
     body = response.json()
 
-    from sqlalchemy import func
-
     real_total = db.query(func.count(User.id)).scalar()
     assert body["total_builders"] == real_total
     assert isinstance(body["total_projects"], int)
@@ -134,4 +133,27 @@ def test_stats_never_returns_an_unsafe_stored_avatar(db):
             pytest.fail("builder with an unsafe avatar_url disappeared from /api/stats")
     finally:
         db.delete(unsafe_user)
+        db.commit()
+
+
+def test_stats_avatar_list_never_claims_more_users_than_exist(db):
+    """The avatar row may show a subset of builders, never a larger claim."""
+    users = [User(username=_unique_username("row_stats_")) for _ in range(6)]
+    db.add_all(users)
+    db.commit()
+    try:
+        response = client.get("/api/stats")
+        body = response.json()
+
+        real_total = db.query(func.count(User.id)).scalar()
+        assert body["total_builders"] == real_total
+        assert 0 < len(body["builders"]) <= body["total_builders"]
+        # The homepage renders at most four faces plus a "+N" chip for the rest.
+        assert len(body["builders"]) <= 4
+        assert "@" not in response.text, "an email address reached /api/stats"
+        for builder in body["builders"]:
+            assert set(builder) == {"username", "avatar_url"}, builder
+    finally:
+        for user in users:
+            db.delete(user)
         db.commit()

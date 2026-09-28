@@ -452,6 +452,21 @@ img {
     to { transform: rotate(360deg); }
 }
 
+/* Visually hidden, still announced. Accompanies skeleton placeholders so a
+   screen reader hears "Loading projects..." even though the placeholder is
+   only grey blocks. */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
 .empty-state h3 {
     font-size: var(--text-lg);
     font-weight: 600;

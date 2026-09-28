@@ -131,6 +131,45 @@
             text-align: center;
         }
 
+        /* Placeholder for the trust row while /api/stats is in flight. It has
+           the same footprint as the real avatar row and text line, so the hero
+           does not jump when the data arrives. Pure CSS: no extra request. */
+        .social-proof-skeleton-line {
+            display: block;
+            width: 230px;
+            max-width: 70vw;
+            height: 12px;
+            margin: 0 auto;
+        }
+
+        .avatar-skeleton {
+            display: inline-block;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 2px solid var(--surface);
+            margin-left: -8px;
+            box-sizing: border-box;
+        }
+
+        /* "+N" bubble for builders who are not pictured. Keeps the avatar row
+           consistent with the real builder count in the sentence next to it. */
+        .avatar-stack .avatar-more {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            margin-left: -8px;
+            box-sizing: border-box;
+            border-radius: 50%;
+            border: 2px solid var(--surface);
+            background: var(--surface-muted);
+            color: var(--text-secondary);
+            font-size: 11px;
+            font-weight: 600;
+        }
+
         .trust-row {
             display: flex;
             gap: var(--space-6);
@@ -858,9 +897,9 @@
             </div>
             <p class="hero-note">No account needed to browse &mdash; you&rsquo;ll sign in when you post.</p>
 
-            <div class="social-proof" id="social-proof" style="display:none;">
-                <div class="avatar-stack" id="avatar-stack" aria-hidden="true"></div>
-                <p class="social-proof-text" id="social-proof-text"></p>
+            <div class="social-proof" id="social-proof" aria-busy="true">
+                <div class="avatar-stack" id="avatar-stack" aria-hidden="true"><span class="avatar-skeleton skeleton"></span><span class="avatar-skeleton skeleton"></span><span class="avatar-skeleton skeleton"></span><span class="avatar-skeleton skeleton"></span></div>
+                <p class="social-proof-text" id="social-proof-text"><span class="skeleton social-proof-skeleton-line"></span></p>
                 <p class="social-proof-sub">
                     Real builders &middot; Real projects &middot; Human feedback
                 </p>
@@ -885,7 +924,36 @@
         <section class="projects-section">
             <h2>Help a builder improve something</h2>
             <p class="subtitle">Pick a project and answer the one question its builder asked.</p>
-            <div id="homepage-projects" class="project-grid"></div>
+            <!-- Static placeholder: the project grid paints immediately while
+                 /api/projects/ is in flight, and is replaced by real cards,
+                 an empty state or a retryable error state. -->
+            <div id="homepage-projects" class="project-grid" aria-busy="true">
+                <p class="sr-only" role="status">Loading projects&hellip;</p>
+                <div class="skeleton-card" aria-hidden="true">
+                    <div class="skeleton skeleton-img"></div>
+                    <div class="skeleton-body">
+                        <div class="skeleton skeleton-line w-75"></div>
+                        <div class="skeleton skeleton-line w-100"></div>
+                        <div class="skeleton skeleton-line w-50"></div>
+                    </div>
+                </div>
+                <div class="skeleton-card" aria-hidden="true">
+                    <div class="skeleton skeleton-img"></div>
+                    <div class="skeleton-body">
+                        <div class="skeleton skeleton-line w-75"></div>
+                        <div class="skeleton skeleton-line w-100"></div>
+                        <div class="skeleton skeleton-line w-50"></div>
+                    </div>
+                </div>
+                <div class="skeleton-card" aria-hidden="true">
+                    <div class="skeleton skeleton-img"></div>
+                    <div class="skeleton-body">
+                        <div class="skeleton skeleton-line w-75"></div>
+                        <div class="skeleton skeleton-line w-100"></div>
+                        <div class="skeleton skeleton-line w-50"></div>
+                    </div>
+                </div>
+            </div>
             <p style="text-align:center; margin-top: var(--space-4);">
                 <a href="/discover" class="btn btn-secondary">Explore all projects →</a>
             </p>
@@ -1103,9 +1171,10 @@
         checkAuth();
 
         async function loadHomepageProjects() {
+            const container = document.getElementById('homepage-projects');
             try {
                 const response = await fetch('/api/projects/?page=1&page_size=6');
-                if (!response.ok) return;
+                if (!response.ok) throw new Error('Request failed: ' + response.status);
                 const data = await response.json();
 
                 const totalProjects = data.total || 0;
@@ -1117,7 +1186,6 @@
                 document.getElementById('stat-questions').textContent = totalProjects;
                 document.getElementById('real-activity').style.display = 'grid';
 
-                const container = document.getElementById('homepage-projects');
                 if (data.items.length === 0) {
                     container.innerHTML = '<p style="color:var(--text-muted);grid-column:1/-1;text-align:center;">No projects waiting for feedback yet. Be the first to ask a question.</p>';
                     return;
@@ -1147,7 +1215,25 @@
                 });
                 container.innerHTML = html;
             } catch (e) {
-                // Silently fail
+                // The placeholder may never be the end state: report the failure
+                // and give the visitor a way to retry instead of showing an
+                // endless row of grey blocks.
+                container.innerHTML = '';
+                const box = document.createElement('div');
+                box.className = 'error-state';
+                box.setAttribute('role', 'alert');
+                box.style.gridColumn = '1/-1';
+                box.innerHTML = '<p>Couldn\'t load projects.</p>';
+                const retry = document.createElement('button');
+                retry.type = 'button';
+                retry.className = 'btn btn-secondary';
+                retry.style.marginTop = 'var(--space-3)';
+                retry.textContent = 'Try again';
+                retry.addEventListener('click', function() { loadHomepageProjects(); });
+                box.appendChild(retry);
+                container.appendChild(box);
+            } finally {
+                container.setAttribute('aria-busy', 'false');
             }
         }
 
@@ -1364,21 +1450,20 @@
         }
 
         async function loadSocialProof() {
+            const proofContainer = document.getElementById('social-proof');
+            let resolved = false;
             try {
                 const response = await fetch('/api/stats');
                 if (!response.ok) return;
                 const data = await response.json();
+                resolved = true;
 
-                const proofContainer = document.getElementById('social-proof');
                 const avatarStack = document.getElementById('avatar-stack');
                 const proofText = document.getElementById('social-proof-text');
 
-                if (data.total_builders > 0) {
-                    proofContainer.style.display = 'flex';
-                }
-
                 let avatarsHtml = '';
-                (data.builders || []).slice(0, 4).forEach(function(b) {
+                const shown = (data.builders || []).slice(0, 4);
+                shown.forEach(function(b) {
                     var avatarUrl = b.avatar_url;
                     var seedValue = b.username || '';
                     if (avatarUrl && isSafeAvatarSrc(avatarUrl)) {
@@ -1387,6 +1472,14 @@
                         avatarsHtml += '<span class="avatar-fallback">' + fallbackAvatarSvg(seedValue) + '</span>';
                     }
                 });
+                // The row pictures at most four builders while the sentence
+                // states the real total, so the rest are accounted for with a
+                // "+N" bubble: the avatars and the number then describe the
+                // same real set of builders instead of looking inconsistent.
+                const remaining = (data.total_builders || 0) - shown.length;
+                if (remaining > 0) {
+                    avatarsHtml += '<span class="avatar-more">+' + remaining + '</span>';
+                }
                 avatarStack.innerHTML = avatarsHtml;
 
                 if (data.total_builders === 1) {
@@ -1396,8 +1489,19 @@
                 } else {
                     proofText.textContent = 'Be one of the first builders to use Critique';
                 }
+
+                // Nothing to show yet: hide the row, exactly as it behaved
+                // before the placeholder existed.
+                proofContainer.style.display = data.total_builders > 0 ? 'flex' : 'none';
             } catch (e) {
                 // Silently fail - social proof is enhancement
+            } finally {
+                // A placeholder must never be the final state: on success the
+                // real row is in place, otherwise the block is hidden.
+                proofContainer.setAttribute('aria-busy', 'false');
+                if (!resolved) {
+                    proofContainer.style.display = 'none';
+                }
             }
         }
     </script>

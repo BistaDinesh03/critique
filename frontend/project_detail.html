@@ -34,6 +34,20 @@
             letter-spacing: -0.01em;
         }
 
+        /* Placeholder shell shown before /api/projects/{id} responds, so the
+           page reads as a project page instead of an empty screen. */
+        .skeleton-detail-title {
+            display: block;
+            width: 55%;
+            max-width: 420px;
+            height: 30px;
+            margin-bottom: var(--space-5);
+        }
+
+        .skeleton-detail-block {
+            margin-bottom: var(--space-5);
+        }
+
         .project-description {
             color: var(--text-secondary);
             margin-bottom: var(--space-3);
@@ -197,7 +211,28 @@
 
     <main class="container">
         <a href="/discover" class="back-link">Back to discover</a>
-        <div id="content"><div class="loading-state"><div class="loading-spinner"></div><p>Loading project...</p></div></div>
+        <div id="content" aria-busy="true">
+            <div role="status">
+                <p class="sr-only">Loading project...</p>
+                <div aria-hidden="true">
+                    <div class="skeleton skeleton-detail-title"></div>
+                    <div class="skeleton-card skeleton-detail-block">
+                        <div class="skeleton-body">
+                            <div class="skeleton skeleton-line w-50"></div>
+                            <div class="skeleton skeleton-line w-100"></div>
+                        </div>
+                    </div>
+                    <div class="skeleton-card skeleton-detail-block">
+                        <div class="skeleton-body">
+                            <div class="skeleton skeleton-line w-75"></div>
+                            <div class="skeleton skeleton-line w-100"></div>
+                            <div class="skeleton skeleton-line w-100"></div>
+                            <div class="skeleton skeleton-line w-50"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </main>
 
     <script>
@@ -243,7 +278,27 @@
                 const responses = responsesRes.ok ? await responsesRes.json() : [];
                 renderProject(projectData, responses);
             } catch (e) {
-                content.innerHTML = '<div class="error-state"><p>Something went wrong. Please try again.</p></div>';
+                // The placeholder is never the end state: a real message plus a
+                // way to try again if the backend is slow or unreachable.
+                content.innerHTML = '';
+                const box = document.createElement('div');
+                box.className = 'error-state';
+                box.setAttribute('role', 'alert');
+                box.innerHTML = '<p>Something went wrong. Please try again.</p>';
+                const retry = document.createElement('button');
+                retry.type = 'button';
+                retry.className = 'btn btn-secondary';
+                retry.style.marginTop = 'var(--space-3)';
+                retry.textContent = 'Try again';
+                retry.addEventListener('click', function() {
+                    content.innerHTML = '<div class="loading-state" role="status"><p>Loading project...</p></div>';
+                    content.setAttribute('aria-busy', 'true');
+                    loadProject();
+                });
+                box.appendChild(retry);
+                content.appendChild(box);
+            } finally {
+                content.setAttribute('aria-busy', 'false');
             }
         }
 

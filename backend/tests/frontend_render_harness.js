@@ -53,13 +53,16 @@ function detachChildren(el) {
 
 function makeElement(tagName, created) {
   const state = { html: null, text: '' };
+  // Classes are real state: pages open and close UI by toggling a class (the
+  // mobile nav, for one) and then read it back, so a no-op classList would hide
+  // the very state the tests are trying to observe.
+  const classes = new Set();
 
   const el = {
     tagName: String(tagName || 'div').toUpperCase(),
     value: '',
     checked: false,
     disabled: false,
-    className: '',
     id: '',
     style: {},
     dataset: {},
@@ -67,20 +70,43 @@ function makeElement(tagName, created) {
     children: [],
     parentNode: null,
     classList: {
-      add() {},
-      remove() {},
-      toggle() {},
-      contains() {
-        return false;
+      add(...names) {
+        names.forEach((name) => name && classes.add(name));
+      },
+      remove(...names) {
+        names.forEach((name) => classes.delete(name));
+      },
+      // Returns the resulting state like the DOM does, which is what callers
+      // use to report whether the panel they toggled is now open.
+      toggle(name, force) {
+        const turnOn = force === undefined ? !classes.has(name) : !!force;
+        if (turnOn) classes.add(name);
+        else classes.delete(name);
+        return turnOn;
+      },
+      contains(name) {
+        return classes.has(name);
+      },
+      get length() {
+        return classes.size;
       },
     },
     setAttribute(k, v) {
+      if (k === 'class') {
+        el.className = v;
+        return;
+      }
       this.attributes[k] = v;
     },
     getAttribute(k) {
+      if (k === 'class') return el.className || null;
       return k in this.attributes ? this.attributes[k] : null;
     },
     removeAttribute(k) {
+      if (k === 'class') {
+        el.className = '';
+        return;
+      }
       delete this.attributes[k];
     },
     hasAttribute(k) {
@@ -90,6 +116,16 @@ function makeElement(tagName, created) {
     // used for assertions and for locating the element a test wants to act on.
     ownInnerHTML() {
       return state.html !== null ? state.html : serializeText(state.text);
+    },
+    // Clears only the markup this element owns, leaving nodes the page
+    // appended alone. The capture reset uses this instead of assigning
+    // innerHTML: that reset is harness bookkeeping, not something a page does,
+    // and now that ids nest for real (so a click can reach an ancestor's
+    // listener) wiping children would destroy persistent UI built during load,
+    // such as the injected nav login menu.
+    resetMarkup() {
+      state.html = null;
+      state.text = '';
     },
     contains(other) {
       let node = other;
@@ -145,6 +181,21 @@ function makeElement(tagName, created) {
   };
 
   Object.defineProperties(el, {
+    // Kept in sync with classList so pages (and tests) see one source of truth.
+    className: {
+      configurable: true,
+      enumerable: true,
+      get() {
+        return Array.from(classes).join(' ');
+      },
+      set(value) {
+        classes.clear();
+        String(value === null || value === undefined ? '' : value)
+          .split(/\s+/)
+          .filter(Boolean)
+          .forEach((name) => classes.add(name));
+      },
+    },
     innerHTML: {
       configurable: true,
       enumerable: true,
@@ -429,6 +480,28 @@ async function main() {
     }
   };
 
+  // A real click bubbles from the target's parent up to the document, and every
+  // listener on the way sees it unless a handler stopped propagation. The
+  // target's own listeners have already run, so the walk starts above it.
+  const bubbleAlongPath = (event, errs) => {
+    for (const node of event.composedPath()) {
+      if (event.propagationStopped) return;
+      if (node === event.target) continue;
+      const handlers = node === documentStub
+        ? documentHandlers
+        : (node && node.handlers) || [];
+      handlers
+        .filter((h) => h.type === event.type)
+        .forEach((h) => {
+          try {
+            h.fn(event);
+          } catch (e) {
+            errs.push(`bubble ${event.type}: ${e && e.message ? e.message : String(e)}`);
+          }
+        });
+    }
+  };
+
   const sandbox = {
     document: documentStub,
     window: windowStub,
@@ -478,6 +551,72 @@ async function main() {
   };
 
   const ctx = vm.createContext(sandbox);
+
+  // Give the ids that exist in the page markup their real nesting. The stub
+  // otherwise creates every element on demand as a flat child of <body>, which
+  // meant a click on #login-btn could never reach the #navbar-nav listener that
+  // closes the mobile menu -- so bugs that only appear through ancestor
+  // bubbling (mobile login menu collapsing the instant it opened) could be
+  // neither reproduced nor caught here. Script and style bodies are skipped:
+  // they contain markup-shaped strings that are not part of the document.
+  const VOID_TAGS = new Set([
+    'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta',
+    'param', 'source', 'track', 'wbr',
+    // inline SVG fragments that are never explicitly closed
+    'path', 'circle', 'rect', 'line', 'polyline', 'polygon', 'ellipse', 'use', 'stop',
+  ]);
+
+  const buildIdTree = (source) => {
+    const text = source.replace(/<!--[\s\S]*?-->/g, '');
+    const tagRe = /<\s*(\/?)\s*([a-zA-Z][a-zA-Z0-9]*)((?:"[^"]*"|'[^']*'|[^>])*?)(\/?)\s*>/g;
+    const stack = [{ tag: 'body', el: documentStub.body }];
+    const parentOf = () => {
+      for (let i = stack.length - 1; i >= 0; i--) if (stack[i].el) return stack[i].el;
+      return documentStub.body;
+    };
+    let m;
+    while ((m = tagRe.exec(text))) {
+      const closing = m[1] === '/';
+      const tag = m[2].toLowerCase();
+      const attrs = m[3] || '';
+      const selfClosing = m[4] === '/' || VOID_TAGS.has(tag);
+
+      if (closing) {
+        // Pop up to the matching open tag; unclosed tags in the source are
+        // dropped along the way, the way a browser's parser recovers.
+        for (let i = stack.length - 1; i > 0; i--) {
+          if (stack[i].tag === tag) {
+            stack.length = i;
+            break;
+          }
+        }
+        continue;
+      }
+
+      if (tag === 'script' || tag === 'style') {
+        const end = text.indexOf('</' + tag, tagRe.lastIndex);
+        if (end !== -1) tagRe.lastIndex = end;
+        if (!selfClosing) stack.push({ tag, el: null });
+        continue;
+      }
+
+      const idMatch = /\sid\s*=\s*["']([^"']+)["']/.exec(attrs);
+      const classMatch = /\sclass\s*=\s*["']([^"']*)["']/.exec(attrs);
+      let el = null;
+      if (idMatch && !elements.has(idMatch[1]) && !selfClosing) {
+        el = makeElement(tag);
+        el.id = idMatch[1];
+        if (classMatch) el.className = classMatch[1];
+        elements.set(idMatch[1], el);
+        parentOf().appendChild(el);
+      }
+
+      if (!selfClosing) stack.push({ tag, el });
+    }
+  };
+
+  buildIdTree(html);
+
   const blocks = pageScripts(html, repoRootFor(scenario.page));
   blocks.forEach((block, i) => {
     if (block.missing) {
@@ -497,7 +636,7 @@ async function main() {
   created.length = 0;
   fetchStub.requests.length = 0;
   elements.forEach((el) => {
-    el.innerHTML = '';
+    el.resetMarkup();
   });
 
   const calls = scenario.calls || [];
@@ -553,9 +692,9 @@ async function main() {
         errors.push(`${type}: ${e && e.message ? e.message : String(e)}`);
       }
 
-      // A click keeps bubbling to the document unless a handler stopped it.
+      // A click keeps bubbling up the tree unless a handler stopped it.
       if (type === 'click' && !event.propagationStopped) {
-        bubbleToDocument(event, errors);
+        bubbleAlongPath(event, errors);
       }
       continue;
     }
@@ -640,6 +779,13 @@ async function main() {
     hidden: !!el.hidden,
     ariaExpanded: el.getAttribute ? el.getAttribute('aria-expanded') : null,
     ariaLabel: el.getAttribute ? el.getAttribute('aria-label') : null,
+    // Loading placeholders are announced through aria-busy and hidden with
+    // display, so tests can assert that a placeholder actually resolved
+    // (or was removed on failure) instead of guessing from markup.
+    ariaBusy: el.getAttribute ? el.getAttribute('aria-busy') : null,
+    display: el.style ? el.style.display || null : null,
+    // Classes carry open/closed state (the mobile nav's navbar-nav-open).
+    className: el.className || null,
   });
   elements.forEach((el, id) => {
     flags[id] = flagOf(el);

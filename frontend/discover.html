@@ -214,7 +214,8 @@
             <p>Help someone improve something they've built.</p>
             <p class="subtitle">Browse projects from makers looking for honest feedback.</p>
         </div>
-        <div id="project-list" class="project-list" role="list" aria-label="Projects asking for feedback"></div>
+        <div id="project-list" class="project-list" role="list" aria-label="Projects asking for feedback" aria-busy="true"></div>
+        <p id="project-list-status" class="sr-only" role="status"></p>
         <nav class="pagination" id="pagination" style="display: none;" aria-label="Pagination">
             <button type="button" id="prev-btn" onclick="changePage(-1)" aria-label="Previous page">Previous</button>
             <span class="page-info" id="page-info" aria-live="polite"></span>
@@ -239,24 +240,46 @@
                 .replace(/'/g, '&#39;');
         }
 
+        function setListBusy(busy, message) {
+            document.getElementById('project-list').setAttribute('aria-busy', busy ? 'true' : 'false');
+            document.getElementById('project-list-status').textContent = message || '';
+        }
+
+        // Placeholder shaped like a real card (same 16:9 image area and body
+        // height), so the rows are replaced in place without the page jumping.
+        function skeletonCardHtml() {
+            return '<div class="skeleton-card" role="listitem" aria-hidden="true">' +
+                '<div class="skeleton skeleton-img"></div>' +
+                '<div class="skeleton-body">' +
+                '<div class="skeleton skeleton-line w-50"></div>' +
+                '<div class="skeleton skeleton-line w-100"></div>' +
+                '<div class="skeleton skeleton-line w-100"></div>' +
+                '<div class="skeleton skeleton-line w-75"></div>' +
+                '</div></div>';
+        }
+
         function showLoading() {
-            document.getElementById('project-list').innerHTML = '<div class="loading-state" role="status"><div class="loading-spinner"></div><p>Loading projects...</p></div>';
+            document.getElementById('project-list').innerHTML = skeletonCardHtml().repeat(6);
+            setListBusy(true, 'Loading projects...');
             document.getElementById('pagination').style.display = 'none';
         }
 
         function showEmpty() {
             document.getElementById('project-list').innerHTML = '<div class="empty-state" role="status"><h3>No projects waiting for feedback yet</h3><p>Be the first maker to ask a question.</p><a href="/" class="btn btn-primary">Submit a project</a></div>';
+            setListBusy(false, '');
             document.getElementById('pagination').style.display = 'none';
         }
 
         function showError() {
             document.getElementById('project-list').innerHTML = '<div class="error-state" role="alert"><p>Couldn\'t load projects.</p><button type="button" onclick="loadProjects(currentPage)" class="btn btn-secondary" style="margin-top:var(--space-3);">Try again</button></div>';
+            setListBusy(false, "Couldn't load projects.");
             document.getElementById('pagination').style.display = 'none';
         }
 
         function showProjects(items) {
             const listContainer = document.getElementById('project-list');
             listContainer.innerHTML = '';
+            setListBusy(false, '');
             items.forEach(function(project) {
                 const card = document.createElement('div');
                 card.className = 'project-card';

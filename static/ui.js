@@ -418,6 +418,13 @@ var CritiqueUI = (function() {
 
         btn.addEventListener('click', function(e) {
             e.preventDefault();
+            // This control discloses a menu; it is not a navigation link. Every
+            // page closes the mobile nav when an <a> inside it is clicked, and
+            // on <=768px that nav is display:none unless .navbar-nav-open, so
+            // letting the click bubble collapsed the panel containing this menu
+            // the instant it opened (reproducible only when the tap landed on
+            // the label rather than its inline SVG icon).
+            e.stopPropagation();
             if (menu.hidden) openMenu();
             else closeMenu();
         });

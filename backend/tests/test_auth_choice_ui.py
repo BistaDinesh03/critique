@@ -413,6 +413,90 @@ def test_nav_menu_closes_when_the_click_is_outside(tmp_path):
 
 
 # ---------------------------------------------------------------------------
+# Mobile navigation: tapping Login must not collapse the menu it lives in
+# ---------------------------------------------------------------------------
+#
+# On screens up to 768px the nav links only render while #navbar-nav carries
+# the .navbar-nav-open class, and the page-level click handler drops that class
+# for every <a> it sees. #login-btn *is* an <a>, so tapping it opened the auth
+# choices and closed the panel holding them in the same gesture -- which is why
+# the menu measured 0x0 and stayed invisible on a real phone. These tests drive
+# the page's own handlers through the harness (which now nests ids and bubbles
+# clicks the way a browser does) and assert on the state that decides
+# visibility: the nav's aria-expanded flag.
+
+
+def test_mobile_login_menu_opens_both_auth_methods_without_closing_the_nav(tmp_path):
+    """Regression: tapping Login opens the choices AND keeps the nav open."""
+    result = run(
+        tmp_path,
+        "index.html",
+        [
+            {"clickId": "navbar-toggle"},   # open the collapsed mobile nav
+            {"clickId": "login-btn"},       # tap the Login link
+        ],
+    )
+    # The page-level "close the nav on <a> click" handler must not have run for
+    # the login link: the panel is still open, so the choices are reachable.
+    assert result["flags"]["navbar-toggle"]["ariaExpanded"] == "true", (
+        "the mobile nav collapsed when Login was tapped"
+    )
+    assert "navbar-nav-open" in (result["flags"]["navbar-nav"]["className"] or "")
+    assert result["flags"]["nav-login-menu"]["hidden"] is False
+    assert result["flags"]["login-btn"]["ariaExpanded"] == "true"
+    assert_offers_both_methods(result["html"])
+
+
+def test_mobile_login_menu_stays_open_while_an_option_is_chosen(tmp_path):
+    result = run(
+        tmp_path,
+        "index.html",
+        [
+            {"clickId": "navbar-toggle"},
+            {"clickId": "login-btn"},
+            {"clickCreatedContaining": EMAIL},
+        ],
+    )
+    assert result["flags"]["navbar-toggle"]["ariaExpanded"] == "true"
+    assert "navbar-nav-open" in (result["flags"]["navbar-nav"]["className"] or "")
+    assert result["flags"]["nav-login-menu"]["hidden"] is False
+    assert "Send login link" in result["html"]
+
+
+def test_tapping_login_a_second_time_closes_only_the_auth_menu(tmp_path):
+    """Toggling is preserved: a second tap hides the choices, not the nav."""
+    result = run(
+        tmp_path,
+        "index.html",
+        [
+            {"clickId": "navbar-toggle"},
+            {"clickId": "login-btn"},
+            {"clickId": "login-btn"},
+        ],
+    )
+    assert result["flags"]["nav-login-menu"]["hidden"] is True
+    assert result["flags"]["login-btn"]["ariaExpanded"] == "false"
+    assert result["flags"]["navbar-toggle"]["ariaExpanded"] == "true"
+    assert "navbar-nav-open" in (result["flags"]["navbar-nav"]["className"] or "")
+
+
+def test_desktop_nav_menu_still_opens_and_closes(tmp_path):
+    """Desktop is unaffected: the button toggles the menu in place."""
+    opened = run(tmp_path, "index.html", [{"clickId": "login-btn"}])
+    assert opened["flags"]["nav-login-menu"]["hidden"] is False
+    assert opened["flags"]["login-btn"]["ariaExpanded"] == "true"
+    assert_offers_both_methods(opened["html"])
+
+    closed = run(
+        tmp_path,
+        "index.html",
+        [{"clickId": "login-btn"}, {"clickId": "login-btn"}],
+    )
+    assert closed["flags"]["nav-login-menu"]["hidden"] is True
+    assert closed["flags"]["login-btn"]["ariaExpanded"] == "false"
+
+
+# ---------------------------------------------------------------------------
 # Builder avatars on the homepage
 # ---------------------------------------------------------------------------
 
@@ -497,6 +581,37 @@ def test_social_proof_shows_the_real_builder_count(tmp_path):
 
     single = social_proof(tmp_path, [], total_builders=1)
     assert single["ids"]["social-proof-text"] == "Join 1 builder already using Critique"
+
+
+def test_avatar_row_accounts_for_the_builders_it_does_not_picture(tmp_path):
+    """Four faces plus "+N" and a sentence must describe the same real set."""
+    builders = [{"username": f"builder_{i}", "avatar_url": None} for i in range(4)]
+    result = social_proof(tmp_path, builders, total_builders=6)
+
+    stack = result["ids"]["avatar-stack"]
+    assert stack.count('class="avatar-fallback"') == 4, stack
+    assert '<span class="avatar-more">+2</span>' in stack, stack
+    assert result["ids"]["social-proof-text"] == (
+        "Join 6 builders already using Critique"
+    )
+
+
+def test_avatar_row_has_no_chip_when_every_builder_is_pictured(tmp_path):
+    builders = [{"username": f"builder_{i}", "avatar_url": None} for i in range(3)]
+    result = social_proof(tmp_path, builders, total_builders=3)
+
+    assert "avatar-more" not in result["ids"]["avatar-stack"]
+    assert result["ids"]["social-proof-text"] == (
+        "Join 3 builders already using Critique"
+    )
+
+
+def test_avatar_row_never_shows_a_negative_overflow(tmp_path):
+    """A payload showing more faces than the total must not invent a counter."""
+    builders = [{"username": f"builder_{i}", "avatar_url": None} for i in range(4)]
+    result = social_proof(tmp_path, builders, total_builders=2)
+
+    assert "avatar-more" not in result["ids"]["avatar-stack"]
 
 
 def test_homepage_never_hardcodes_a_builder_count():
