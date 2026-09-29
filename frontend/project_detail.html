@@ -315,20 +315,27 @@
             if (q) {
                 html += '<div class="question-block"><div class="question-label">The Maker\'s Question</div><div class="question-text">' + escapeHtml(q.text) + '</div></div>';
                 html += '<div class="eyebrow">Your feedback</div>';
-                html += '<div class="response-form-card"><form id="response-form">';
-                html += '<div class="form-section"><h3>How clear is it?</h3><div class="radio-cards">';
-                html += '<label class="radio-card"><input type="radio" id="c1" name="clarity" value="very_clear" required onclick="trackFeedbackStart()"><span class="radio-card-label"><span class="radio-card-title">Very clear</span><span class="radio-card-desc">I understood the project quickly.</span></span></label>';
-                html += '<label class="radio-card"><input type="radio" id="c2" name="clarity" value="mostly_clear" onclick="trackFeedbackStart()"><span class="radio-card-label"><span class="radio-card-title">Mostly clear</span><span class="radio-card-desc">I understood it, but needed some explanation.</span></span></label>';
-                html += '<label class="radio-card"><input type="radio" id="c3" name="clarity" value="confusing" onclick="trackFeedbackStart()"><span class="radio-card-label"><span class="radio-card-title">Confusing</span><span class="radio-card-desc">I was not sure what it does.</span></span></label>';
-                html += '</div></div>';
-                html += '<div class="form-section"><h3>Would you use it?</h3><div class="radio-cards">';
-                html += '<label class="radio-card"><input type="radio" id="u1" name="would_use" value="yes" required><span class="radio-card-label"><span class="radio-card-title">Yes</span><span class="radio-card-desc">I would use this.</span></span></label>';
-                html += '<label class="radio-card"><input type="radio" id="u2" name="would_use" value="maybe"><span class="radio-card-label"><span class="radio-card-title">Maybe</span><span class="radio-card-desc">I might use this in some cases.</span></span></label>';
-                html += '<label class="radio-card"><input type="radio" id="u3" name="would_use" value="no"><span class="radio-card-label"><span class="radio-card-title">No</span><span class="radio-card-desc">I would not use this.</span></span></label>';
-                html += '</div></div>';
-                html += '<div class="form-section"><h3>What would you change? <span style="font-weight:400;color:var(--text-muted);">(optional)</span></h3><textarea class="form-textarea" id="suggestion" maxlength="2000" placeholder="Your honest feedback..."></textarea></div>';
-                html += '<button type="submit" class="btn btn-primary" id="submit-btn" style="width:100%;">Submit feedback</button>';
-                html += '<div class="message" id="message"></div></form></div>';
+                if (feedbackAlreadySubmitted()) {
+                    // This session already answered: offering the form again
+                    // would only earn a 409 from the server, so show the
+                    // recorded state and its next step instead.
+                    html += '<div class="response-form-card"><div id="feedback-thanks" role="status"></div></div>';
+                } else {
+                    html += '<div class="response-form-card"><form id="response-form">';
+                    html += '<div class="form-section"><h3>How clear is it?</h3><div class="radio-cards">';
+                    html += '<label class="radio-card"><input type="radio" id="c1" name="clarity" value="very_clear" required onclick="trackFeedbackStart()"><span class="radio-card-label"><span class="radio-card-title">Very clear</span><span class="radio-card-desc">I understood the project quickly.</span></span></label>';
+                    html += '<label class="radio-card"><input type="radio" id="c2" name="clarity" value="mostly_clear" onclick="trackFeedbackStart()"><span class="radio-card-label"><span class="radio-card-title">Mostly clear</span><span class="radio-card-desc">I understood it, but needed some explanation.</span></span></label>';
+                    html += '<label class="radio-card"><input type="radio" id="c3" name="clarity" value="confusing" onclick="trackFeedbackStart()"><span class="radio-card-label"><span class="radio-card-title">Confusing</span><span class="radio-card-desc">I was not sure what it does.</span></span></label>';
+                    html += '</div></div>';
+                    html += '<div class="form-section"><h3>Would you use it?</h3><div class="radio-cards">';
+                    html += '<label class="radio-card"><input type="radio" id="u1" name="would_use" value="yes" required><span class="radio-card-label"><span class="radio-card-title">Yes</span><span class="radio-card-desc">I would use this.</span></span></label>';
+                    html += '<label class="radio-card"><input type="radio" id="u2" name="would_use" value="maybe"><span class="radio-card-label"><span class="radio-card-title">Maybe</span><span class="radio-card-desc">I might use this in some cases.</span></span></label>';
+                    html += '<label class="radio-card"><input type="radio" id="u3" name="would_use" value="no"><span class="radio-card-label"><span class="radio-card-title">No</span><span class="radio-card-desc">I would not use this.</span></span></label>';
+                    html += '</div></div>';
+                    html += '<div class="form-section"><h3>What would you change? <span style="font-weight:400;color:var(--text-muted);">(optional)</span></h3><textarea class="form-textarea" id="suggestion" maxlength="2000" placeholder="Your honest feedback..."></textarea></div>';
+                    html += '<button type="submit" class="btn btn-primary" id="submit-btn" style="width:100%;">Submit feedback</button>';
+                    html += '<div class="message" id="message"></div></form></div>';
+                }
                 var details = '';
                 if (p.image_url) { details += '<img class="project-screenshot" src="' + escapeHtml(p.image_url) + '" alt="Screenshot of ' + escapeHtml(p.title) + '" loading="lazy" onerror="this.style.display=\'none\'">'; }
                 if (p.description) { details += '<p class="project-description">' + escapeHtml(p.description) + '</p>'; }
@@ -349,6 +356,9 @@
             const form = document.getElementById('response-form');
             if (form) form.addEventListener('submit', handleSubmit);
             if (form && !feedbackFormViewedTracked) { feedbackFormViewedTracked = true; window.CritiqueAnalytics.trackEvent('feedback_form_viewed', projectId); }
+            if (feedbackAlreadySubmitted()) {
+                showFeedbackSuccessNextStep(document.getElementById('feedback-thanks'));
+            }
             // Restore any saved feedback draft from before OAuth
             maybeRestoreAfterLogin();
             maybeResumeToFeedback();
@@ -453,6 +463,68 @@
             } catch (e) {}
         }
 
+        // ===== After a successful submit =====
+        // The session now knows this project has been answered: a reload must
+        // not offer the form again (the server would only answer 409), and the
+        // next step stays reachable instead of vanishing with a page refresh.
+        function feedbackSubmittedKey() {
+            return 'critique_responded_' + projectId;
+        }
+
+        function markFeedbackSubmitted() {
+            try {
+                sessionStorage.setItem(feedbackSubmittedKey(), '1');
+            } catch (e) {}
+        }
+
+        function feedbackAlreadySubmitted() {
+            try {
+                return sessionStorage.getItem(feedbackSubmittedKey()) === '1';
+            } catch (e) {
+                return false;
+            }
+        }
+
+        function disableResponseForm() {
+            var form = document.getElementById('response-form');
+            if (!form) return;
+            var controls = form.querySelectorAll('input, textarea, button');
+            for (var i = 0; i < controls.length; i++) {
+                controls[i].disabled = true;
+            }
+        }
+
+        // The one action worth showing after feedback: keep helping builders.
+        // The link starts at the real project list and is upgraded to the next
+        // real project from the feed as soon as it answers -- no invented
+        // content, and a fetch failure simply leaves the honest fallback.
+        function showFeedbackSuccessNextStep(container) {
+            if (!container) return;
+            container.className = 'alert alert-success';
+            container.textContent = 'Thank you! Your feedback has been submitted. ';
+            var link = document.createElement('a');
+            link.id = 'help-another-builder';
+            link.href = '/discover';
+            link.textContent = 'Help another builder \u2192';
+            container.appendChild(link);
+            fetch('/api/projects/?page=1&page_size=6')
+                .then(function(res) {
+                    return res.ok ? res.json() : null;
+                })
+                .then(function(data) {
+                    var items = (data && data.items) || [];
+                    var own = parseInt(projectId, 10);
+                    for (var i = 0; i < items.length; i++) {
+                        var id = parseInt(items[i] && items[i].id, 10);
+                        if (!isNaN(id) && id !== own) {
+                            link.href = '/project/' + id;
+                            return;
+                        }
+                    }
+                })
+                .catch(function() {});
+        }
+
         // ===== Safe return_to helper =====
         function currentPathForReturn() {
             return window.location.pathname;
@@ -551,6 +623,9 @@
             msg.className = 'alert';
             msg.textContent = '';
             btn.disabled = true;
+            // Set once the response is recorded, so the finally block does not
+            // hand the visitor a live submit button on a finished form.
+            let submitted = false;
 
             const csrfToken = getCsrfToken();
             const payload = {
@@ -578,14 +653,22 @@
                 if (response.ok) {
                     window.CritiqueAnalytics.trackEvent('feedback_submit', projectId);
                     CritiqueUI.showToast('Feedback submitted', 'success');
-                    msg.className = 'alert alert-success';
-                    msg.textContent = 'Thank you! Your feedback has been submitted.';
                     clearFeedbackDraft();
                     clearEmailFallbackDraft();
-                    document.getElementById('response-form').reset();
-                    setTimeout(loadProject, 1500);
+                    // Keep the confirmation on screen instead of wiping it with
+                    // a reload: the finished form is closed to double submits
+                    // and the visitor gets the next step -- another real
+                    // project that is also waiting for an answer.
+                    submitted = true;
+                    markFeedbackSubmitted();
+                    disableResponseForm();
+                    showFeedbackSuccessNextStep(msg);
                 } else if (response.status === 401) {
-                    window.CritiqueAnalytics.trackEvent('feedback_submit_error', projectId);
+                    // The designed sign-in gate, not a failed submission: the
+                    // draft is kept for after login and login_prompt_shown
+                    // already records that the gate appeared. Reporting this as
+                    // feedback_submit_error buried every real failure under the
+                    // far larger number of anonymous attempts.
                     saveFeedbackDraft();
                     showInlineLoginPrompt(msg, 'Your feedback is ready to send.');
                 } else if (response.status === 403) {
@@ -603,7 +686,7 @@
                 msg.className = 'alert alert-error';
                 msg.textContent = 'Network error: ' + e.message;
             } finally {
-                btn.disabled = false;
+                if (!submitted) btn.disabled = false;
             }
         }
 

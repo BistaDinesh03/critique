@@ -1196,20 +1196,22 @@
                     const screenshot = project.image_url
                         ? '<img class="project-screenshot" src="' + escapeHtml(project.image_url) + '" alt="Screenshot of ' + escapeHtml(project.title) + '" loading="lazy">'
                         : '';
-                    const description = project.description || 'No description';
                     const question = project.question_text || 'No question';
                     const count = project.response_count || 0;
                     const plural = count !== 1 ? 's' : '';
 
+                    // The homepage preview answers one question: what this
+                    // project is and what the builder asks -- lead-in, title,
+                    // the real question, then the action.
                     html += '<div class="project-card">';
                     html += screenshot;
                     html += '<div class="project-card-body">';
+                    html += '<div class="eyebrow">Need feedback on</div>';
                     html += '<div class="project-title">' + escapeHtml(project.title) + '</div>';
-                    html += '<div class="project-description">' + escapeHtml(description) + '</div>';
-                    html += '<div class="project-question">' + escapeHtml(question) + '</div>';
+                    html += '<div class="project-question">Question: ' + escapeHtml(question) + '</div>';
                     html += '<div class="project-footer">';
                     html += '<span>' + count + ' response' + plural + '</span>';
-                    html += '<a href="/project/' + project.id + '" class="btn btn-primary" style="padding:var(--space-1) var(--space-3);font-size:var(--text-xs);">Give feedback</a>';
+                    html += '<a href="/project/' + project.id + '" class="btn btn-primary" style="padding:var(--space-1) var(--space-3);font-size:var(--text-xs);">Give feedback &rarr;</a>';
                     html += '</div>';
                     html += '</div></div>';
                 });

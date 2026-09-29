@@ -11,7 +11,9 @@
 //     "calls": [
 //       { "fn": "showProjects", "args": [[ {...} ]] },
 //       { "clickCreatedContaining": "Continue with email" },
-//       { "dispatchDocumentClickCreated": "Continue with email" }
+//       { "dispatchDocumentClickCreated": "Continue with email" },
+//       { "checkInput": {"name": "clarity", "value": "very_clear"} },
+//       { "submitId": "response-form" }
 //     ],
 //     "fetch": { "/api/projects/?": { "status": 200, "body": { ... } } },
 //     "location": "/project/1/results",
@@ -343,6 +345,30 @@ async function main() {
 
   const documentHandlers = [];
 
+  // Radio-group state lives here, not in element objects: the feedback form's
+  // inputs are produced by innerHTML strings, so there is no element to flip.
+  // document.querySelector('input[name="..."]:checked') reads from this map.
+  const checkedInputs = new Map();
+
+  // A radio the page cannot hold in an element object (its markup came from an
+  // innerHTML string) is answered through this proxy, whose checked state is
+  // the harness-level radio-group map -- same read/write behaviour as the DOM.
+  const inputProxy = (name, value) => ({
+    tagName: 'INPUT',
+    type: 'radio',
+    name,
+    get value() {
+      return value;
+    },
+    get checked() {
+      return checkedInputs.get(name) === value;
+    },
+    set checked(v) {
+      if (v) checkedInputs.set(name, value);
+      else if (checkedInputs.get(name) === value) checkedInputs.delete(name);
+    },
+  });
+
   const documentStub = {
     documentElement: null,
     body: null,
@@ -366,8 +392,20 @@ async function main() {
     createTextNode(text) {
       return { nodeValue: text };
     },
-    querySelector() {
-      return null;
+    querySelector(sel) {
+      // Narrow but real: the only attribute selectors any page uses are on the
+      // feedback form's radios, whose group state has no element object here.
+      // Every other selector keeps the old not-found behaviour.
+      const m = /^input\[name="([^"]+)"\](?:\[value="([^"]*)"\])?(:checked)?$/.exec(String(sel || ''));
+      if (!m) return null;
+      const name = m[1];
+      const value = m[2];
+      if (m[3] === ':checked') {
+        if (!checkedInputs.has(name)) return null;
+        return inputProxy(name, checkedInputs.get(name));
+      }
+      if (value !== undefined) return inputProxy(name, value);
+      return checkedInputs.has(name) ? inputProxy(name, checkedInputs.get(name)) : null;
     },
     querySelectorAll() {
       return [];
@@ -454,7 +492,7 @@ async function main() {
 
   const makeEvent = (type, target, path) => ({
     type,
-    bubbles: type === 'click',
+    bubbles: type === 'click' || type === 'submit',
     cancelable: true,
     defaultPrevented: false,
     propagationStopped: false,
@@ -652,13 +690,28 @@ async function main() {
       continue;
     }
 
+    // Pick a radio: group state only (one value per name), like the DOM.
+    if (call.checkInput) {
+      const { name, value } = call.checkInput;
+      if (!name || value === undefined || value === null) {
+        errors.push('checkInput: needs {name, value}');
+      } else {
+        checkedInputs.set(name, value);
+      }
+      continue;
+    }
+
     const wantsClick = call.clickCreatedContaining || call.clickId;
-    const wantsSubmit = call.submitCreatedContaining;
+    const wantsSubmit = call.submitCreatedContaining || call.submitId;
     if (wantsClick || wantsSubmit) {
       const type = wantsSubmit ? 'submit' : 'click';
       let target = null;
       let label = '';
-      if (call.clickId) {
+      if (call.submitId) {
+        // A form submit fired by the form itself, so its own submit listener runs.
+        label = `#${call.submitId}`;
+        target = elements.get(call.submitId) || null;
+      } else if (call.clickId) {
         label = `#${call.clickId}`;
         target = elements.get(call.clickId) || null;
       } else {
@@ -692,8 +745,9 @@ async function main() {
         errors.push(`${type}: ${e && e.message ? e.message : String(e)}`);
       }
 
-      // A click keeps bubbling up the tree unless a handler stopped it.
-      if (type === 'click' && !event.propagationStopped) {
+      // A click (or a form submit) keeps bubbling up the tree unless a handler
+      // stopped it.
+      if (event.bubbles && !event.propagationStopped) {
         bubbleAlongPath(event, errors);
       }
       continue;

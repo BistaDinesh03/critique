@@ -154,3 +154,40 @@ def test_suggestion_length_validation(auth_client):
     assert response.status_code == 422
     cleanup_database()
 
+
+def test_anonymous_submit_with_valid_csrf_gets_401_gate(auth_client):
+    """The sign-in gate a signed-out visitor hits, reproduced exactly.
+
+    The frontend always sends the CSRF token it was issued with the page, so
+    the only status an anonymous visitor can get from a feedback submit is
+    401 (auth runs before any of the real failure modes). That response is
+    the designed login gate -- it must not be reported to analytics as a
+    feedback submission error.
+    """
+    from fastapi.testclient import TestClient
+    from app.main import app
+    from app.auth import get_current_user, get_current_user_optional
+    from app.csrf import generate_csrf_token, CSRF_COOKIE_NAME
+
+    cleanup_database()
+    create_resp = create_test_project(auth_client)
+    project_id = create_resp.json()["project"]["id"]
+
+    # Drop the fixture's auth override so the request goes through the real
+    # gate, exactly like a visitor with no session cookie.
+    app.dependency_overrides.pop(get_current_user, None)
+    app.dependency_overrides.pop(get_current_user_optional, None)
+    anon = TestClient(app)
+    token = generate_csrf_token()
+    anon.cookies.set(CSRF_COOKIE_NAME, token)
+    anon.headers["X-CSRF-Token"] = token
+
+    try:
+        response = anon.post(
+            f"/api/projects/{project_id}/responses",
+            json={"clarity": "very_clear", "would_use": "yes"},
+        )
+        assert response.status_code == 401
+    finally:
+        cleanup_database()
+
