@@ -246,7 +246,7 @@ def test_title_cannot_create_onmouseover_attribute(tmp_path):
     assert get_attr(parsed, "img", "alt") == "Screenshot of " + PAYLOAD_TITLE
     assert PAYLOAD_TITLE in parsed.text
     review_link = next(attrs for tag, attrs in parsed.tags if tag == "a")
-    assert get_attr(parsed, "a", "aria-label") == "View and respond to " + PAYLOAD_TITLE
+    assert get_attr(parsed, "a", "aria-label") == "Give feedback on " + PAYLOAD_TITLE
     assert sorted(attr_names(review_link)) == ["aria-label", "class", "href"]
 
 
@@ -341,7 +341,7 @@ def test_legit_project_data_still_renders(tmp_path):
     assert get_attr(parsed, "img", "src") == LEGIT["image_url"]
     assert get_attr(parsed, "img", "alt") == "Screenshot of " + LEGIT["title"]
     assert get_attr(parsed, "a", "href") == "/project/1"
-    assert get_attr(parsed, "a", "aria-label") == "View and respond to " + LEGIT["title"]
+    assert get_attr(parsed, "a", "aria-label") == "Give feedback on " + LEGIT["title"]
     text = " ".join(parsed.text)
     assert LEGIT["title"] in text
     assert LEGIT["description"] in text
@@ -419,7 +419,7 @@ def test_stored_payload_from_api_renders_safely(tmp_path, auth_client):
     assert_markup_is_safe(parsed, allowed_handlers={"this.style.display='none'"})
     assert get_attr(parsed, "img", "src") == PAYLOAD_IMAGE
     assert get_attr(parsed, "img", "alt") == "Screenshot of " + PAYLOAD_TITLE
-    assert get_attr(parsed, "a", "aria-label") == "View and respond to " + PAYLOAD_TITLE
+    assert get_attr(parsed, "a", "aria-label") == "Give feedback on " + PAYLOAD_TITLE
     assert PAYLOAD_TITLE in parsed.text
 
 

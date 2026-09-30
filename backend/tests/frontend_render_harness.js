@@ -13,7 +13,8 @@
 //       { "clickCreatedContaining": "Continue with email" },
 //       { "dispatchDocumentClickCreated": "Continue with email" },
 //       { "checkInput": {"name": "clarity", "value": "very_clear"} },
-//       { "submitId": "response-form" }
+//       { "submitId": "response-form" },
+//       { "evaluate": "formatAge('2026-09-24T10:00:00Z')", "as": "age" }
 //     ],
 //     "fetch": { "/api/projects/?": { "status": 200, "body": { ... } } },
 //     "location": "/project/1/results",
@@ -21,7 +22,7 @@
 //   }
 //
 // Prints a single JSON object on stdout:
-//   { errors: [], html, created, createdMeta, flags, requests, storage, ids }
+//   { errors: [], html, created, createdMeta, flags, requests, storage, ids, values }
 // `created`/`createdMeta` only contain elements that are actually attached to
 // the document (a node the page built but never appended is never shown to
 // anyone); `createdMeta` exposes reflected properties (href, type, name,
@@ -419,9 +420,18 @@ async function main() {
   documentStub.body = makeElement('body');
   documentStub.documentElement = makeElement('html');
 
+  // scenario.location may carry a query string ("/project/1?resume=feedback"):
+  // pages branch on window.location.search (the auth resume flags), so it has
+  // to reach them the way a real URL would -- pathname stays clean, because
+  // pages also derive ids from it.
+  const rawLocation = scenario.location || '/';
+  const queryAt = rawLocation.indexOf('?');
+  const locationPathname = queryAt === -1 ? rawLocation : rawLocation.slice(0, queryAt);
+  const locationSearch = queryAt === -1 ? '' : rawLocation.slice(queryAt);
+
   const locationStub = {
-    pathname: scenario.location || '/',
-    search: '',
+    pathname: locationPathname,
+    search: locationSearch,
     hash: '',
     origin: 'http://testserver',
     protocol: 'http:',
@@ -678,6 +688,8 @@ async function main() {
   });
 
   const calls = scenario.calls || [];
+  // Values read back from the page (see the `evaluate` call type).
+  const values = {};
   for (const call of calls) {
     if (call.setValuePlaceholder) {
       const { placeholder, value } = call.setValuePlaceholder;
@@ -772,6 +784,21 @@ async function main() {
         continue;
       }
       bubbleToDocument(makeEvent('click', target, eventPathOf(target)), errors);
+      continue;
+    }
+
+    // Read a value straight out of the page -- a pure helper's return value,
+    // for example -- instead of having to render it into the DOM first.
+    if (call.evaluate) {
+      let value;
+      try {
+        value = vm.runInContext(call.evaluate, ctx);
+      } catch (e) {
+        errors.push(`evaluate ${call.evaluate}: ${e && e.message ? e.message : String(e)}`);
+        continue;
+      }
+      if (value && typeof value.then === 'function') value = await value;
+      values[call.as || call.evaluate] = value;
       continue;
     }
 
@@ -880,6 +907,7 @@ async function main() {
       requests: fetchStub.requests,
       storage: { session: dumpStorage(sessionStorage), local: dumpStorage(localStorage) },
       ids,
+      values,
     })
   );
 }

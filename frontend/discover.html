@@ -211,8 +211,8 @@
     <main class="container-wide">
         <div class="page-title">
             <h2>Discover</h2>
-            <p>Help someone improve something they've built.</p>
-            <p class="subtitle">Browse projects from makers looking for honest feedback.</p>
+            <p>Real projects looking for feedback.</p>
+            <p class="subtitle">Each one is a project a builder shared, with a single question waiting for an honest answer.</p>
         </div>
         <div id="project-list" class="project-list" role="list" aria-label="Projects asking for feedback" aria-busy="true"></div>
         <p id="project-list-status" class="sr-only" role="status"></p>
@@ -238,6 +238,48 @@
                 .replace(/>/g, '&gt;')
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#39;');
+        }
+
+        // Real age from the project's own created_at: "2h ago" while it is
+        // fresh, a plain date once it is not. No date library, and nothing
+        // invented -- a project with no timestamp simply shows no age. The
+        // API serves UTC timestamps without an offset, so those are pinned
+        // to UTC instead of being read in the visitor's local zone.
+        function formatAge(value) {
+            if (!value) return '';
+            var iso = String(value);
+            if (!/[zZ]$|[+-]\d{2}:?\d{2}$/.test(iso)) {
+                iso += /[Tt]/.test(iso) ? 'Z' : 'T00:00:00Z';
+            }
+            var then = new Date(iso);
+            if (isNaN(then.getTime())) return '';
+            var diff = Date.now() - then.getTime();
+            if (diff < 0) diff = 0;
+            var minutes = Math.floor(diff / 60000);
+            if (minutes < 1) return 'Just now';
+            if (minutes < 60) return minutes + 'm ago';
+            var hours = Math.floor(minutes / 60);
+            if (hours < 24) return hours + 'h ago';
+            var days = Math.floor(hours / 24);
+            if (days === 1) return 'Yesterday';
+            if (days < 7) return days + ' days ago';
+            var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            var label = months[then.getUTCMonth()] + ' ' + then.getUTCDate();
+            if (then.getUTCFullYear() !== new Date().getUTCFullYear()) {
+                label += ', ' + then.getUTCFullYear();
+            }
+            return label;
+        }
+
+        // "Needs feedback · 3 days ago": the two facts a visitor needs before
+        // deciding to help, built only from what the API actually returned.
+        function cardMeta(project, responseCount) {
+            var parts = [responseCount === 0 ? 'Needs feedback' : responseCount + ' response' + (responseCount === 1 ? '' : 's')];
+            var age = formatAge(project.created_at);
+            if (age) {
+                parts.push('<time datetime="' + escapeHtml(project.created_at) + '">' + escapeHtml(age) + '</time>');
+            }
+            return parts.join(' \u00b7 ');
         }
 
         function setListBusy(busy, message) {
@@ -287,15 +329,16 @@
                 const description = project.description || 'No description provided.';
                 const questionText = project.question_text || 'No question';
                 const responseCount = project.response_count || 0;
-                const plural = responseCount !== 1 ? 's' : '';
                 const screenshotHtml = project.image_url ? '<img class="project-screenshot" src="' + escapeHtml(project.image_url) + '" alt="Screenshot of ' + escapeHtml(project.title) + '" loading="lazy" onerror="this.style.display=\'none\'">' : '';
+                // Scannable order: what it is, what it does, the one question
+                // waiting for an answer, then how much help it already has.
                 card.innerHTML = screenshotHtml +
                     '<div class="project-card-body">' +
                     '<h3 class="project-title">' + escapeHtml(project.title) + '</h3>' +
                     '<p class="project-description">' + escapeHtml(description) + '</p>' +
                     '<div class="question-box"><div class="question-label">The Question</div><div class="question-text">' + escapeHtml(questionText) + '</div></div>' +
-                    '<div class="card-footer"><span class="response-badge">' + (responseCount === 0 ? 'Needs feedback' : responseCount + ' response' + plural) + '</span>' +
-                    '<a href="/project/' + project.id + '" class="btn btn-primary" aria-label="View and respond to ' + escapeHtml(project.title) + '">Review project →</a></div>' +
+                    '<div class="card-footer"><span class="response-count">' + cardMeta(project, responseCount) + '</span>' +
+                    '<a href="/project/' + project.id + '" class="btn btn-primary" aria-label="Give feedback on ' + escapeHtml(project.title) + '">Give feedback &rarr;</a></div>' +
                     '</div>';
                 listContainer.appendChild(card);
             });

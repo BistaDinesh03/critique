@@ -114,9 +114,9 @@ def test_feedback_gate_offers_github_and_email(tmp_path):
     )
     assert_offers_both_methods(
         result["html"],
-        title="Almost there",
-        message="Your feedback is ready to send.",
-        note="Your answer will be shared with the builder.",
+        title="Your feedback is ready.",
+        message="One quick step: sign in so we can send it to the builder.",
+        note="Your feedback is saved.",
     )
 
 

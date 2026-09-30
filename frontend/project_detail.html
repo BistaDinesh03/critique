@@ -54,6 +54,15 @@
             font-size: var(--text-base);
         }
 
+        /* What is being reviewed, stated before anything is asked of the
+           visitor. Kept to the builder's own words: no summary, no truncation. */
+        .project-summary {
+            color: var(--text-secondary);
+            font-size: var(--text-base);
+            line-height: 1.55;
+            margin-bottom: var(--space-4);
+        }
+
         .project-url {
             color: var(--accent);
             font-size: var(--text-sm);
@@ -95,6 +104,46 @@
             border-radius: var(--radius-lg);
             padding: var(--space-6);
             margin-top: var(--space-5);
+        }
+
+        /* A finished feedback area states what happened; it never borrows the
+           red error treatment, because nothing went wrong. */
+        .response-done {
+            background: var(--surface-muted);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--success);
+            border-radius: 0 var(--radius-md) var(--radius-md) 0;
+            padding: var(--space-4) var(--space-5);
+            margin-top: var(--space-3);
+            font-size: var(--text-sm);
+        }
+
+        .response-done p {
+            margin-bottom: var(--space-2);
+        }
+
+        .response-done p:last-child {
+            margin-bottom: 0;
+        }
+
+        .response-done-title {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .response-done-note {
+            color: var(--text-secondary);
+        }
+
+        .response-done a {
+            display: inline-block;
+            font-weight: 600;
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .response-done a:hover {
+            text-decoration: underline;
         }
 
         .form-section {
@@ -187,6 +236,21 @@
 
             .radio-option {
                 justify-content: center;
+            }
+
+            /* On a phone the form is the screen: same fields, less chrome. */
+            .response-form-card {
+                padding: var(--space-4);
+                margin-top: var(--space-4);
+            }
+
+            .form-section {
+                margin-bottom: var(--space-4);
+            }
+
+            .question-block {
+                padding: var(--space-4);
+                margin-bottom: var(--space-4);
             }
         }
     </style>
@@ -312,6 +376,9 @@
             const q = data.question;
             let html = '';
             html += '<h2 class="project-title">' + escapeHtml(p.title) + '</h2>';
+            // What is being reviewed is stated before anything is asked of the
+            // visitor, so the answer is given with the context in view.
+            if (p.description) { html += '<p class="project-summary">' + escapeHtml(p.description) + '</p>'; }
             if (q) {
                 html += '<div class="question-block"><div class="question-label">The Maker\'s Question</div><div class="question-text">' + escapeHtml(q.text) + '</div></div>';
                 html += '<div class="eyebrow">Your feedback</div>';
@@ -321,24 +388,25 @@
                     // recorded state and its next step instead.
                     html += '<div class="response-form-card"><div id="feedback-thanks" role="status"></div></div>';
                 } else {
+                    // Three short, numbered steps: the form reads as a task
+                    // with an end rather than an open-ended questionnaire.
                     html += '<div class="response-form-card"><form id="response-form">';
-                    html += '<div class="form-section"><h3>How clear is it?</h3><div class="radio-cards">';
+                    html += '<div class="form-section"><h3>1. How clear is it?</h3><div class="radio-cards">';
                     html += '<label class="radio-card"><input type="radio" id="c1" name="clarity" value="very_clear" required onclick="trackFeedbackStart()"><span class="radio-card-label"><span class="radio-card-title">Very clear</span><span class="radio-card-desc">I understood the project quickly.</span></span></label>';
                     html += '<label class="radio-card"><input type="radio" id="c2" name="clarity" value="mostly_clear" onclick="trackFeedbackStart()"><span class="radio-card-label"><span class="radio-card-title">Mostly clear</span><span class="radio-card-desc">I understood it, but needed some explanation.</span></span></label>';
                     html += '<label class="radio-card"><input type="radio" id="c3" name="clarity" value="confusing" onclick="trackFeedbackStart()"><span class="radio-card-label"><span class="radio-card-title">Confusing</span><span class="radio-card-desc">I was not sure what it does.</span></span></label>';
                     html += '</div></div>';
-                    html += '<div class="form-section"><h3>Would you use it?</h3><div class="radio-cards">';
+                    html += '<div class="form-section"><h3>2. Would you use it?</h3><div class="radio-cards">';
                     html += '<label class="radio-card"><input type="radio" id="u1" name="would_use" value="yes" required><span class="radio-card-label"><span class="radio-card-title">Yes</span><span class="radio-card-desc">I would use this.</span></span></label>';
                     html += '<label class="radio-card"><input type="radio" id="u2" name="would_use" value="maybe"><span class="radio-card-label"><span class="radio-card-title">Maybe</span><span class="radio-card-desc">I might use this in some cases.</span></span></label>';
                     html += '<label class="radio-card"><input type="radio" id="u3" name="would_use" value="no"><span class="radio-card-label"><span class="radio-card-title">No</span><span class="radio-card-desc">I would not use this.</span></span></label>';
                     html += '</div></div>';
-                    html += '<div class="form-section"><h3>What would you change? <span style="font-weight:400;color:var(--text-muted);">(optional)</span></h3><textarea class="form-textarea" id="suggestion" maxlength="2000" placeholder="Your honest feedback..."></textarea></div>';
+                    html += '<div class="form-section"><h3>3. What would you change? <span style="font-weight:400;color:var(--text-muted);">(optional)</span></h3><textarea class="form-textarea" id="suggestion" maxlength="2000" placeholder="Your honest feedback..."></textarea></div>';
                     html += '<button type="submit" class="btn btn-primary" id="submit-btn" style="width:100%;">Submit feedback</button>';
                     html += '<div class="message" id="message"></div></form></div>';
                 }
                 var details = '';
                 if (p.image_url) { details += '<img class="project-screenshot" src="' + escapeHtml(p.image_url) + '" alt="Screenshot of ' + escapeHtml(p.title) + '" loading="lazy" onerror="this.style.display=\'none\'">'; }
-                if (p.description) { details += '<p class="project-description">' + escapeHtml(p.description) + '</p>'; }
                 if (p.url) { details += '<a href="' + escapeHtml(p.url) + '" target="_blank" rel="noopener" class="project-url">' + escapeHtml(p.url) + '</a>'; }
                 if (details) { html += '<div class="eyebrow">About this project</div><div class="project-header" style="margin-top: var(--space-5);">' + details + '</div>'; }
                 if (responses.length > 0) {
@@ -494,19 +562,13 @@
             }
         }
 
-        // The one action worth showing after feedback: keep helping builders.
-        // The link starts at the real project list and is upgraded to the next
-        // real project from the feed as soon as it answers -- no invented
+        // Both states after feedback end the same way: one link to the next
+        // real project waiting for an answer. It starts at the real project
+        // list and is upgraded as soon as the feed answers -- no invented
         // content, and a fetch failure simply leaves the honest fallback.
-        function showFeedbackSuccessNextStep(container) {
-            if (!container) return;
-            container.className = 'alert alert-success';
-            container.textContent = 'Thank you! Your feedback has been submitted. ';
-            var link = document.createElement('a');
-            link.id = 'help-another-builder';
+        function attachNextProjectLink(link) {
+            if (!link) return;
             link.href = '/discover';
-            link.textContent = 'Help another builder \u2192';
-            container.appendChild(link);
             fetch('/api/projects/?page=1&page_size=6')
                 .then(function(res) {
                     return res.ok ? res.json() : null;
@@ -525,20 +587,57 @@
                 .catch(function() {});
         }
 
+        function showFeedbackSuccessNextStep(container) {
+            if (!container) return;
+            container.className = 'alert alert-success';
+            container.setAttribute('role', 'status');
+            container.textContent = 'Thank you! Your feedback has been submitted. ';
+            var link = document.createElement('a');
+            link.id = 'help-another-builder';
+            link.textContent = 'Help another builder \u2192';
+            container.appendChild(link);
+            attachNextProjectLink(link);
+        }
+
+        // The server already holds a response from this person (a second
+        // device, a cleared session). That is a finished state, not a
+        // failure: no red error, no live submit button, and a way onward.
+        function showAlreadyRespondedState(container) {
+            if (!container) return;
+            container.className = 'response-done';
+            container.setAttribute('role', 'status');
+            container.innerHTML = '';
+            var title = document.createElement('p');
+            title.className = 'response-done-title';
+            title.textContent = '\u2713 You already gave feedback on this project.';
+            container.appendChild(title);
+            var note = document.createElement('p');
+            note.className = 'response-done-note';
+            note.textContent = 'Thanks for helping this builder.';
+            container.appendChild(note);
+            var link = document.createElement('a');
+            link.id = 'explore-another-project';
+            link.textContent = 'Explore another project \u2192';
+            container.appendChild(link);
+            attachNextProjectLink(link);
+        }
+
         // ===== Safe return_to helper =====
         function currentPathForReturn() {
             return window.location.pathname;
         }
 
         // Shared auth choice for the feedback gate: GitHub primary, email
-        // secondary, both with the same resume/draft behaviour.
+        // secondary, both with the same resume/draft behaviour. The wording
+        // matters here -- this is the middle of a submission the visitor
+        // already started, not a wall in front of one.
         function feedbackAuthConfig(message) {
             return {
-                title: 'Almost there',
-                message: message || 'Your feedback is ready to send.',
+                title: 'Your feedback is ready.',
+                message: message || 'One quick step: sign in so we can send it to the builder.',
                 returnTo: currentPathForReturn() + '?resume=feedback',
                 context: projectId,
-                notes: ['No password required.', 'Your answer will be shared with the builder.'],
+                notes: ['Your feedback is saved.', 'No password required.'],
                 emailSentHint: 'Click the link in the email to finish submitting your feedback.',
                 onStart: function(method) {
                     saveFeedbackDraft();
@@ -550,6 +649,11 @@
         function showInlineLoginPrompt(msg, message) {
             msg = msg || document.getElementById('message');
             if (!msg) return;
+            // An anonymous visitor cannot get past this point, so the button
+            // that would only ever answer 401 stops pretending otherwise. The
+            // answers themselves stay editable.
+            var submit = document.getElementById('submit-btn');
+            if (submit) submit.disabled = true;
             // The prompt is re-rendered whenever the gate appears again (the
             // submit handler clears #message first), but the analytics event
             // fires only once per page.
@@ -563,11 +667,19 @@
         // confirmation all come from CritiqueUI (static/ui.js) so this page and
         // every other login gate behave identically.
 
-        // Detect return from OAuth: if any draft was saved, restore it
-        // and fire login_success event once.
+        // Detect return from OAuth: if any draft was saved, restore it and
+        // record the sign-in that made it possible.
+        function returnedFromAuth() {
+            // Both sign-in routes hand the page back with this flag (it is the
+            // return_to the gate itself builds), and it is cleared on the first
+            // load -- so it marks an actual authentication return, where a
+            // draft on the page alone does not.
+            return window.location.search.indexOf('resume=feedback') !== -1;
+        }
+
         function maybeResumeToFeedback() {
             // If we returned from OAuth with ?resume=feedback, scroll to the feedback form
-            if (window.location.search.indexOf('resume=feedback') === -1) return;
+            if (!returnedFromAuth()) return;
             var form = document.getElementById('response-form');
             if (!form) return;
             setTimeout(function() {
@@ -588,14 +700,54 @@
                     window.CritiqueAnalytics.trackEvent('feedback_resume', projectId);
                 }
             } catch (e) {}
+
+            // ...and then finish what the visitor already asked to send.
+            continueFeedbackAfterLogin();
         }
 
+        // A complete draft that came back from the sign-in step is submitted
+        // right away: the visitor pressed "Submit feedback" once already, and
+        // the sign-in was the only thing that stopped it. An incomplete draft
+        // is never sent -- it is left in the form for its author to finish.
+        var resumeContinued = false;
+        function continueFeedbackAfterLogin() {
+            if (resumeContinued) return false;
+            var draft = null;
+            try {
+                var raw = sessionStorage.getItem(feedbackStorageKey());
+                draft = raw ? JSON.parse(raw) : null;
+            } catch (e) {
+                draft = null;
+            }
+            if (!draft || typeof draft !== 'object') return false;
+            if (!draft.clarity || !draft.would_use) return false;
+            var form = document.getElementById('response-form');
+            if (!form) return false;
+            // Only send once the form really holds both answers.
+            if (!document.querySelector('input[name="clarity"]:checked') ||
+                !document.querySelector('input[name="would_use"]:checked')) return false;
+            resumeContinued = true;
+            if (typeof form.requestSubmit === 'function') {
+                form.requestSubmit();
+            } else {
+                // Environments without form.requestSubmit still continue the
+                // submission instead of leaving the visitor at a dead end.
+                handleSubmit({ preventDefault: function() {} });
+            }
+            return true;
+        }
+
+        // The draft is restored on every load -- that is what a draft is for.
+        // The *sign-in events* are not: they fire only when the page was
+        // actually returned by an authentication, because "a draft exists"
+        // used to be enough and every refresh with a half-written answer was
+        // counted as a new sign-in.
         function maybeRestoreAfterLogin() {
             try {
                 var raw = sessionStorage.getItem(feedbackStorageKey());
                 if (raw) {
                     // sessionStorage takes priority. Same-tab return from GitHub OAuth.
-                    if (restoreFeedbackDraft()) {
+                    if (restoreFeedbackDraft() && returnedFromAuth()) {
                         window.CritiqueAnalytics.trackEvent('login_success', projectId);
                     }
                     return;
@@ -610,7 +762,7 @@
                         suggestion: fallback.suggestion
                     };
                     sessionStorage.setItem(feedbackStorageKey(), JSON.stringify(draft));
-                    if (restoreFeedbackDraft()) {
+                    if (restoreFeedbackDraft() && returnedFromAuth()) {
                         window.CritiqueAnalytics.trackEvent('email_verification_success', projectId);
                     }
                 }
@@ -623,9 +775,11 @@
             msg.className = 'alert';
             msg.textContent = '';
             btn.disabled = true;
-            // Set once the response is recorded, so the finally block does not
-            // hand the visitor a live submit button on a finished form.
-            let submitted = false;
+            // Set once the outcome is settled, so the finally block does not
+            // hand the visitor a live submit button on a form that has been
+            // recorded (finished) or is waiting for sign-in (gated).
+            let finished = false;
+            let gated = false;
 
             const csrfToken = getCsrfToken();
             const payload = {
@@ -659,7 +813,7 @@
                     // a reload: the finished form is closed to double submits
                     // and the visitor gets the next step -- another real
                     // project that is also waiting for an answer.
-                    submitted = true;
+                    finished = true;
                     markFeedbackSubmitted();
                     disableResponseForm();
                     showFeedbackSuccessNextStep(msg);
@@ -670,7 +824,21 @@
                     // feedback_submit_error buried every real failure under the
                     // far larger number of anonymous attempts.
                     saveFeedbackDraft();
-                    showInlineLoginPrompt(msg, 'Your feedback is ready to send.');
+                    gated = true;
+                    showInlineLoginPrompt(msg);
+                } else if (response.status === 409) {
+                    // The server already holds a response from this person
+                    // (another device, a cleared session). The attempt created
+                    // nothing, so it stays counted in feedback_submit_error --
+                    // but the visitor has nothing to fix, so the screen is a
+                    // completed state rather than a red error.
+                    window.CritiqueAnalytics.trackEvent('feedback_submit_error', projectId);
+                    finished = true;
+                    markFeedbackSubmitted();
+                    disableResponseForm();
+                    const doneBtn = document.getElementById('submit-btn');
+                    if (doneBtn) doneBtn.style.display = 'none';
+                    showAlreadyRespondedState(msg);
                 } else if (response.status === 403) {
                     window.CritiqueAnalytics.trackEvent('feedback_submit_error', projectId);
                     msg.className = 'alert alert-error';
@@ -686,7 +854,7 @@
                 msg.className = 'alert alert-error';
                 msg.textContent = 'Network error: ' + e.message;
             } finally {
-                if (!submitted) btn.disabled = false;
+                if (!finished && !gated) btn.disabled = false;
             }
         }
 

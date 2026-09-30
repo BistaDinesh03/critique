@@ -793,16 +793,34 @@
             font-weight: 600;
         }
 
+        /* The question is the point of Critique, so its section carries the
+           strongest weight on the page: accent rule, tinted ground, room to
+           think. Everything else stays quiet. */
         .form-question-section {
-            background: rgba(37, 99, 235, 0.02);
-            border: 1px solid rgba(37, 99, 235, 0.1);
-            border-radius: var(--radius-lg);
+            background: rgba(37, 99, 235, 0.03);
+            border: 1px solid rgba(37, 99, 235, 0.12);
+            border-left: 3px solid var(--accent);
+            border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
             padding: var(--space-5);
             margin-bottom: var(--space-5);
         }
 
         .form-question-section .section-heading {
+            font-size: var(--text-base);
             border-bottom-color: rgba(37, 99, 235, 0.15);
+        }
+
+        .form-question-section .form-label {
+            font-size: var(--text-base);
+        }
+
+        /* The extra field is genuinely secondary: grouped, but never louder
+           than the question above it. */
+        .form-section.form-optional .section-heading {
+            color: var(--text-muted);
+            font-weight: 600;
+            border-bottom: none;
+            margin-bottom: var(--space-3);
         }
 
         .btn-submit {
@@ -821,10 +839,21 @@
         }
 
         @media (max-width: 600px) {
+            .form-header {
+                margin-bottom: var(--space-4);
+            }
+
+            .form-section {
+                margin-bottom: var(--space-4);
+            }
+
+            .section-heading {
+                margin-bottom: var(--space-3);
+            }
+
             .form-question-section {
                 padding: var(--space-4);
-                margin-left: calc(-1 * var(--space-2));
-                margin-right: calc(-1 * var(--space-2));
+                margin-bottom: var(--space-4);
             }
         }
 
@@ -1068,15 +1097,18 @@
             <p class="reciprocity">Give feedback to a builder. Get feedback on your own.</p>
         </section>
 
+        <!-- Hierarchy: what the project is -> what it does -> the one question
+             worth answering -> anything extra. The question gets the emphasis,
+             because it is the reason this form exists. -->
         <section id="submit" class="card" style="max-width: 620px; margin: 0 auto;">
             <form id="project-form">
                 <div class="form-header">
-                    <h2>Get feedback on something you've built</h2>
-                    <p class="form-subtitle">Share your project and ask one question you genuinely want answered. Takes about a minute.</p>
+                    <h2>Share your project</h2>
+                    <p class="form-subtitle">Tell us what you're building and what you want to learn.</p>
                 </div>
 
                 <div class="form-section">
-                    <h3 class="section-heading">Your project</h3>
+                    <h3 class="section-heading">Project</h3>
 
                     <div class="form-group">
                         <label class="form-label" for="title">Project title <span class="form-required">(required)</span></label>
@@ -1084,20 +1116,17 @@
                     </div>
 
                     <div class="form-group">
+                        <label class="form-label" for="url">Project URL <span class="form-required">(required)</span></label>
+                        <input class="form-input" type="url" id="url" name="url" maxlength="500" placeholder="https://your-project.com">
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3 class="section-heading">About it</h3>
+
+                    <div class="form-group">
                         <label class="form-label" for="description">Short description <span class="form-required">(required)</span></label>
                         <textarea class="form-textarea" id="description" name="description" maxlength="5000" placeholder="What does your project do? One or two sentences is enough." style="min-height:72px;"></textarea>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label" for="url">Project URL <span class="form-required">(required)</span></label>
-                            <input class="form-input" type="url" id="url" name="url" maxlength="500" placeholder="https://your-project.com">
-                        </div>
-                    </div>
-
-                    <div class="form-group form-optional">
-                        <label class="form-label" for="image_url">Screenshot URL <span class="form-optional-tag">optional</span></label>
-                        <input class="form-input" type="url" id="image_url" name="image_url" maxlength="500" placeholder="https://your-project.com/screenshot.png">
                     </div>
                 </div>
 
@@ -1113,6 +1142,15 @@
                     <div class="form-examples">
                         <p><span class="example-bad">Too broad:</span> "What do you think of my app?"</p>
                         <p><span class="example-good">Better:</span> "Is it immediately clear what my app does?"</p>
+                    </div>
+                </div>
+
+                <div class="form-section form-optional">
+                    <h3 class="section-heading">Optional</h3>
+
+                    <div class="form-group">
+                        <label class="form-label" for="image_url">Screenshot URL <span class="form-optional-tag">optional</span></label>
+                        <input class="form-input" type="url" id="image_url" name="image_url" maxlength="500" placeholder="https://your-project.com/screenshot.png">
                     </div>
                 </div>
 
@@ -1149,6 +1187,51 @@
                 .replace(/>/g, '&gt;')
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#39;');
+        }
+
+        // The real age of a project, straight from its own created_at:
+        // "2h ago" while it is fresh, a plain date once it is not. No date
+        // library, no invented activity. The API serves UTC timestamps
+        // without an offset ("2026-09-02T11:04:38.392996"), so a value with
+        // no offset is pinned to UTC rather than read as the visitor's local
+        // zone -- otherwise the same project would age differently per user.
+        function formatAge(value) {
+            if (!value) return '';
+            var iso = String(value);
+            if (!/[zZ]$|[+-]\d{2}:?\d{2}$/.test(iso)) {
+                iso += /[Tt]/.test(iso) ? 'Z' : 'T00:00:00Z';
+            }
+            var then = new Date(iso);
+            if (isNaN(then.getTime())) return '';
+            var diff = Date.now() - then.getTime();
+            if (diff < 0) diff = 0;
+            var minutes = Math.floor(diff / 60000);
+            if (minutes < 1) return 'Just now';
+            if (minutes < 60) return minutes + 'm ago';
+            var hours = Math.floor(minutes / 60);
+            if (hours < 24) return hours + 'h ago';
+            var days = Math.floor(hours / 24);
+            if (days === 1) return 'Yesterday';
+            if (days < 7) return days + ' days ago';
+            var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            var label = months[then.getUTCMonth()] + ' ' + then.getUTCDate();
+            if (then.getUTCFullYear() !== new Date().getUTCFullYear()) {
+                label += ', ' + then.getUTCFullYear();
+            }
+            return label;
+        }
+
+        // Response count and age on one line: "3 responses · 2h ago". Both
+        // parts come from the API, a missing part never leaves a dangling
+        // separator behind, and the age stays machine-readable.
+        function cardMeta(project) {
+            var count = project.response_count || 0;
+            var parts = [count === 0 ? 'Needs feedback' : count + ' response' + (count === 1 ? '' : 's')];
+            var age = formatAge(project.created_at);
+            if (age) {
+                parts.push('<time datetime="' + escapeHtml(project.created_at) + '">' + escapeHtml(age) + '</time>');
+            }
+            return parts.join(' \u00b7 ');
         }
 
         async function checkAuth() {
@@ -1197,20 +1280,23 @@
                         ? '<img class="project-screenshot" src="' + escapeHtml(project.image_url) + '" alt="Screenshot of ' + escapeHtml(project.title) + '" loading="lazy">'
                         : '';
                     const question = project.question_text || 'No question';
-                    const count = project.response_count || 0;
-                    const plural = count !== 1 ? 's' : '';
+                    const description = project.description
+                        ? '<div class="project-description">' + escapeHtml(project.description) + '</div>'
+                        : '';
 
                     // The homepage preview answers one question: what this
-                    // project is and what the builder asks -- lead-in, title,
-                    // the real question, then the action.
+                    // project is, what the builder asks, and how recently
+                    // they asked -- lead-in, title, description, the real
+                    // question, then the action.
                     html += '<div class="project-card">';
                     html += screenshot;
                     html += '<div class="project-card-body">';
                     html += '<div class="eyebrow">Need feedback on</div>';
                     html += '<div class="project-title">' + escapeHtml(project.title) + '</div>';
+                    html += description;
                     html += '<div class="project-question">Question: ' + escapeHtml(question) + '</div>';
                     html += '<div class="project-footer">';
-                    html += '<span>' + count + ' response' + plural + '</span>';
+                    html += '<span>' + cardMeta(project) + '</span>';
                     html += '<a href="/project/' + project.id + '" class="btn btn-primary" style="padding:var(--space-1) var(--space-3);font-size:var(--text-xs);">Give feedback &rarr;</a>';
                     html += '</div>';
                     html += '</div></div>';
@@ -1311,7 +1397,14 @@
                 var raw = sessionStorage.getItem(projectStorageKey());
                 if (raw) {
                     if (restoreProjectDraft()) {
-                        window.CritiqueAnalytics.trackEvent('login_success', null);
+                        // A saved draft is not evidence of a sign-in: only the
+                        // resume flag that OAuth and the email link come back
+                        // with says this session actually logged in. Firing
+                        // login_success on any reload counted every refresh
+                        // with a half-written form as a new sign-in.
+                        if (window.location.search.indexOf('resume=project_submit') !== -1) {
+                            window.CritiqueAnalytics.trackEvent('login_success', null);
+                        }
                     }
                 }
             } catch (e) {}
