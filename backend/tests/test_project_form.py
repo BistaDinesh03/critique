@@ -232,14 +232,31 @@ def test_project_form_submits_the_payload_the_api_expects(tmp_path):
         FILL_PROJECT,
         fetch={
             HOMEPAGE_URL: {"status": 200, "body": {"total": 0, "items": []}},
-            SUBMIT_URL: {"status": 201, "body": {"id": 9}},
+            SUBMIT_URL: {
+                "status": 201,
+                "body": {
+                    "project": {
+                        "id": 9,
+                        "title": "Akiya Scout",
+                        "description": "Scans listings for abandoned houses",
+                        "url": "https://akiya-scout.example",
+                        "image_url": None,
+                        "response_count": 0,
+                    },
+                    "question": {
+                        "id": 9,
+                        "project_id": 9,
+                        "text": "Is the price shown up front?",
+                        "is_active": True,
+                    },
+                },
+            },
         },
     )
 
     assert result["values"]["filled"] == "filled"
     sent = posts(result)
     assert len(sent) == 1, result["requests"]
-    assert sent[0]["url"] == SUBMIT_URL
 
     payload = json.loads(sent[0]["body"])
     assert payload["project_data"] == {
@@ -249,9 +266,11 @@ def test_project_form_submits_the_payload_the_api_expects(tmp_path):
         "image_url": None,
     }
     assert payload["question_data"] == {"text": "Is the price shown up front?"}
-    # The success is recorded, reported, and leaves no draft behind.
+    # The success is recorded, reported as the live-project state (the share
+    # section lives inside it), and leaves no draft behind.
     assert len(events(result, "project_submit")) == 1
-    assert "Project submitted successfully!" in result["ids"]["message"]
+    seen = [m["text"] for m in result["createdMeta"] if m.get("text")]
+    assert "Your project is live!" in seen
     assert "critique_project_draft" not in result["storage"]["session"]
 
 

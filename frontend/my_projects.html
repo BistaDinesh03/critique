@@ -139,6 +139,9 @@
             cursor: pointer;
             padding: var(--space-2);
             border-radius: 4px;
+            /* Keep "Delete" on one line when the row tightens on a phone:
+               the longer buttons may wrap, this one must never stack. */
+            white-space: nowrap;
         }
 
         .btn-delete:hover {
@@ -249,6 +252,8 @@
 
         async function loadProjects() {
             var content = document.getElementById('content');
+            // A re-render detaches any open share row along with its buttons.
+            activeCardShare = null;
             try {
                 var response = await fetch('/api/projects/my/list');
                 if (!response.ok) {
@@ -284,7 +289,7 @@
                     html += '<div><span class="' + pillClass + '">' + pillText + '</span></div>';
                     html += '<div class="card-actions">';
                     html += '<a href="/project/' + p.id + '/results" class="btn btn-primary">View Feedback</a>';
-                    html += '<button onclick="copyLink(' + p.id + ')" class="btn btn-secondary">Share</button>';
+                    html += '<button type="button" onclick="toggleShare(this)" data-project="' + p.id + '" data-title="' + escapeHtml(p.title) + '" aria-expanded="false" class="btn btn-secondary">Share</button>';
                     html += '<span class="spacer"></span>';
                     html += '<button onclick="deleteProject(' + p.id + ', this)" data-title="' + escapeHtml(p.title) + '" class="btn-delete">Delete</button>';
                     html += '</div>';
@@ -298,15 +303,43 @@
             }
         }
 
-        function copyLink(projectId) {
-            var url = window.location.origin + '/project/' + projectId;
-            if (navigator.clipboard) {
-                navigator.clipboard.writeText(url).then(function() {
-                    CritiqueUI.showToast('Link copied', 'success');
-                }).catch(function() {
-                    CritiqueUI.showToast('Could not copy link', 'error');
-                });
+        // The share row always belongs to the card it was opened from: the
+        // project id and title come from that card's own data attributes, so
+        // with several projects on the page the right one is shared.
+        var activeCardShare = null;
+
+        function closeCardShare(state) {
+            if (state.row && state.row.parentNode) {
+                state.row.parentNode.removeChild(state.row);
             }
+            if (state.btn) {
+                state.btn.setAttribute('aria-expanded', 'false');
+            }
+        }
+
+        function toggleShare(btn) {
+            if (activeCardShare && activeCardShare.btn === btn) {
+                closeCardShare(activeCardShare);
+                activeCardShare = null;
+                return;
+            }
+            if (activeCardShare) {
+                closeCardShare(activeCardShare);
+                activeCardShare = null;
+            }
+
+            var projectId = btn.getAttribute('data-project');
+            var title = btn.getAttribute('data-title') || '';
+            // .card-actions -> .project-info: the row opens under the actions.
+            var host = btn.parentNode && btn.parentNode.parentNode;
+            if (!projectId || !host || typeof CritiqueShare === 'undefined') return;
+
+            var row = CritiqueShare.renderCardShareRow(host, {
+                projectId: parseInt(projectId, 10),
+                title: title
+            });
+            btn.setAttribute('aria-expanded', 'true');
+            activeCardShare = { row: row, btn: btn };
         }
 
         function deleteProject(projectId, btn) {
@@ -344,6 +377,7 @@
     </script>
     <script src="/static/ui.js"></script>
     <script src="/static/analytics.js"></script>
+    <script src="/static/share.js"></script>
     <script>trackPageView();</script>
 
     <footer class="site-footer">

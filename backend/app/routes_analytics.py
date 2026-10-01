@@ -26,6 +26,10 @@ VALID_EVENTS = {
     "auth_method_selected_email",
     "email_verification_sent",
     "email_verification_success",
+    "share_ui_shown",
+    "share_copy_link",
+    "share_copy_post",
+    "share_option_clicked",
 }
 
 

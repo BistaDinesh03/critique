@@ -1366,6 +1366,28 @@
             } catch (e) {}
         }
 
+        // The success state, shown only after the API confirms the project
+        // was created (201 with the created project in the response body).
+        // Sharing lives inside it and stays completely optional.
+        function showProjectLive(data) {
+            var msg = document.getElementById('message');
+            var project = data && data.project;
+            if (!project || !project.id || typeof CritiqueShare === 'undefined') {
+                // The 201 still confirms creation even if the body is not the
+                // shape we expect: report the truth, without the share section.
+                msg.className = 'message';
+                msg.textContent = 'Your project is live!';
+                return;
+            }
+            msg.className = 'message';
+            CritiqueShare.renderSuccess(msg, {
+                projectId: project.id,
+                title: project.title || '',
+                description: project.description || '',
+                questionText: (data.question && data.question.text) || ''
+            });
+        }
+
         function showProjectInlineLoginPrompt(msg, message) {
             msg = msg || document.getElementById('message');
             if (!msg) return;
@@ -1444,10 +1466,9 @@
                 if (response.ok) {
                     window.CritiqueAnalytics.trackEvent('project_submit', null);
                     CritiqueUI.showToast('Project submitted', 'success');
-                    msg.className = 'alert alert-success';
-                    msg.textContent = 'Project submitted successfully!';
                     clearProjectDraft();
                     document.getElementById('project-form').reset();
+                    showProjectLive(data);
                 } else if (response.status === 401) {
                     saveProjectDraft();
                     showProjectInlineLoginPrompt(msg);
@@ -1602,6 +1623,7 @@
     </script>
     <script src="/static/ui.js"></script>
     <script src="/static/analytics.js"></script>
+    <script src="/static/share.js"></script>
     <script>trackPageView();</script>
 
     <footer class="site-footer">

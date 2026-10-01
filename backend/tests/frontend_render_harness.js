@@ -453,6 +453,12 @@ async function main() {
     track() {},
   };
 
+  // Captured user-mechanics side effects: clipboard writes and popups opened
+  // by a click. Both are how sharing actually reaches the outside world, so
+  // tests assert on what was really written/opened rather than on markup.
+  const clipboardWrites = [];
+  const opened = [];
+
   const windowStub = {
     location: locationStub,
     history: historyStub,
@@ -462,7 +468,10 @@ async function main() {
     CritiqueAnalytics: analyticsStub,
     addEventListener() {},
     removeEventListener() {},
-    open() {},
+    open(url, target, features) {
+      opened.push({ url, target, features });
+      return null;
+    },
     scrollTo() {},
     matchMedia() {
       return { matches: false, addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {} };
@@ -478,7 +487,10 @@ async function main() {
     },
     navigator: {
       clipboard: {
-        writeText: () => Promise.resolve(),
+        writeText(text) {
+          clipboardWrites.push(String(text));
+          return Promise.resolve();
+        },
       },
       userAgent: 'test-harness',
     },
@@ -851,6 +863,12 @@ async function main() {
     name: el.name,
     placeholder: el.placeholder,
     text: el.textContent,
+    // Form-control state: a textarea's content lives in .value, never in
+    // textContent, so editable text is only assertable through this.
+    value: el.value,
+    // Link-safety attributes for external URLs (noopener targeting).
+    target: el.target,
+    rel: el.rel,
   }));
 
   // Visibility/state flags keyed by element id, so tests can assert on things
@@ -905,6 +923,8 @@ async function main() {
       createdMeta,
       flags,
       requests: fetchStub.requests,
+      clipboard: clipboardWrites,
+      opened,
       storage: { session: dumpStorage(sessionStorage), local: dumpStorage(localStorage) },
       ids,
       values,

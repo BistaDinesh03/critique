@@ -83,6 +83,25 @@ def get_analytics_dashboard(
         AnalyticsEvent.event_name == "email_verification_success"
     ).scalar() or 0
 
+    # Optional sharing: how often the share UI appeared and what people chose
+    # to do with it. Action counts only — an opened compose window is never
+    # counted here as a completed share.
+    total_share_ui_shown = db.query(func.count(AnalyticsEvent.id)).filter(
+        AnalyticsEvent.event_name == "share_ui_shown"
+    ).scalar() or 0
+
+    total_share_copy_link = db.query(func.count(AnalyticsEvent.id)).filter(
+        AnalyticsEvent.event_name == "share_copy_link"
+    ).scalar() or 0
+
+    total_share_copy_post = db.query(func.count(AnalyticsEvent.id)).filter(
+        AnalyticsEvent.event_name == "share_copy_post"
+    ).scalar() or 0
+
+    total_share_option_clicked = db.query(func.count(AnalyticsEvent.id)).filter(
+        AnalyticsEvent.event_name == "share_option_clicked"
+    ).scalar() or 0
+
 
 
     unique_visitors = db.query(func.count(func.distinct(AnalyticsEvent.visitor_id))).scalar() or 0
@@ -118,6 +137,10 @@ def get_analytics_dashboard(
             "auth_method_selected_email": total_auth_method_email,
             "email_verification_sent": total_email_verification_sent,
             "email_verification_success": total_email_verification_success,
+            "share_ui_shown": total_share_ui_shown,
+            "share_copy_link": total_share_copy_link,
+            "share_copy_post": total_share_copy_post,
+            "share_option_clicked": total_share_option_clicked,
         },
         "event_ratios": {
             "project_views_per_page_view": f"{homepage_to_project}%",

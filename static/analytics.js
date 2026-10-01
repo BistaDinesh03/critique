@@ -26,7 +26,11 @@ function trackEvent(eventName, projectId) {
         'auth_method_selected_github',
         'auth_method_selected_email',
         'email_verification_sent',
-        'email_verification_success'
+        'email_verification_success',
+        'share_ui_shown',
+        'share_copy_link',
+        'share_copy_post',
+        'share_option_clicked'
     ];
     if (!eventName || VALID_EVENTS.indexOf(eventName) === -1) {
         return; // Silently skip invalid events

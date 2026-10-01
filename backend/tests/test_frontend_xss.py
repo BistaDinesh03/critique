@@ -200,7 +200,7 @@ def test_image_url_cannot_create_onerror_attribute_my_projects(tmp_path):
         },
     )
     parsed = parse(html)
-    assert_markup_is_safe(parsed, allowed_handlers={"copyLink(1)", "deleteProject(1, this)"})
+    assert_markup_is_safe(parsed, allowed_handlers={"toggleShare(this)", "deleteProject(1, this)"})
     assert get_attr(parsed, "img", "src") == PAYLOAD_IMAGE
 
 
@@ -264,7 +264,7 @@ def test_title_cannot_create_onmouseover_attribute_my_projects(tmp_path):
         },
     )
     parsed = parse(html)
-    assert_markup_is_safe(parsed, allowed_handlers={"copyLink(1)", "deleteProject(1, this)"})
+    assert_markup_is_safe(parsed, allowed_handlers={"toggleShare(this)", "deleteProject(1, this)"})
     assert find_attr(parsed, "button", "data-title") == PAYLOAD_TITLE
     assert PAYLOAD_TITLE in parsed.text
 
