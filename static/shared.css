@@ -623,33 +623,51 @@ img {
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
 }
 
-.share-platforms {
-    display: flex;
-    flex-wrap: wrap;
+/* The four compact actions: X, Reddit, Copy link, Copy post. A balanced
+   grid of light, equal buttons — no gray block, one thin border each. */
+.share-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: var(--space-2);
     margin-top: var(--space-4);
 }
 
-.share-platform {
+.share-action {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: var(--space-2) var(--space-4);
+    gap: var(--space-2);
+    min-width: 0;
+    min-height: 38px;
+    padding: var(--space-2) var(--space-3);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     background: var(--surface);
     color: var(--text-primary);
     font-size: var(--text-sm);
     font-weight: 600;
+    line-height: 1.3;
     text-decoration: none;
+    white-space: nowrap;
     cursor: pointer;
-    min-height: 36px;
     transition: background-color var(--transition-fast), border-color var(--transition-fast);
 }
 
-.share-platform:hover {
+.share-action:hover {
     background: var(--surface-muted);
     border-color: #cbd5e1;
+}
+
+.share-action:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+}
+
+.share-icon {
+    display: inline-flex;
+    flex: none;
+    /* The label is the control's text node; the icon renders to its left. */
+    order: -1;
 }
 
 .share-actions {
@@ -664,46 +682,17 @@ img {
     flex: 1;
 }
 
-.share-platform:focus-visible,
-.share-copy:focus-visible,
 .share-skip:focus-visible,
 .share-continue:focus-visible {
     outline: 2px solid var(--focus);
     outline-offset: 2px;
 }
 
-/* Inline share row on a My Projects card. */
+/* Inline share row on a My Projects card: a balanced 2×2 that never
+   crowds the card's other actions. */
 .card-share {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--space-3);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     margin-top: var(--space-3);
-    padding: var(--space-3);
-    background: var(--surface-muted);
-    border-radius: var(--radius-md);
-}
-
-.card-share .share-platforms {
-    margin-top: 0;
-}
-
-.card-share .share-platform {
-    padding: var(--space-1) var(--space-3);
-    min-height: 32px;
-    font-size: var(--text-xs);
-}
-
-.card-share-copies {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-2);
-}
-
-.card-share .share-copy {
-    font-size: var(--text-xs);
-    padding: var(--space-1) var(--space-3);
-    min-height: 32px;
 }
 
 /* ============================================
@@ -746,12 +735,10 @@ img {
         padding: var(--space-4);
     }
 
-    .share-platforms {
-        gap: var(--space-2);
-    }
-
-    .share-platform {
-        flex: 1 1 calc(50% - var(--space-2));
+    /* Phone: two equal columns of actions; minmax(0, …) keeps every
+       button inside the viewport at 412px and narrower. */
+    .share-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .share-actions {
@@ -765,19 +752,6 @@ img {
 
     .share-actions .btn {
         width: 100%;
-    }
-
-    .card-share {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .card-share-copies {
-        width: 100%;
-    }
-
-    .card-share .share-copy {
-        flex: 1;
     }
 }
 

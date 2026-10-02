@@ -869,6 +869,11 @@ async function main() {
     // Link-safety attributes for external URLs (noopener targeting).
     target: el.target,
     rel: el.rel,
+    // Accessible tooltips on share actions, and the element's own markup —
+    // for icon spans that is the static inline SVG the page injected.
+    title: el.title,
+    ariaLabel: el.getAttribute ? el.getAttribute('aria-label') : null,
+    html: el.innerHTML,
   }));
 
   // Visibility/state flags keyed by element id, so tests can assert on things

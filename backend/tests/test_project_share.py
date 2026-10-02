@@ -6,12 +6,13 @@ link, the question it asked -- and an optional, user-initiated share
 section. My Projects gets an inline share row per card, driven by the same
 ``CritiqueShare`` module.
 
-Sharing never posts anything by itself: platform links only build that
-platform's own compose/share URL (fixed domains, correctly encoded), copy
-buttons only touch the clipboard, Threads falls back to copy because it has
-no verifiable compose URL, and the whole section can be skipped. Behaviour
-runs through the Node rendering harness; URL safety and wiring are also
-asserted against the source where a live DOM is not needed.
+Sharing never posts anything by itself: the platform links only build that
+platform's own compose/share URL (fixed domains, correctly encoded), the
+copy buttons only touch the clipboard, and the whole section can be
+skipped. The panel offers exactly four compact, icon-labelled actions —
+X, Reddit, Copy link, Copy post — and nothing else. Behaviour runs through
+the Node rendering harness; URL safety and wiring are also asserted
+against the source where a live DOM is not needed.
 
 Requires ``node`` on PATH; the whole module is skipped when it is missing.
 """
@@ -262,18 +263,11 @@ def test_platform_share_urls_are_encoded_and_point_at_fixed_domains(tmp_path):
     result = submitted_page(tmp_path)
 
     x = next(a for a in anchors(result) if a.get("text") == "X")
-    linkedin = next(a for a in anchors(result) if a.get("text") == "LinkedIn")
     reddit = next(a for a in anchors(result) if a.get("text") == "Reddit")
 
     # X: compose URL carrying the post, round-tripping through encoding.
     assert x["href"].startswith("https://twitter.com/intent/tweet?text=")
     assert unquote(x["href"].split("text=", 1)[1]) == DEFAULT_POST
-
-    # LinkedIn: its supported share URL, carrying only the public link.
-    assert linkedin["href"].startswith(
-        "https://www.linkedin.com/sharing/share-offsite/?url="
-    )
-    assert unquote(linkedin["href"].split("url=", 1)[1]) == PUBLIC_URL
 
     # Reddit: submission URL + title, both encoded.
     assert reddit["href"].startswith("https://www.reddit.com/submit?url=")
@@ -315,24 +309,61 @@ def test_clicking_x_opens_a_compose_window_with_the_current_text(tmp_path):
     assert len(events(result, "share_option_clicked")) == 1
 
 
-def test_threads_falls_back_to_copying_instead_of_a_fake_intent(tmp_path):
-    result = submitted_page(
-        tmp_path,
-        extra_calls=[{"clickCreatedContaining": "Copy for Threads"}],
-    )
+def test_the_panel_offers_exactly_four_actions(tmp_path):
+    result = submitted_page(tmp_path)
 
-    # A button, not a link: no invented threads intent URL exists anywhere.
-    thread_buttons = [m for m in result["createdMeta"] if m.get("text") == "Copy for Threads"]
-    assert thread_buttons and thread_buttons[0]["tag"].lower() == "button"
-    assert not any(
-        "threads" in (m.get("href") or "").lower() for m in result["createdMeta"]
-    )
+    # Exactly X, Reddit, Copy link, Copy post -- in that order, nothing else.
+    actions = [
+        m for m in result["createdMeta"] if m.get("className") == "share-action"
+    ]
+    assert [a.get("text") for a in actions] == [
+        "X",
+        "Reddit",
+        "Copy link",
+        "Copy post",
+    ]
 
-    # Clicking copies the suggested post for a manual paste, and copies --
-    # not a platform open -- is what gets counted.
-    assert result["clipboard"] == [DEFAULT_POST]
-    assert len(events(result, "share_copy_post")) == 1
-    assert len(events(result, "share_option_clicked")) == 0
+    # The retired options are gone from the rendered DOM, not merely hidden.
+    assert "LinkedIn" not in " ".join(result["created"])
+    assert "Copy for Threads" not in " ".join(result["created"])
+    for m in result["createdMeta"]:
+        href = (m.get("href") or "").lower()
+        assert "linkedin" not in href
+        assert "threads" not in href
+    # And no leftover button waits for a click that can never come.
+    assert result["clipboard"] == []
+    assert result["opened"] == []
+
+
+def test_share_actions_carry_real_platform_icons_and_accessible_names(tmp_path):
+    result = submitted_page(tmp_path)
+
+    # Four icon slots, each holding static inline SVG marked decorative.
+    icons = [m for m in result["createdMeta"] if m.get("className") == "share-icon"]
+    assert len(icons) == 4
+    for icon in icons:
+        assert "<svg" in (icon.get("html") or "")
+        assert 'aria-hidden="true"' in (icon.get("html") or "")
+
+    # X and Reddit announce themselves to assistive tech and on hover.
+    x = next(a for a in anchors(result) if a.get("text") == "X")
+    reddit = next(a for a in anchors(result) if a.get("text") == "Reddit")
+    assert x.get("ariaLabel") == "Share this project on X"
+    assert x.get("title") == "Share on X"
+    assert reddit.get("ariaLabel") == "Share this project on Reddit"
+    assert reddit.get("title") == "Share on Reddit"
+
+    # The copy buttons explain themselves in a tooltip too.
+    copy_link = next(
+        m for m in result["createdMeta"] if m.get("text") == "Copy link"
+    )
+    copy_post = next(
+        m for m in result["createdMeta"] if m.get("text") == "Copy post"
+    )
+    assert copy_link.get("tag").lower() == "button"
+    assert copy_link.get("title") == "Copy the project link"
+    assert copy_post.get("tag").lower() == "button"
+    assert copy_post.get("title") == "Copy the suggested post"
 
 
 # ---------------------------------------------------------------------------
@@ -343,11 +374,13 @@ def test_threads_falls_back_to_copying_instead_of_a_fake_intent(tmp_path):
 def test_copy_project_link_copies_the_public_url(tmp_path):
     result = submitted_page(
         tmp_path,
-        extra_calls=[{"clickCreatedContaining": "Copy project link"}],
+        extra_calls=[{"clickCreatedContaining": "Copy link"}],
     )
 
     assert result["clipboard"] == [PUBLIC_URL]
     assert len(events(result, "share_copy_link")) == 1
+    # A small, temporary confirmation.
+    assert any(t == "Link copied" for t in texts(result))
 
 
 def test_copy_suggested_post_copies_the_current_edited_text(tmp_path):
@@ -361,7 +394,7 @@ def test_copy_suggested_post_copies_the_current_edited_text(tmp_path):
                 ),
                 "as": "edited",
             },
-            {"clickCreatedContaining": "Copy suggested post"},
+            {"clickCreatedContaining": "Copy post"},
         ],
     )
 
@@ -369,6 +402,8 @@ def test_copy_suggested_post_copies_the_current_edited_text(tmp_path):
     # edit is not overwritten.
     assert result["clipboard"] == ["My edited post text"]
     assert len(events(result, "share_copy_post")) == 1
+    # A small, temporary confirmation.
+    assert any(t == "Post copied" for t in texts(result))
 
 
 def test_sharing_is_entirely_optional(tmp_path):
@@ -471,10 +506,15 @@ def test_card_share_rows_carry_the_project_they_belong_to(tmp_path):
     )
 
     # The suggested post implied by each row's links names that row's own
-    # project (LinkedIn carries only the row's URL).
-    linkedin = [a for a in result["createdMeta"] if a.get("text") == "LinkedIn"]
-    assert unquote(linkedin[0]["href"].split("url=", 1)[1]) == TEST_ORIGIN + "/project/1"
-    assert unquote(linkedin[1]["href"].split("url=", 1)[1]) == TEST_ORIGIN + "/project/2"
+    # project (X's compose text ends with that row's URL).
+    x_links = [a for a in result["createdMeta"] if a.get("text") == "X"]
+    assert len(x_links) == 2
+    assert unquote(x_links[0]["href"].split("text=", 1)[1]).endswith(
+        TEST_ORIGIN + "/project/1"
+    )
+    assert unquote(x_links[1]["href"].split("text=", 1)[1]).endswith(
+        TEST_ORIGIN + "/project/2"
+    )
 
     # Opening a row is tracked per project.
     ui_events = events(result, "share_ui_shown")
@@ -505,6 +545,48 @@ def test_card_copy_link_uses_the_first_rows_project(tmp_path):
 
     assert result["clipboard"] == [TEST_ORIGIN + "/project/1"]
     assert len(events(result, "share_copy_link")) == 1
+
+
+def test_card_share_row_offers_the_same_four_actions(tmp_path):
+    result = run(
+        tmp_path,
+        "my_projects.html",
+        [
+            {"fn": "loadProjects", "args": []},
+            WAIT_FOR_RENDER,
+            {
+                "evaluate": (
+                    "CritiqueShare.renderCardShareRow("
+                    "document.getElementById('content'), "
+                    "{projectId: 1, title: 'Sentry bot'}); 'row'"
+                ),
+                "as": "row",
+            },
+        ],
+        fetch={MY_PROJECTS_URL: {"status": 200, "body": [MY_PROJECTS_LIST[0]]}},
+    )
+
+    # The same compact set on the card, in the same order.
+    actions = [
+        m for m in result["createdMeta"] if m.get("className") == "share-action"
+    ]
+    assert [a.get("text") for a in actions] == [
+        "X",
+        "Reddit",
+        "Copy link",
+        "Copy post",
+    ]
+    # In the card's balanced 2x2 wrapper, with icons.
+    assert any(
+        m.get("className") == "share-grid card-share" for m in result["createdMeta"]
+    )
+    icons = [m for m in result["createdMeta"] if m.get("className") == "share-icon"]
+    assert len(icons) == 4
+
+    # And the retired options stay retired here too.
+    seen = " ".join(result["created"])
+    assert "LinkedIn" not in seen
+    assert "Threads" not in seen
 
 
 def test_view_feedback_and_delete_survive_next_to_share(tmp_path):
@@ -546,10 +628,12 @@ def test_malicious_project_data_cannot_reach_the_share_markup(tmp_path):
     )
 
     rendered = "\n".join(result["created"])
-    # The payload survives as escaped text, never as live markup.
+    # The payload survives as escaped text, never as live markup. (The only
+    # raw markup allowed through is the icon constants' own <svg xmlns=…> --
+    # an executable payload would look like <svg onload=…>, never that.)
     assert "<img src=x" not in rendered
     assert "<script" not in rendered
-    assert "<svg" not in rendered
+    assert "<svg onload" not in rendered
     assert "&lt;img" in rendered
     assert "&lt;script" in rendered
     assert "&lt;svg" in rendered
@@ -572,21 +656,27 @@ def test_share_links_cannot_become_unsafe_redirects(tmp_path):
     # that served the page.
     for host in [
         "https://twitter.com/intent/tweet",
-        "https://www.linkedin.com/sharing/share-offsite/",
         "https://www.reddit.com/submit",
     ]:
         assert host in source
     assert "window.location.origin + '/project/'" in source
     # External opens always carry noopener; no tracking parameters ride
-    # along on shared URLs; no invented Threads intent endpoint exists.
+    # along on shared URLs.
     assert "'noopener,noreferrer'" in source
     assert "noopener noreferrer" in source
     assert "utm_" not in source
-    assert "threads.net/intent" not in source
-    assert "threads.com/intent" not in source
+    # The retired options are absent from the implementation itself, so no
+    # endpoint for them can creep back in through this module.
+    lowered = source.lower()
+    assert "linkedin" not in lowered
+    assert "threads" not in lowered
     # Nothing publishes automatically: every action sits in a click handler.
     assert "setInterval" not in source
     assert "autoplay" not in source
+    # Icons are static constants: exactly one innerHTML write in the whole
+    # module, sourced from the icon map -- never from any user content.
+    assert len(re.findall(r"\.innerHTML\s*=", source)) == 1
+    assert "icon.innerHTML = ICONS[name]" in source
 
 
 # ---------------------------------------------------------------------------
@@ -598,15 +688,29 @@ def test_the_share_ui_stacks_on_a_phone_and_keeps_focus_visible():
     css = (STATIC_DIR / "shared.css").read_text(encoding="utf-8")
     mobile = " ".join(mobile_blocks(css))
 
-    # Phone: two-up platform buttons, full-width actions, tighter panel.
-    assert ".share-platform" in mobile
-    assert "flex: 1 1 calc(50% - var(--space-2))" in mobile
+    # Desktop: one compact row of four equal actions.
+    assert ".share-grid" in css
+    assert "grid-template-columns: repeat(4, minmax(0, 1fr))" in css
+    # The card keeps a balanced 2x2 inside its half-width column.
+    assert re.search(
+        r"\.card-share\s*\{\s*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)",
+        css,
+    )
+    # Phone: two equal columns -- two buttons per line, and minmax(0, ...)
+    # guarantees nothing can overflow horizontally at 412px or narrower.
+    assert ".share-grid" in mobile
+    assert "grid-template-columns: repeat(2, minmax(0, 1fr))" in mobile
+    # The quiet way onward still stacks full-width below the actions.
     assert ".share-actions" in mobile
     assert "flex-direction: column" in mobile
     assert ".success-share" in mobile
-    # The card row stacks too, so no button is squeezed off the edge.
-    assert ".card-share" in mobile
+
+    # Icons render left of their labels, and never take extra space in a
+    # shrinking track.
+    assert ".share-icon" in css
+    assert "order: -1" in css
+    assert "flex: none" in css
 
     # Keyboard users get a visible focus ring on every share control.
-    assert ".share-platform:focus-visible" in css
+    assert ".share-action:focus-visible" in css
     assert "outline: 2px solid var(--focus)" in css
