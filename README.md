@@ -1,4 +1,4 @@
-<img src="docs/logo-readme.svg" alt="Critique" width="56" />
+<img src="docs/logo-readme.svg#svgView(viewBox(0,0,64,47.5))" alt="Critique" width="56" />
 
 # Critique
 
