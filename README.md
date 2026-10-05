@@ -1,87 +1,178 @@
-<p align="center">
-  <img src="docs/logo-readme.svg" alt="Critique" width="56" />
-</p>
+<img src="docs/logo-readme.svg" alt="Critique" width="56" />
 
-<h1 align="center">Critique</h1>
+# Critique
 
-<p align="center">
-  <strong>Ask one question. Get real answers.</strong><br>
-  An open-source feedback platform for people who build things.
-</p>
+> **Ask one question. Get real answers.**
 
-<p align="center">
-  <a href="https://critique.page">Live demo</a> ·
-  <a href="docs/api.md">API</a> ·
-  <a href="CONTRIBUTING.md">Contributing</a> ·
-  <a href="LICENSE">MIT License</a>
-</p>
+Critique is an open-source platform for getting focused, structured human
+feedback on your projects. Share what you're building, ask one specific
+question, and collect structured feedback from people who actually see your
+project.
 
----
+[Try Critique](https://critique.page/) ·
+[Explore Projects](https://critique.page/discover) ·
+[View on GitHub](https://github.com/BistaDinesh03/critique)
 
-## Overview
+## Why Critique?
 
-Most feedback requests are too broad to act on:
+You can spend hours building something and still not know whether another
+person understands what it is, what it does, or why it matters. Posting
+"what do you think?" usually earns a quick "looks good!" — polite, but not
+actionable.
 
-> "What do you think of my project?"
-> → "Looks good!"
-
-Critique swaps the vague ask for one focused question — for example:
-
-> "Would you understand what this does in 10 seconds?"
-
-You submit a project, ask that single question, and get structured feedback
-from real people: a clarity rating, a would-use rating, and optional written
-suggestions that only you, the project owner, can read. No AI, no likes, no
-popularity ranking — just answers you can act on.
+Critique gives builders a simple way to ask **one focused question** — for
+example, *"Would you understand what this does in 10 seconds?"* — and
+collect structured human feedback on it. One question keeps the answers
+comparable, and every answer is signal you can act on.
 
 ## How it works
 
-1. **Share** — Add what you built and what it does.
-2. **Ask** — Pose one focused question about it.
-3. **Get feedback** — Clarity and would-use ratings, plus written answers.
-4. **Improve** — Act on real signal.
+1. **Create a project** — add what you built and what it does.
+2. **Ask one focused question** — the single thing you most want to know.
+3. **Share it with people** — send the link wherever your audience is.
+4. **Learn from structured feedback** — ratings for every response, plus
+   optional written suggestions.
+
+> One project. One focused question. Real human feedback.
+
+## Why use Critique?
+
+- **Focused questions** instead of vague "any thoughts?" threads
+- **Structured responses** you can compare at a glance
+- **Written suggestions** that stay private to the project owner
+- **Simple sharing** — one link; nothing for responders to install or join
+- **Open source and transparent** — no AI-generated opinions, no fake
+  testimonials, no invented social proof
+
+## Critique in numbers
+
+> Early activity snapshot from the platform.
+
+Recorded platform activity over the snapshot period. Every value below is a
+**recorded analytics event** — a counter the platform incremented — not a
+unique-user conversion, and the rows do not describe a funnel. One person
+can generate many events.
+
+| | | | |
+|---|---|---|---|
+| **228**<br>Unique visitors | **1,228**<br>Page views | **275**<br>Discover views | **191**<br>Project views |
+| **80**<br>Feedback starts | **14**<br>Successful feedback submissions | **10**<br>Project submissions | **50**<br>Feedback submit attempts |
+
+```text
+Recorded events — analytics snapshot
+One █ = 50 events; bars are rounded to the nearest quarter block,
+and the counts beside them are exact.
+
+Page views                          1,228  ████████████████████████▌
+Discover views                        275  █████▌
+Unique visitors                       228  ████▌
+Project views                         191  ███▉
+Feedback starts                        80  █▌
+Feedback submit attempts               50  █
+Successful feedback submissions        14  ▎
+Project submissions                    10  ▎
+```
+
+## What makes Critique different?
+
+- **One question** — instead of an open-ended thread that collects "looks
+  good!", every project asks a single question and every answer addresses it
+- **Structured by design** — two fixed rating questions are easy to scan and
+  compare; no comment wall to dig through
+- **Actionable text** — written suggestions stay attached to the project,
+  visible only to its owner
+- **Human responses** — feedback comes from people using the site; Critique
+  contains no AI-generated feedback
+- **Open source** — the complete implementation is public under the MIT
+  License, and the app runs locally out of the box
+- **Privacy-conscious** — no raw IP addresses stored, no third-party
+  tracking scripts, minimal analytics data
+
+## Feedback model
+
+Every response answers two core questions.
+
+**Is the project clear?**
+
+- Very clear
+- Mostly clear
+- Confusing
+
+**Would you use it?**
+
+- Yes
+- Maybe
+- No
+
+> Project owners can also receive optional written suggestions — visible
+> only to the owner.
 
 ## Features
 
-- **One focused question per project** — every project asks a single, specific question, so answers stay comparable and actionable
-- **Structured ratings** — clarity (very clear / mostly clear / confusing) and would-use (yes / maybe / no) for every response
-- **Private written suggestions** — optional free text, visible only to the project owner
-- **Discover** — a public feed ranked deterministically by need, freshness, question quality, and more
-- **My Projects** — manage your submissions and revisit results whenever you like
-- **Results dashboard** — response totals, distribution bars, and written feedback for each project
-- **Sharing** — post to X or Reddit, or copy the link, right after submitting or from My Projects
+- **Discover** — a public feed of projects asking for feedback, ranked
+  deterministically (need, freshness, question quality, and more)
+- **My Projects** — manage your submissions and revisit results
+- **Results dashboard** — totals, distribution bars, and written feedback
+  for each project
+- **Sharing** — post to X or Reddit, or copy the link, right after
+  submitting or from My Projects
 - **Dynamic badge** — a live SVG response count for your README (below)
 - **Sign-in options** — GitHub OAuth or a passwordless email magic link
-- **SEO support** — `robots.txt`, a dynamic `sitemap.xml`, and homepage social-preview metadata
+- **SEO support** — `robots.txt`, a dynamic `sitemap.xml`, and homepage
+  social-preview metadata
 
 ## Feedback badge
 
 Every project has an embeddable SVG badge with its live response count:
 
-- **Badge endpoint:** `GET /badge/{project_id}.svg` — `https://critique.page/badge/PROJECT_ID.svg`
+- **Badge endpoint:** `GET /badge/{project_id}.svg` —
+  `https://critique.page/badge/PROJECT_ID.svg`
 - **Links to:** the project page — `https://critique.page/project/PROJECT_ID`
 
 ```markdown
 [![Critique](https://critique.page/badge/PROJECT_ID.svg)](https://critique.page/project/PROJECT_ID)
 ```
 
-Replace `PROJECT_ID` with your project's ID — the number in its Critique URL.
-The count is rendered from the database on each request, and 1000+ displays
-as `1k+`.
+Replace `PROJECT_ID` with your project's ID — the number in its Critique
+URL. The count is rendered from the database on each request, and 1000+
+displays as `1k+`.
 
-## Stack
+## Try Critique
 
-| Layer | Choice |
-|---|---|
-| Backend | FastAPI + SQLAlchemy 2.x (Python 3.11+) |
-| Database | PostgreSQL in production, SQLite for development |
-| Frontend | Vanilla HTML/CSS/JS — no build step |
-| Auth | GitHub OAuth and email magic links (via Resend) |
-| Tests | pytest (290 tests; frontend-render tests use Node.js) |
-| Hosting | Render (`render.yaml`) |
-| License | MIT |
+> Have a project you're unsure about? Ask one focused question and see what
+> real people think.
+
+[Open Critique](https://critique.page/) ·
+[Explore projects](https://critique.page/discover)
+
+## Built with
+
+- **FastAPI** (Python 3.11+)
+- **SQLAlchemy** 2.x
+- **SQLite** for development, **PostgreSQL** for production
+- **Vanilla HTML/CSS/JavaScript** — no build step
+- **GitHub OAuth**
+- **Passwordless email** authentication (Resend)
+- **Render** deployment (`render.yaml`)
 
 ## Architecture
+
+```text
+Browser ── HTML pages + JSON API calls
+   │
+FastAPI ── routes, auth, CSRF, rate limiting
+   │
+SQLAlchemy ── models, validation, migrations
+   │
+SQLite (development)  /  PostgreSQL (production)
+```
+
+The server serves the pages in `frontend/` directly and exposes a JSON API
+under `/api/*`. There is no frontend build step and no ORM layer beyond
+SQLAlchemy.
+
+<details>
+<summary>Repository layout</summary>
 
 ```text
 backend/
@@ -113,15 +204,13 @@ docs/                         Setup guides and API reference
 render.yaml                   Deployment config
 ```
 
-Pages are served directly by FastAPI from `frontend/`; the browser talks to a
-JSON API under `/api/*`. There is no frontend build step and no ORM layer
-beyond SQLAlchemy.
+</details>
 
 ## Getting started
 
 **Requirements:** Python 3.11+, Git. Node.js (any recent version) is only
-needed for the frontend-render tests — they are skipped when `node` is not on
-your PATH.
+needed for the frontend-render tests — they are skipped when `node` is not
+on your PATH.
 
 ```bash
 git clone https://github.com/BistaDinesh03/critique.git
@@ -155,8 +244,8 @@ startup — no separate migration step.
 
 Authentication is optional for local browsing; sign-in is only required to
 submit or manage projects. Setup for GitHub OAuth and email magic links
-(including the `RESEND_API_KEY` and `EMAIL_FROM` values email login needs) is
-in [docs/github-oauth-setup.md](docs/github-oauth-setup.md).
+(including the `RESEND_API_KEY` and `EMAIL_FROM` values email login needs)
+is in [docs/github-oauth-setup.md](docs/github-oauth-setup.md).
 
 ## Environment variables
 
@@ -186,6 +275,36 @@ PostgreSQL, so there is no separate migration step. Production uses
 PostgreSQL, with `DATABASE_URL` provided by the hosting environment and kept
 out of the repository.
 
+## Security & privacy
+
+Critique is designed with security and privacy in mind, including:
+
+- **CSRF protection** — double-submit cookie with an `X-CSRF-Token` header
+  on all state-changing requests; sessions live in an `HttpOnly`,
+  `SameSite=Lax` cookie, with `Secure` when `SESSION_COOKIE_SECURE=true`
+  (Render sets this)
+- **Rate limiting** on auth and email login, project creation and deletion,
+  feedback submission, and analytics
+- **Input validation** — Pydantic validation on every request body, with
+  strict field patterns for feedback values
+- **XSS protection** — user-controlled output is escaped in the frontend and
+  covered by XSS regression tests
+- **Authentication and ownership checks** — project ownership is verified
+  server-side from the session on every mutation, never from client-supplied
+  headers
+- **Private written feedback** — suggestions are returned only to the
+  project owner
+- **Safe redirect handling** — login `return_to` values are validated
+  against a local-path allowlist
+- **Environment-based secrets** — credentials come from environment
+  variables and are never stored in the repository
+- **Minimal analytics** — events validated against a server-side allowlist;
+  no third-party tracking scripts; no raw IP addresses stored (only
+  SHA-256 hashes for duplicate detection)
+
+[SECURITY.md](SECURITY.md) lists the full behavior and explains how to
+report a vulnerability.
+
 ## Testing
 
 ```bash
@@ -193,51 +312,58 @@ cd backend
 python -m pytest tests/ -q
 ```
 
-Expected: **290 passed, 2 warnings** (both warnings come from third-party
-packages). The suite covers API behavior, CSRF, rate limiting, ownership
-checks, privacy rules, ranking, XSS, analytics validation, authentication
-flows, SEO endpoints, and frontend rendering through a Node-based DOM
-harness (skipped when Node.js is unavailable).
+290 tests currently pass. The suite covers API behavior, CSRF, rate
+limiting, ownership checks, privacy rules, ranking, XSS, analytics
+validation, authentication flows, SEO endpoints, and frontend rendering
+through a Node-based DOM harness (skipped when Node.js is unavailable).
 
 ## API
 
-JSON API reference: [docs/api.md](docs/api.md). While the app is running,
-interactive docs are served at `/docs` (Swagger UI) and `/redoc`, and a
-health check is available at `GET /health`.
+The JSON API is documented in [docs/api.md](docs/api.md). Major categories:
 
-## Security & privacy
+- **Authentication** — `/auth/*`: GitHub OAuth, email magic links, session
+  check, CSRF token
+- **Projects** — `/api/projects/`: create, Discover feed, owner list,
+  details, delete
+- **Feedback** — `/api/projects/{id}/responses`: submit and read responses
+- **Results** — `/api/projects/{id}/results`: aggregates for everyone,
+  written suggestions for the owner
+- **Badge** — `/badge/{id}.svg`: live response count
+- **Stats and analytics** — `/api/stats`, `/api/analytics/track`
+- **SEO** — `robots.txt`, `sitemap.xml`
 
-- CSRF protection (double-submit cookie with an `X-CSRF-Token` header) on all
-  state-changing requests; sessions live in an `HttpOnly`, `SameSite=Lax`
-  cookie, with `Secure` when `SESSION_COOKIE_SECURE=true` (Render sets this)
-- Project ownership is verified server-side from the session on every
-  mutation — never from client-supplied headers
-- Rate limiting on auth and email login, project creation and deletion,
-  feedback submission, and analytics
-- Pydantic validation on every request body; frontend output is escaped and
-  covered by XSS regression tests
-- Analytics events validated against a strict server-side allowlist; no
-  third-party tracking scripts
-- No IP addresses are stored (only SHA-256 hashes for duplicate detection),
-  and written feedback is visible only to the project owner
-
-[SECURITY.md](SECURITY.md) lists the full behavior and explains how to
-report a vulnerability.
+While the app is running, interactive docs are served at `/docs` (Swagger
+UI) and `/redoc`, and a health check is available at `GET /health`.
 
 ## Deployment
 
 Deployment is configured in `render.yaml`: a Render web service with a
 PostgreSQL database. `APP_ENV=production` and `SESSION_COOKIE_SECURE=true`
-are set there; secrets — `DATABASE_URL`, `SECRET_KEY`, OAuth credentials, and
-email keys — are marked `sync: false` and entered manually in the Render
-dashboard, never stored in the repository. See `render.yaml` for the full
-list of expected variables.
+are set there; secrets — `DATABASE_URL`, `SECRET_KEY`, OAuth credentials,
+and email keys — are marked `sync: false` and entered manually in the
+Render dashboard, never stored in the repository. See `render.yaml` for the
+full list of expected variables.
 
 ## Contributing
 
-Bug reports, ideas, and pull requests are welcome — thank you! Read
-[CONTRIBUTING.md](CONTRIBUTING.md) for guidelines, and
-[SECURITY.md](SECURITY.md) for reporting vulnerabilities.
+Contributions, bug reports, documentation improvements, and thoughtful
+product feedback are welcome.
+
+1. Fork the repository
+2. Create a branch for your change
+3. Make your changes and add tests
+4. Run the test suite
+5. Open a pull request
+
+[CONTRIBUTING.md](CONTRIBUTING.md) has the full guidelines, and
+[SECURITY.md](SECURITY.md) explains how to report vulnerabilities.
+
+## Open source
+
+Critique is open source under the MIT License. The complete implementation
+— backend, frontend, tests, and deployment configuration — lives at
+[github.com/BistaDinesh03/critique](https://github.com/BistaDinesh03/critique).
+Issues and pull requests are welcome.
 
 ## License
 
