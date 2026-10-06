@@ -1,17 +1,25 @@
-<img src="docs/logo-readme.svg#svgView(viewBox(0,0,64,47.5))" alt="Critique" width="56" />
+<p align="center">
+  <img src="docs/logo-readme.svg#svgView(viewBox(0,0,64,47.5))" alt="Critique" width="72" />
+</p>
 
-# Critique
+<h1 align="center">Critique</h1>
 
-> **Ask one question. Get real answers.**
+<p align="center">
+  <strong>Ask one question. Get real answers.</strong>
+</p>
 
-Critique is an open-source platform for getting focused, structured human
-feedback on your projects. Share what you're building, ask one specific
-question, and collect structured feedback from people who actually see your
-project.
+<p align="center">
+  Critique is an open-source platform for getting focused, structured human
+  feedback on your projects. Share what you're building, ask one specific
+  question, and collect structured feedback from people who actually see
+  your project.
+</p>
 
-[Try Critique](https://critique.page/) ·
-[Explore Projects](https://critique.page/discover) ·
-[View on GitHub](https://github.com/BistaDinesh03/critique)
+<p align="center">
+  <a href="https://critique.page/">Try Critique</a> ·
+  <a href="https://critique.page/discover">Explore Projects</a> ·
+  <a href="https://github.com/BistaDinesh03/critique">View on GitHub</a>
+</p>
 
 ## Why Critique?
 
@@ -27,51 +35,64 @@ comparable, and every answer is signal you can act on.
 
 ## How it works
 
-1. **Create a project** — add what you built and what it does.
-2. **Ask one focused question** — the single thing you most want to know.
-3. **Share it with people** — send the link wherever your audience is.
-4. **Learn from structured feedback** — ratings for every response, plus
-   optional written suggestions.
+<table>
+  <tr>
+    <td align="center"><strong>1. Create a project</strong><br>Add what you built and what it does.</td>
+    <td align="center"><strong>2. Ask one focused question</strong><br>The single thing you most want to know.</td>
+    <td align="center"><strong>3. Share it with people</strong><br>Send the link wherever your audience is.</td>
+    <td align="center"><strong>4. Learn from structured feedback</strong><br>Ratings for every response, plus optional written suggestions.</td>
+  </tr>
+</table>
 
 > One project. One focused question. Real human feedback.
 
 ## Why use Critique?
 
-- **Focused questions** instead of vague "any thoughts?" threads
-- **Structured responses** you can compare at a glance
-- **Written suggestions** that stay private to the project owner
-- **Simple sharing** — one link; nothing for responders to install or join
-- **Open source and transparent** — no AI-generated opinions, no fake
-  testimonials, no invented social proof
+<table>
+  <tr>
+    <td><strong>Focused questions</strong></td>
+    <td>Instead of vague "any thoughts?" threads</td>
+  </tr>
+  <tr>
+    <td><strong>Structured responses</strong></td>
+    <td>You can compare them at a glance</td>
+  </tr>
+  <tr>
+    <td><strong>Written suggestions</strong></td>
+    <td>Private to the project owner</td>
+  </tr>
+  <tr>
+    <td><strong>Simple sharing</strong></td>
+    <td>One link — nothing for responders to install or join</td>
+  </tr>
+  <tr>
+    <td><strong>Open source and transparent</strong></td>
+    <td>No AI-generated opinions, no fake testimonials, no invented social proof</td>
+  </tr>
+</table>
 
 ## Critique in numbers
 
 > Early activity snapshot from the platform.
 
-Recorded platform activity over the snapshot period. Every value below is a
-**recorded analytics event** — a counter the platform incremented — not a
-unique-user conversion, and the rows do not describe a funnel. One person
-can generate many events.
+Recorded platform activity over the snapshot period. These are recorded
+analytics events, not unique-user conversion rates. A single visitor can
+generate multiple events.
 
-| | | | |
-|---|---|---|---|
-| **228**<br>Unique visitors | **1,228**<br>Page views | **275**<br>Discover views | **191**<br>Project views |
-| **80**<br>Feedback starts | **14**<br>Successful feedback submissions | **10**<br>Project submissions | **50**<br>Feedback submit attempts |
-
-```text
-Recorded events — analytics snapshot
-One █ = 50 events; bars are rounded to the nearest quarter block,
-and the counts beside them are exact.
-
-Page views                          1,228  ████████████████████████▌
-Discover views                        275  █████▌
-Unique visitors                       228  ████▌
-Project views                         191  ███▉
-Feedback starts                        80  █▌
-Feedback submit attempts               50  █
-Successful feedback submissions        14  ▎
-Project submissions                    10  ▎
-```
+<table>
+  <tr>
+    <td align="center"><strong>1,228</strong><br>Page views</td>
+    <td align="center"><strong>228</strong><br>Unique visitors</td>
+    <td align="center"><strong>275</strong><br>Discover views</td>
+    <td align="center"><strong>191</strong><br>Project views</td>
+  </tr>
+  <tr>
+    <td align="center"><strong>80</strong><br>Feedback starts</td>
+    <td align="center"><strong>50</strong><br>Feedback submit attempts</td>
+    <td align="center"><strong>14</strong><br>Successful feedback submissions</td>
+    <td align="center"><strong>10</strong><br>Project submissions</td>
+  </tr>
+</table>
 
 ## What makes Critique different?
 
@@ -92,17 +113,16 @@ Project submissions                    10  ▎
 
 Every response answers two core questions.
 
-**Is the project clear?**
-
-- Very clear
-- Mostly clear
-- Confusing
-
-**Would you use it?**
-
-- Yes
-- Maybe
-- No
+<table>
+  <tr>
+    <th align="center">Is the project clear?</th>
+    <th align="center">Would you use it?</th>
+  </tr>
+  <tr>
+    <td align="center">Very clear<br>Mostly clear<br>Confusing</td>
+    <td align="center">Yes<br>Maybe<br>No</td>
+  </tr>
+</table>
 
 > Project owners can also receive optional written suggestions — visible
 > only to the owner.
@@ -147,23 +167,29 @@ displays as `1k+`.
 
 ## Built with
 
-- **FastAPI** (Python 3.11+)
-- **SQLAlchemy** 2.x
-- **SQLite** for development, **PostgreSQL** for production
-- **Vanilla HTML/CSS/JavaScript** — no build step
-- **GitHub OAuth**
-- **Passwordless email** authentication (Resend)
-- **Render** deployment (`render.yaml`)
+| Layer | Technology |
+|---|---|
+| Web framework | FastAPI (Python 3.11+) |
+| Data access | SQLAlchemy 2.x |
+| Datastores | SQLite (development), PostgreSQL (production) |
+| Frontend | Vanilla HTML/CSS/JavaScript — no build step |
+| Authentication | GitHub OAuth and passwordless email (Resend) |
+| Deployment | Render (`render.yaml`) |
 
 ## Architecture
 
 ```text
-Browser ── HTML pages + JSON API calls
+Browser — vanilla HTML/CSS/JavaScript
    │
-FastAPI ── routes, auth, CSRF, rate limiting
+   │  HTML pages + JSON API calls
+   ▼
+FastAPI — routes, auth, CSRF, rate limiting
    │
-SQLAlchemy ── models, validation, migrations
+   │  SQLAlchemy ORM queries
+   ▼
+SQLAlchemy — models, validation, migrations
    │
+   ▼
 SQLite (development)  /  PostgreSQL (production)
 ```
 
@@ -277,30 +303,19 @@ out of the repository.
 
 ## Security & privacy
 
-Critique is designed with security and privacy in mind, including:
+Critique is designed with security and privacy in mind:
 
-- **CSRF protection** — double-submit cookie with an `X-CSRF-Token` header
-  on all state-changing requests; sessions live in an `HttpOnly`,
-  `SameSite=Lax` cookie, with `Secure` when `SESSION_COOKIE_SECURE=true`
-  (Render sets this)
-- **Rate limiting** on auth and email login, project creation and deletion,
-  feedback submission, and analytics
-- **Input validation** — Pydantic validation on every request body, with
-  strict field patterns for feedback values
-- **XSS protection** — user-controlled output is escaped in the frontend and
-  covered by XSS regression tests
-- **Authentication and ownership checks** — project ownership is verified
-  server-side from the session on every mutation, never from client-supplied
-  headers
-- **Private written feedback** — suggestions are returned only to the
-  project owner
-- **Safe redirect handling** — login `return_to` values are validated
-  against a local-path allowlist
-- **Environment-based secrets** — credentials come from environment
-  variables and are never stored in the repository
-- **Minimal analytics** — events validated against a server-side allowlist;
-  no third-party tracking scripts; no raw IP addresses stored (only
-  SHA-256 hashes for duplicate detection)
+| Protection | Behavior |
+|---|---|
+| **CSRF protection** | Double-submit cookie with an `X-CSRF-Token` header on all state-changing requests; sessions live in an `HttpOnly`, `SameSite=Lax` cookie, with `Secure` when `SESSION_COOKIE_SECURE=true` (Render sets this) |
+| **Rate limiting** | Auth and email login, project creation and deletion, feedback submission, and analytics |
+| **Input validation** | Pydantic validation on every request body, with strict field patterns for feedback values |
+| **XSS protection** | User-controlled output is escaped in the frontend and covered by XSS regression tests |
+| **Authentication and ownership checks** | Project ownership is verified server-side from the session on every mutation, never from client-supplied headers |
+| **Private written feedback** | Suggestions are returned only to the project owner |
+| **Safe redirect handling** | Login `return_to` values are validated against a local-path allowlist |
+| **Environment-based secrets** | Credentials come from environment variables and are never stored in the repository |
+| **Minimal analytics** | Events validated against a server-side allowlist; no third-party tracking scripts; no raw IP addresses stored (only SHA-256 hashes for duplicate detection) |
 
 [SECURITY.md](SECURITY.md) lists the full behavior and explains how to
 report a vulnerability.
