@@ -696,6 +696,16 @@
             color: #166534;
         }
 
+        .review-card + .review-card {
+            margin-top: var(--space-5);
+        }
+
+        .review-card.unrated .review-meta {
+            border-bottom: none;
+            padding-bottom: 0;
+            margin-bottom: 0;
+        }
+
         @media (max-width: 600px) {
             .review-card {
                 padding: var(--space-5);
@@ -1061,6 +1071,29 @@
                     <span class="review-tag">UI</span>
                     <span class="review-tag">Analytics</span>
                     <span class="review-tag accent">70 tests passing</span>
+                </div>
+            </div>
+
+            <div class="review-card unrated">
+                <div class="review-header">
+                    <div class="review-author">
+                        <div class="review-avatar" aria-hidden="true">A</div>
+                        <div>
+                            <div class="review-name">Alex Lovesyuk</div>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="review-summary">
+                    “Critique's focus on honest feedback for builders caught my eye.”
+                </p>
+
+                <div class="review-meta">
+                    <span>External review</span>
+                    <span class="review-meta-dot">·</span>
+                    <span>Twitter</span>
+                    <span class="review-meta-dot">·</span>
+                    <span>Oct 2026</span>
                 </div>
             </div>
         </section>
