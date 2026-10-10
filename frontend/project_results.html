@@ -9,7 +9,7 @@
     <style>
         .back-link {
             display: inline-block;
-            color: var(--text-muted);
+            color: var(--text-secondary);
             font-size: var(--text-sm);
             margin-bottom: var(--space-4);
         }
@@ -19,20 +19,26 @@
             text-decoration: none;
         }
 
-        .page-header {
-            margin-bottom: var(--space-6);
+        /* ---------- Results header ---------- */
+
+        .results-header {
+            margin-bottom: var(--space-5);
         }
 
-        .page-header h2 {
+        .results-title-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: var(--space-3);
+        }
+
+        .results-title-row h2 {
+            margin: 0;
             font-size: var(--text-2xl);
             font-weight: 700;
             letter-spacing: -0.01em;
-        }
-
-        .page-header .project-name {
-            color: var(--text-muted);
-            font-size: var(--text-sm);
-            margin-top: var(--space-2);
+            color: var(--text-primary);
         }
 
         .total-badge {
@@ -43,7 +49,12 @@
             font-size: var(--text-sm);
             font-weight: 600;
             color: var(--text-primary);
-            margin-top: var(--space-3);
+        }
+
+        .project-name {
+            color: var(--text-secondary);
+            font-size: var(--text-sm);
+            margin: var(--space-2) 0 0;
         }
 
         .question-card {
@@ -52,7 +63,7 @@
             border-left: 3px solid var(--accent);
             border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
             padding: var(--space-4) var(--space-5);
-            margin-bottom: var(--space-6);
+            margin: var(--space-4) 0 0;
         }
 
         .question-label {
@@ -60,72 +71,83 @@
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            color: var(--text-muted);
-            margin-bottom: var(--space-2);
+            color: var(--text-secondary);
+            margin: 0 0 var(--space-2);
         }
 
         .question-text {
             font-weight: 600;
             font-size: var(--text-lg);
             line-height: 1.4;
-        }
-
-        .quick-signals {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: var(--space-4);
-            margin-bottom: var(--space-6);
-        }
-
-        .signal-card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-lg);
-            padding: var(--space-4);
-            text-align: center;
-        }
-
-        .signal-value {
-            font-size: var(--text-2xl);
-            font-weight: 700;
             color: var(--text-primary);
+            margin: 0;
+            overflow-wrap: anywhere;
         }
 
-        .signal-label {
-            font-size: var(--text-xs);
-            color: var(--text-muted);
-            margin-top: var(--space-1);
-        }
+        /* ---------- Summary cards (clarity / would-use) ---------- */
 
-        .stats-grid {
+        .summary-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: var(--space-5);
-            margin-bottom: var(--space-6);
+            margin-bottom: var(--space-3);
         }
 
-        .stat-card {
+        .summary-card {
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: var(--radius-lg);
             padding: var(--space-5);
         }
 
-        .stat-card h3 {
+        .summary-title-row {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: var(--space-2);
+            margin-bottom: var(--space-4);
+        }
+
+        .summary-title-row h3 {
+            margin: 0;
             font-size: var(--text-base);
             font-weight: 700;
-            margin-bottom: var(--space-4);
             color: var(--text-primary);
+        }
+
+        .summary-chip {
+            background: var(--surface-muted);
+            color: var(--text-primary);
+            font-size: var(--text-xs);
+            font-weight: 600;
+            padding: var(--space-1) var(--space-3);
+            border-radius: 999px;
+            max-width: 100%;
+            overflow-wrap: anywhere;
+        }
+
+        /* ---------- Distribution bars ---------- */
+
+        .bar-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
         }
 
         .bar-row {
             margin-bottom: var(--space-3);
         }
 
+        .bar-row:last-child {
+            margin-bottom: 0;
+        }
+
         .bar-header {
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: baseline;
+            gap: var(--space-3);
             margin-bottom: var(--space-1);
         }
 
@@ -137,7 +159,8 @@
 
         .bar-meta {
             font-size: var(--text-xs);
-            color: var(--text-muted);
+            color: var(--text-secondary);
+            white-space: nowrap;
         }
 
         .bar-track {
@@ -160,14 +183,28 @@
         .bar-fill.maybe { background: var(--warning); }
         .bar-fill.no { background: var(--danger); }
 
-        .written-feedback {
-            margin-top: var(--space-6);
+        /* ---------- Sample-size note ---------- */
+
+        .sample-note {
+            font-size: var(--text-xs);
+            line-height: 1.5;
+            color: var(--text-secondary);
+            margin: var(--space-4) 0 var(--space-6);
         }
+
+        /* ---------- Written feedback ---------- */
 
         .written-feedback h3 {
             font-size: var(--text-lg);
             font-weight: 700;
-            margin-bottom: var(--space-4);
+            margin: 0 0 var(--space-4);
+            color: var(--text-primary);
+        }
+
+        .feedback-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
         }
 
         .feedback-card {
@@ -178,21 +215,31 @@
             margin-bottom: var(--space-3);
         }
 
+        .feedback-card:last-child {
+            margin-bottom: 0;
+        }
+
+        /* The comment is the content; choices below it are secondary metadata. */
+        .feedback-text {
+            margin: 0 0 var(--space-2);
+            padding: 0;
+            border: 0;
+            color: var(--text-primary);
+            font-size: var(--text-base);
+            line-height: 1.55;
+            overflow-wrap: anywhere;
+        }
+
         .feedback-meta {
             display: flex;
             gap: var(--space-4);
             flex-wrap: wrap;
-            font-size: var(--text-sm);
+            margin: 0;
+            font-size: var(--text-xs);
             color: var(--text-secondary);
-            margin-bottom: var(--space-2);
         }
 
-        .feedback-text {
-            color: var(--text-primary);
-            font-size: var(--text-sm);
-            line-height: 1.5;
-            overflow-wrap: anywhere;
-        }
+        /* ---------- Actions ---------- */
 
         .action-buttons {
             display: flex;
@@ -201,13 +248,25 @@
             margin-top: var(--space-6);
         }
 
+        .action-buttons.centered {
+            justify-content: center;
+        }
+
         @media (max-width: 600px) {
-            .stats-grid {
+            .summary-grid {
                 grid-template-columns: 1fr;
             }
 
-            .quick-signals {
-                grid-template-columns: 1fr;
+            .results-title-row h2 {
+                font-size: var(--text-xl);
+            }
+        }
+
+        /* The shared stylesheet already reduces motion globally; this makes the
+           bar width transition's intent explicit for this page as well. */
+        @media (prefers-reduced-motion: reduce) {
+            .bar-fill {
+                transition: none;
             }
         }
     </style>
@@ -226,12 +285,12 @@
             <a href="/my-projects">My Projects</a>
             <a href="/#submit" class="btn-nav">Submit a project</a>
             <a href="/auth/login" class="btn-nav" id="login-btn" aria-label="Login with GitHub"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg> Login</a>
-            <a href="/auth/logout" class="btn-nav" id="logout-btn" style="display:none;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> Logout</a>
+            <a href="/auth/logout" class="btn-nav" id="logout-btn"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> Logout</a>
         </nav>
     </header>
 
     <main class="container-wide">
-        <a href="/project/' + projectId + '" class="back-link">Back to project</a>
+        <a id="back-link" href="/" class="back-link">Back to project</a>
         <div id="content">
             <div class="loading-state"><div class="loading-spinner"></div><p>Loading results...</p></div>
         </div>
@@ -239,6 +298,16 @@
 
     <script>
         const projectId = window.location.pathname.split('/')[2];
+
+        // The same HTML file serves every project page, so the back link's
+        // target is filled in from the path at runtime. setAttribute keeps
+        // path-shaped input out of the markup source entirely.
+        (function () {
+            const backLink = document.getElementById('back-link');
+            if (backLink && projectId) {
+                backLink.setAttribute('href', '/project/' + encodeURIComponent(String(projectId)));
+            }
+        })();
 
         // Attribute-safe HTML escaping: &, <, >, " and ' are all escaped so a
         // user-controlled value can never break out of a quoted HTML attribute.
@@ -262,17 +331,75 @@
             return labels[value] || value;
         }
 
-        function renderBar(label, pct, count, cssClass) {
-            return '<div class="bar-row">' +
-                '<div class="bar-header">' +
-                '<span class="bar-label">' + label + '</span>' +
-                '<span class="bar-meta">' + pct + '% · ' + count + ' of ' + totalResponses + '</span>' +
-                '</div>' +
-                '<div class="bar-track"><div class="bar-fill ' + cssClass + '" style="width: ' + pct + '%"></div></div>' +
-                '</div>';
+        const CLARITY_KEYS = ['very_clear', 'mostly_clear', 'confusing'];
+        const WOULD_USE_KEYS = ['yes', 'maybe', 'no'];
+
+        // The API reports each category as a percentage rounded to one decimal.
+        // Percentages alone cannot be turned back into counts naively (the
+        // rounded values may not even sum to 100), so counts are recovered with
+        // the largest-remainder method: floor every share, then give the
+        // leftover responses to the largest fractional parts. The result always
+        // sums to the reported total, and it is exact for any realistic sample
+        // (rounding error stays below half a response until the total is around
+        // a thousand). The backend contract is untouched: this only interprets
+        // the numbers it already sends.
+        function deriveCounts(pcts, total) {
+            const keys = Object.keys(pcts || {});
+            const counts = {};
+            keys.forEach(function (key) { counts[key] = 0; });
+            if (!total || keys.length === 0) return counts;
+
+            const raw = keys.map(function (key) {
+                const value = Number(pcts[key]);
+                return (isFinite(value) ? value : 0) / 100 * total;
+            });
+
+            let assigned = 0;
+            raw.forEach(function (value, i) {
+                const floored = Math.floor(value);
+                counts[keys[i]] = floored;
+                assigned += floored;
+            });
+
+            const byRemainder = raw
+                .map(function (value, i) { return { i: i, frac: value - Math.floor(value) }; })
+                .sort(function (a, b) { return b.frac - a.frac; });
+
+            let remainder = total - assigned;
+            let step = 0;
+            while (remainder > 0) {
+                counts[keys[byRemainder[step % byRemainder.length].i]] += 1;
+                step += 1;
+                remainder -= 1;
+            }
+            // Defensive: floating-point sums can overshoot by a hair. Trim the
+            // most generous floors instead of ever printing a negative count.
+            while (remainder < 0) {
+                let trimmed = false;
+                for (let j = byRemainder.length - 1; j >= 0; j--) {
+                    const key = keys[byRemainder[j].i];
+                    if (counts[key] > 0) {
+                        counts[key] -= 1;
+                        remainder += 1;
+                        trimmed = true;
+                        break;
+                    }
+                }
+                if (!trimmed) break;
+            }
+            return counts;
+        }
+
+        // Display percentages cleanly: 100 -> "100", 66.70000000000001 -> "66.7".
+        function formatPct(value) {
+            const n = Number(value);
+            if (!isFinite(n)) return '0';
+            return String(Math.round(n * 10) / 10);
         }
 
         let totalResponses = 0;
+        let responseCounts = { clarity: {}, would_use: {} };
+        let derivedFrom = null;
 
         function countResponses(data) {
             if (data.is_owner && data.responses.length > 0) {
@@ -280,98 +407,144 @@
             } else {
                 totalResponses = data.stats.total;
             }
+            responseCounts.clarity = deriveCounts(data.stats.clarity, totalResponses);
+            responseCounts.would_use = deriveCounts(data.stats.would_use, totalResponses);
+            derivedFrom = data.stats;
         }
 
-        function renderSummary(stats) {
-            let summary = '';
-            if (stats.total === 0) return summary;
-            if (stats.total === 1) {
-                summary = '<p style="color:var(--text-muted);font-size:var(--text-sm);margin-bottom:var(--space-4);">1 person responded.</p>';
-            } else {
-                summary = '<p style="color:var(--text-muted);font-size:var(--text-sm);margin-bottom:var(--space-4);">' + stats.total + ' people responded.</p>';
+        function renderBar(label, pct, count, cssClass) {
+            const pctText = formatPct(pct);
+            return '<li class="bar-row">' +
+                '<div class="bar-header">' +
+                '<span class="bar-label">' + escapeHtml(label) + '</span>' +
+                '<span class="bar-meta">' + pctText + '% · ' + count + ' of ' + totalResponses + '</span>' +
+                '</div>' +
+                '<div class="bar-track" aria-hidden="true"><div class="bar-fill ' + cssClass + '" style="width: ' + pctText + '%"></div></div>' +
+                '</li>';
+        }
+
+        // The categories that are tied for most common, in label form. Empty
+        // only when there is nothing to summarize (zero responses).
+        function topLabels(counts, keys, labelFn) {
+            let max = 0;
+            keys.forEach(function (key) {
+                if ((counts[key] || 0) > max) max = counts[key];
+            });
+            if (max <= 0) return [];
+            return keys
+                .filter(function (key) { return (counts[key] || 0) === max; })
+                .map(labelFn);
+        }
+
+        function renderSummaryCard(title, headingId, pcts, counts, keys, labelFn) {
+            const leaders = topLabels(counts, keys, labelFn);
+            let html = '<section class="summary-card" aria-labelledby="' + headingId + '">';
+            html += '<div class="summary-title-row">';
+            html += '<h3 id="' + headingId + '">' + title + '</h3>';
+            if (leaders.length > 0) {
+                html += '<span class="summary-chip"><span class="sr-only">Most common: </span>' +
+                    escapeHtml(leaders.join(', ')) + '</span>';
             }
-            return summary;
+            html += '</div>';
+            html += '<ul class="bar-list">';
+            keys.forEach(function (key) {
+                html += renderBar(labelFn(key), pcts[key], counts[key] || 0, key);
+            });
+            html += '</ul>';
+            html += '</section>';
+            return html;
+        }
+
+        // An honest, subtle note about what the sample is. Small samples get a
+        // clearer caveat; nothing here claims significance or certainty.
+        function sampleNoteText(total) {
+            if (total === 1) {
+                return 'Based on 1 response. One answer is a starting point, not a pattern.';
+            }
+            if (total < 5) {
+                return 'Based on ' + total + ' responses. Small sample — every new answer moves these numbers.';
+            }
+            return 'Based on ' + total + ' responses. Percentages are simple shares of these answers, not statistical measures.';
+        }
+
+        function renderActions() {
+            return '<div class="action-buttons">' +
+                '<a href="/project/' + escapeHtml(projectId) + '" class="btn btn-primary">Get more feedback</a>' +
+                '<a href="/discover" class="btn btn-secondary">Discover projects</a>' +
+                '</div>';
         }
 
         function renderPage(data) {
+            // Derive counts on demand so the page also renders correctly when
+            // renderPage is invoked without a preceding countResponses call.
+            if (derivedFrom !== data.stats) countResponses(data);
+
             const content = document.getElementById('content');
+            const total = data.stats.total;
             let html = '';
 
-            // Header
-            html += '<div class="page-header">';
+            // Compact header: title + total, project name, the question.
+            html += '<header class="results-header">';
+            html += '<div class="results-title-row">';
             html += '<h2>Feedback results</h2>';
-            html += '<p class="project-name">' + escapeHtml(data.project_title) + '</p>';
-            html += '<span class="total-badge">' + data.stats.total + ' total response' + (data.stats.total !== 1 ? 's' : '') + '</span>';
+            html += '<span class="total-badge">' + total + ' total response' + (total !== 1 ? 's' : '') + '</span>';
             html += '</div>';
-
-            // Question
+            html += '<p class="project-name">' + escapeHtml(data.project_title) + '</p>';
             if (data.question_text) {
                 html += '<div class="question-card">';
-                html += '<div class="question-label">The Question</div>';
-                html += '<div class="question-text">' + escapeHtml(data.question_text) + '</div>';
+                html += '<p class="question-label">The Question</p>';
+                html += '<p class="question-text">' + escapeHtml(data.question_text) + '</p>';
                 html += '</div>';
             }
+            html += '</header>';
 
-            if (data.stats.total === 0) {
+            if (total === 0) {
                 html += '<div class="empty-state">';
                 html += '<h3>No feedback yet</h3>';
                 html += '<p>Share your project to start collecting honest feedback.</p>';
-                html += '<div class="action-buttons" style="justify-content:center;">';
-                html += '<a href="/project/' + projectId + '" class="btn btn-primary">Share project</a>';
                 html += '</div>';
+                html += '<div class="action-buttons centered">';
+                html += '<a href="/project/' + escapeHtml(projectId) + '" class="btn btn-primary">Get more feedback</a>';
+                html += '<a href="/discover" class="btn btn-secondary">Discover projects</a>';
                 html += '</div>';
                 content.innerHTML = html;
                 return;
             }
 
-            // Quick signals
-            html += '<div class="quick-signals">';
-            html += '<div class="signal-card"><div class="signal-value">' + data.stats.total + '</div><div class="signal-label">Total responses</div></div>';
-            html += '<div class="signal-card"><div class="signal-value">' + data.stats.clarity.very_clear + '%</div><div class="signal-label">Very clear</div></div>';
-            html += '<div class="signal-card"><div class="signal-value">' + data.stats.would_use.yes + '%</div><div class="signal-label">Would use</div></div>';
+            // Two summary cards: the full distribution as accessible bars, with
+            // the most common answer called out in the card header.
+            html += '<div class="summary-grid">';
+            html += renderSummaryCard('How clear is it?', 'clarity-summary-title',
+                data.stats.clarity, responseCounts.clarity, CLARITY_KEYS, clarityLabel);
+            html += renderSummaryCard('Would you use it?', 'would-use-summary-title',
+                data.stats.would_use, responseCounts.would_use, WOULD_USE_KEYS, wouldUseLabel);
             html += '</div>';
 
-            // Summary
-            html += renderSummary(data.stats);
+            html += '<p class="sample-note">' + sampleNoteText(total) + '</p>';
 
-            // Stats grid
-            html += '<div class="stats-grid">';
-            html += '<div class="stat-card"><h3>How clear is it?</h3>';
-            html += renderBar('Very clear', data.stats.clarity.very_clear, Math.round(data.stats.clarity.very_clear / 100 * totalResponses), 'very_clear');
-            html += renderBar('Mostly clear', data.stats.clarity.mostly_clear, Math.round(data.stats.clarity.mostly_clear / 100 * totalResponses), 'mostly_clear');
-            html += renderBar('Confusing', data.stats.clarity.confusing, Math.round(data.stats.clarity.confusing / 100 * totalResponses), 'confusing');
-            html += '</div>';
-            html += '<div class="stat-card"><h3>Would you use it?</h3>';
-            html += renderBar('Yes', data.stats.would_use.yes, Math.round(data.stats.would_use.yes / 100 * totalResponses), 'yes');
-            html += renderBar('Maybe', data.stats.would_use.maybe, Math.round(data.stats.would_use.maybe / 100 * totalResponses), 'maybe');
-            html += renderBar('No', data.stats.would_use.no, Math.round(data.stats.would_use.no / 100 * totalResponses), 'no');
-            html += '</div>';
-            html += '</div>';
-
-            // Written feedback (owner only)
+            // Written feedback (owner only): the comment leads, the choices
+            // follow as quiet metadata.
             if (data.is_owner && data.responses.length > 0) {
-                const withSuggestions = data.responses.filter(function(r) { return r.suggestion; });
+                const withSuggestions = data.responses.filter(function (r) { return r.suggestion; });
                 if (withSuggestions.length > 0) {
-                    html += '<div class="written-feedback">';
-                    html += '<h3>Written feedback</h3>';
-                    withSuggestions.forEach(function(r) {
-                        html += '<div class="feedback-card">';
-                        html += '<div class="feedback-meta">';
-                        html += '<span>Clarity: ' + clarityLabel(r.clarity) + '</span>';
-                        html += '<span>Would use: ' + wouldUseLabel(r.would_use) + '</span>';
-                        html += '</div>';
-                        html += '<p class="feedback-text">' + escapeHtml(r.suggestion) + '</p>';
-                        html += '</div>';
+                    html += '<section class="written-feedback" aria-labelledby="written-feedback-title">';
+                    html += '<h3 id="written-feedback-title">Written feedback</h3>';
+                    html += '<ul class="feedback-list">';
+                    withSuggestions.forEach(function (r) {
+                        html += '<li class="feedback-card">';
+                        html += '<blockquote class="feedback-text">' + escapeHtml(r.suggestion) + '</blockquote>';
+                        html += '<p class="feedback-meta">' +
+                            '<span>Clarity: ' + escapeHtml(clarityLabel(r.clarity)) + '</span>' +
+                            '<span>Would use: ' + escapeHtml(wouldUseLabel(r.would_use)) + '</span>' +
+                            '</p>';
+                        html += '</li>';
                     });
-                    html += '</div>';
+                    html += '</ul>';
+                    html += '</section>';
                 }
             }
 
-            // Actions
-            html += '<div class="action-buttons">';
-            html += '<a href="/project/' + projectId + '" class="btn btn-primary">Get more feedback</a>';
-            html += '<a href="/discover" class="btn btn-secondary">Discover projects</a>';
-            html += '</div>';
+            html += renderActions();
 
             content.innerHTML = html;
         }
@@ -379,7 +552,7 @@
         async function loadResults() {
             const content = document.getElementById('content');
             try {
-                const response = await fetch('/api/projects/' + projectId + '/results');
+                const response = await fetch('/api/projects/' + encodeURIComponent(String(projectId)) + '/results');
                 if (!response.ok) {
                     throw new Error('Failed to load results');
                 }
@@ -392,7 +565,7 @@
         }
 
         loadResults();
-    
+
         async function checkAuth() {
             try {
                 const response = await fetch('/auth/check', { credentials: 'same-origin' });
@@ -409,7 +582,7 @@
             }
         }
 
-            try { checkAuth(); } catch(e) {}
+        try { checkAuth(); } catch(e) {}
     </script>
     <script src="/static/ui.js"></script>
     <script src="/static/analytics.js"></script>
@@ -444,8 +617,6 @@
             <span>© 2026 Critique · Open source · Free to use</span>
         </div>
     </footer>
-
-
 
     <script>
     (function() {

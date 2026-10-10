@@ -10,9 +10,8 @@ to land on a deliberate header state:
   check must never leave authenticated UI up, not even the stamped one.
 
 The Node rendering harness runs the real page scripts, so what is asserted
-is what the browser actually executes. The four pages covered here are the
-ones whose markup this pass touched; project_results.html is a separate
-change in progress and is intentionally excluded.
+is what the browser actually executes. All five pages that ship the shared
+navbar are covered, the results page included.
 
 Requires ``node`` on PATH; the whole module is skipped when it is missing.
 """
@@ -34,7 +33,8 @@ pytestmark = pytest.mark.skipif(
     reason="node is required to run the frontend rendering harness",
 )
 
-PAGES = ["index.html", "discover.html", "my_projects.html", "project_detail.html"]
+PAGES = ["index.html", "discover.html", "my_projects.html", "project_detail.html",
+         "project_results.html"]
 
 CHECK_SUCCESS = {"/auth/check": {"status": 200, "body": {"authenticated": True}}}
 CHECK_UNAUTHORIZED = {"/auth/check": {"status": 401, "body": {"detail": "Not authenticated"}}}
