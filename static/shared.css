@@ -265,6 +265,18 @@ img {
 
 .btn-nav svg {
     flex-shrink: 0;
+    /* When JS shows an auth button with display:inline (inline-flex is lost),
+       the icon no longer has flex align-items to centre it. This nudge keeps
+       icon and label optically aligned in that state; it is ignored while the
+       button is actually a flex container. */
+    vertical-align: -0.15em;
+}
+
+/* The logged-out header is the default; the logout link is revealed by the
+   session check's inline styles, or earlier by the server-stamped
+   data-auth="in" rule in <head>. */
+#logout-btn {
+    display: none;
 }
 .btn {
     display: inline-flex;

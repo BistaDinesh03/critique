@@ -1,5 +1,5 @@
 ﻿from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
@@ -7,6 +7,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from app.config import settings
 from app.database import init_db
 from app.auth import router as auth_router
+from app.auth import session_cookie_is_valid
 from app.csrf import generate_csrf_token, set_csrf_cookie
 from app.routes_projects import router as projects_router
 from app.routes_responses import router as responses_router
@@ -63,6 +64,39 @@ def _read_frontend_file(filename: str) -> str:
     return file_path.read_text(encoding="utf-8")
 
 
+# Early auth state for the navbar. Stamped into <head> before the header is
+# parsed, so a returning authenticated visitor's first paint already shows the
+# logged-in header instead of flashing Login while /auth/check is in flight.
+# The client-side check remains authoritative: its inline styles override
+# these rules, so a failed or 401 check always lands on the logged-out UI.
+_EARLY_AUTH_SCRIPT = (
+    '<script>document.documentElement.setAttribute("data-auth","in");</script>'
+)
+_EARLY_AUTH_STYLE = (
+    "<style>"
+    'html[data-auth="in"] #login-btn{display:none}'
+    'html[data-auth="in"] #logout-btn{display:inline-flex}'
+    "</style>"
+)
+
+
+def _page_response(request: Request, filename: str) -> HTMLResponse:
+    """Serve a frontend page, stamping early auth state when a valid session
+    cookie accompanies the request (signature + age only, no DB lookup)."""
+    html = _read_frontend_file(filename)
+    if session_cookie_is_valid(request):
+        html = html.replace(
+            "</head>", _EARLY_AUTH_SCRIPT + _EARLY_AUTH_STYLE + "</head>", 1
+        )
+    response = HTMLResponse(content=html)
+    # The body varies with the session cookie (the early-auth stamp), so no
+    # cache -- shared or browser -- may replay one visitor's page to another.
+    response.headers["Cache-Control"] = "private, no-store"
+    response.headers["Vary"] = "Cookie"
+    set_csrf_cookie(response, generate_csrf_token())
+    return response
+
+
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request, exc):
     """Generic error handler that doesn't leak stack traces."""
@@ -70,38 +104,28 @@ async def unhandled_exception_handler(request, exc):
 
 
 @app.get("/", response_class=HTMLResponse)
-def homepage():
-    response = HTMLResponse(content=_read_frontend_file("index.html"))
-    set_csrf_cookie(response, generate_csrf_token())
-    return response
+def homepage(request: Request):
+    return _page_response(request, "index.html")
 
 
 @app.get("/my-projects", response_class=HTMLResponse)
-def my_projects_page():
-    response = HTMLResponse(content=_read_frontend_file("my_projects.html"))
-    set_csrf_cookie(response, generate_csrf_token())
-    return response
+def my_projects_page(request: Request):
+    return _page_response(request, "my_projects.html")
 
 
 @app.get("/discover", response_class=HTMLResponse)
-def discover_page():
-    response = HTMLResponse(content=_read_frontend_file("discover.html"))
-    set_csrf_cookie(response, generate_csrf_token())
-    return response
+def discover_page(request: Request):
+    return _page_response(request, "discover.html")
 
 
 @app.get("/project/{project_id}", response_class=HTMLResponse)
-def project_detail_page(project_id: int):
-    response = HTMLResponse(content=_read_frontend_file("project_detail.html"))
-    set_csrf_cookie(response, generate_csrf_token())
-    return response
+def project_detail_page(request: Request, project_id: int):
+    return _page_response(request, "project_detail.html")
 
 
 @app.get("/project/{project_id}/results", response_class=HTMLResponse)
-def project_results_page(project_id: int):
-    response = HTMLResponse(content=_read_frontend_file("project_results.html"))
-    set_csrf_cookie(response, generate_csrf_token())
-    return response
+def project_results_page(request: Request, project_id: int):
+    return _page_response(request, "project_results.html")
 
 
 

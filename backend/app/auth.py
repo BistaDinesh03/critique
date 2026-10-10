@@ -77,6 +77,23 @@ def get_current_user_optional(request: Request, db: Session = Depends(get_db)):
         return None
 
 
+def session_cookie_is_valid(request: Request, max_age: int = 86400 * 7) -> bool:
+    """Cheap session probe for stamping early auth state into served pages.
+
+    Verifies the cookie's signature and age only -- no database lookup -- so
+    page responses stay fast. It is a hint for the first paint: the browser
+    still runs /auth/check (DB-backed) and adopts whatever it answers.
+    """
+    token = request.cookies.get(SESSION_COOKIE_NAME)
+    if not token:
+        return False
+    try:
+        serializer.loads(token, max_age=max_age)
+        return True
+    except (BadSignature, SignatureExpired):
+        return False
+
+
 RETURN_TO_COOKIE_NAME = "critique_return_to"
 
 

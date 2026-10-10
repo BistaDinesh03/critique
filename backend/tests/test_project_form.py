@@ -214,6 +214,41 @@ def test_project_form_gives_the_question_the_only_accent():
     assert 'class="form-section form-optional"' in form
 
 
+def test_screenshot_helper_text_is_short_and_never_repeats_itself():
+    """The optional screenshot field gets one benefit line and one how-to line.
+
+    The label plus its badge already say the field is optional, so the helper
+    text must not restate that -- and the example lives in the placeholder
+    instead of a third paragraph.
+    """
+    page = page_source("index.html")
+    match = re.search(
+        r'<label class="form-label" for="image_url">.*?</div>', page, re.S
+    )
+    assert match, "screenshot form group not found"
+    group = match.group(0)
+
+    assert "Project screenshot" in group
+    assert "form-optional-tag" in group
+    assert group.count("form-helper") == 2, "helper text must not pile up"
+    assert "Help others see what you've built." in group
+    assert (
+        "Paste a direct link to an image. Leave blank if you don't have one."
+        in group
+    )
+    assert 'placeholder="https://example.com/screenshot.png"' in group
+
+    # The repetitive copy this replaced is gone for good.
+    assert "add a screenshot so builders" not in page
+    assert "Have a public screenshot?" not in page
+    assert "https://your-site.com/screenshot.png" not in page
+
+    # The field contract itself is untouched: optional direct image URL.
+    image_url = tag_with_id(page, "image_url")
+    assert 'type="url"' in image_url and 'maxlength="500"' in image_url
+    assert "required" not in image_url
+
+
 def test_the_project_post_carries_the_csrf_header():
     """The API rejects these posts without it (test_csrf.py), so the page sends it."""
     assert "'X-CSRF-Token': csrfToken" in page_source("index.html")
