@@ -24,7 +24,12 @@ class CacheControlMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         response = await call_next(request)
         if request.url.path.startswith("/static/"):
-            response.headers["Cache-Control"] = "public, max-age=86400"
+            # Script and style URLs stay the same across deploys, so browsers
+            # must revalidate them. Images can keep the longer cache lifetime.
+            if request.url.path.endswith((".js", ".css")):
+                response.headers["Cache-Control"] = "no-cache"
+            else:
+                response.headers["Cache-Control"] = "public, max-age=86400"
         return response
 
 

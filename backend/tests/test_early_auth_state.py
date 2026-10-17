@@ -178,14 +178,20 @@ def test_pages_opt_out_of_caching_because_their_body_varies_by_cookie():
             assert response.headers["vary"] == "Cookie", path
 
 
-def test_cache_headers_reach_only_the_html_pages():
-    """Static assets keep their own caching; API and auth stay untouched."""
+def test_cache_headers_match_asset_mutability():
+    """Scripts and styles revalidate; images keep their one-day cache."""
     client = _client()
 
-    static = client.get("/static/shared.css")
-    assert static.status_code == 200
-    assert static.headers["cache-control"] == "public, max-age=86400"
-    assert "vary" not in static.headers
+    for path in ("/static/shared.css", "/static/ui.js"):
+        static = client.get(path)
+        assert static.status_code == 200, path
+        assert static.headers["cache-control"] == "no-cache", path
+        assert "vary" not in static.headers
+
+    image = client.get("/static/logo.png")
+    assert image.status_code == 200
+    assert image.headers["cache-control"] == "public, max-age=86400"
+    assert "vary" not in image.headers
 
     listing = client.get("/api/projects/")
     assert listing.status_code == 200
