@@ -1,9 +1,18 @@
 ﻿import time
 import ipaddress
-from collections import defaultdict
+from collections import OrderedDict
+from threading import Lock
 from fastapi import HTTPException, Request, Depends
 
-_requests = defaultdict(list)
+_requests = OrderedDict()
+_requests_lock = Lock()
+_request_count = 0
+
+# Sweeping every request would scan all clients. The cap also bounds memory
+# when new addresses arrive faster than their windows expire; eviction may
+# give the least recently seen client a fresh allowance if it returns.
+SWEEP_INTERVAL = 100
+MAX_TRACKED_KEYS = 10_000
 
 RATE_LIMITS = {
     "auth": {"max_requests": 10, "window": 60},
@@ -16,9 +25,12 @@ RATE_LIMITS = {
 }
 
 
-def _cleanup_old(key: str, window: int):
-    now = time.time()
-    _requests[key] = [ts for ts in _requests[key] if now - ts < window]
+def _sweep_expired(now: float):
+    for key, timestamps in list(_requests.items()):
+        endpoint = key.split(":", 1)[0]
+        window = RATE_LIMITS[endpoint]["window"]
+        if not timestamps or now - timestamps[-1] >= window:
+            del _requests[key]
 
 
 def _client_ip(request: Request) -> str:
@@ -41,6 +53,7 @@ def _client_ip(request: Request) -> str:
 
 def rate_limit(endpoint: str):
     def dependency(request: Request):
+        global _request_count
         config = RATE_LIMITS.get(endpoint)
         if not config:
             return
@@ -48,15 +61,28 @@ def rate_limit(endpoint: str):
         client_ip = _client_ip(request)
         key = f"{endpoint}:{client_ip}"
 
-        _cleanup_old(key, config["window"])
+        with _requests_lock:
+            now = time.time()
+            _request_count += 1
+            if _request_count % SWEEP_INTERVAL == 0:
+                _sweep_expired(now)
 
-        if len(_requests[key]) >= config["max_requests"]:
-            raise HTTPException(status_code=429, detail="Too many requests. Please slow down.")
+            timestamps = [ts for ts in _requests.get(key, ()) if now - ts < config["window"]]
+            if key not in _requests and len(_requests) >= MAX_TRACKED_KEYS:
+                _requests.popitem(last=False)
+            _requests[key] = timestamps
+            _requests.move_to_end(key)
 
-        _requests[key].append(time.time())
+            if len(timestamps) >= config["max_requests"]:
+                raise HTTPException(status_code=429, detail="Too many requests. Please slow down.")
+
+            timestamps.append(now)
 
     return dependency
 
 
 def reset_rate_limits():
-    _requests.clear()
+    global _request_count
+    with _requests_lock:
+        _requests.clear()
+        _request_count = 0

@@ -4,6 +4,46 @@ from app.database import SessionLocal
 from app.models import Project, Question, Response, User
 from app.auth import get_current_user
 from app.rate_limit import reset_rate_limits
+from starlette.requests import Request
+import app.rate_limit as limiter
+
+
+def _request_from(ip: str) -> Request:
+    return Request({
+        "type": "http",
+        "method": "GET",
+        "path": "/",
+        "headers": [(b"cf-connecting-ip", ip.encode())],
+        "client": ("127.0.0.1", 1234),
+    })
+
+
+def test_stale_buckets_are_swept(monkeypatch):
+    reset_rate_limits()
+    monkeypatch.setattr(limiter, "SWEEP_INTERVAL", 2)
+    now = [1000.0]
+    monkeypatch.setattr(limiter.time, "time", lambda: now[0])
+
+    limiter.rate_limit("auth")(_request_from("203.0.113.1"))
+    assert "auth:203.0.113.1" in limiter._requests
+
+    now[0] += limiter.RATE_LIMITS["auth"]["window"]
+    limiter.rate_limit("auth")(_request_from("203.0.113.2"))
+    assert "auth:203.0.113.1" not in limiter._requests
+    assert "auth:203.0.113.2" in limiter._requests
+
+
+def test_address_rotation_cannot_grow_buckets_past_cap(monkeypatch):
+    reset_rate_limits()
+    monkeypatch.setattr(limiter, "MAX_TRACKED_KEYS", 2)
+    monkeypatch.setattr(limiter, "SWEEP_INTERVAL", 100)
+
+    for ip in ("203.0.113.1", "203.0.113.2", "203.0.113.3"):
+        limiter.rate_limit("auth")(_request_from(ip))
+
+    assert len(limiter._requests) == 2
+    assert "auth:203.0.113.1" not in limiter._requests
+    assert "auth:203.0.113.3" in limiter._requests
 
 
 def cleanup_database():
