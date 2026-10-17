@@ -39,6 +39,18 @@ python -m pytest tests/ -q
 Expected: **346 passed**. Install [Node.js](https://nodejs.org) first — the
 frontend-render tests need `node` on PATH and are skipped without it.
 
+For a faster feedback loop while working on a focused change, run a single
+test file, a specific test function, or tests matching a keyword:
+
+```bash
+python -m pytest tests/test_main.py -q
+python -m pytest tests/test_main.py::test_health_check -q
+python -m pytest tests/ -q -k health_check
+```
+
+The frontend-render test modules are skipped when `node` is not on PATH. This
+is expected; install Node.js if your change affects frontend rendering.
+
 ## Development Guidelines
 
 ### Keep it simple
