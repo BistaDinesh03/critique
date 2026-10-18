@@ -1,8 +1,10 @@
 ﻿from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
+from fastapi.exception_handlers import http_exception_handler
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 from app.config import settings
 from app.database import init_db
@@ -85,7 +87,9 @@ _EARLY_AUTH_STYLE = (
 )
 
 
-def _page_response(request: Request, filename: str) -> HTMLResponse:
+def _page_response(
+    request: Request, filename: str, status_code: int = 200
+) -> HTMLResponse:
     """Serve a frontend page, stamping early auth state when a valid session
     cookie accompanies the request (signature + age only, no DB lookup)."""
     html = _read_frontend_file(filename)
@@ -93,7 +97,7 @@ def _page_response(request: Request, filename: str) -> HTMLResponse:
         html = html.replace(
             "</head>", _EARLY_AUTH_SCRIPT + _EARLY_AUTH_STYLE + "</head>", 1
         )
-    response = HTMLResponse(content=html)
+    response = HTMLResponse(content=html, status_code=status_code)
     # The body varies with the session cookie (the early-auth stamp), so no
     # cache -- shared or browser -- may replay one visitor's page to another.
     response.headers["Cache-Control"] = "private, no-store"
@@ -106,6 +110,24 @@ def _page_response(request: Request, filename: str) -> HTMLResponse:
 async def unhandled_exception_handler(request, exc):
     """Generic error handler that doesn't leak stack traces."""
     return JSONResponse(status_code=500, content={"detail": "Internal server error"})
+
+
+def _wants_html(request: Request) -> bool:
+    """A browser navigation wants an HTML page; a JSON client (or anything
+    under /api/) wants the JSON detail shape."""
+    if request.url.path.startswith("/api/"):
+        return False
+    return "text/html" in request.headers.get("accept", "")
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler_custom(request: Request, exc: StarletteHTTPException):
+    """Serve a branded HTML 404 for browser navigation to an unknown route,
+    while every JSON client -- and every /api/* route -- keeps the default
+    {"detail": ...} body, status, and headers."""
+    if exc.status_code == 404 and _wants_html(request):
+        return _page_response(request, "404.html", status_code=404)
+    return await http_exception_handler(request, exc)
 
 
 @app.get("/", response_class=HTMLResponse)
