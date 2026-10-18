@@ -955,7 +955,13 @@ def approval_state(reviews: Sequence[Dict[str, Any]], head_oid: Optional[str] = 
     """
     latest: Dict[str, str] = {}
     for review in reviews or []:
-        login = (review.get("author") or {}).get("login")
+        # Two transports, two field names: the REST endpoint that
+        # `GitHub.reviews()` calls reports the reviewer as `user`, while
+        # `gh pr view --json` reports it as `author`. Reading only one of
+        # them silently drops every review from the other, which turns the
+        # approval gate into a permanent refusal, so accept both.
+        login = ((review.get("author") or review.get("user")
+                  or {}).get("login"))
         state = (review.get("state") or "").upper()
         if not login or state in ("", "PENDING"):
             continue
@@ -1658,7 +1664,9 @@ def already_requested_changes(gh: GitHub, number: int, signature: str) -> bool:
     if not mine:
         return False
     for review in gh.reviews(number):
-        if (review.get("author") or {}).get("login") != mine:
+        # REST again: `user`, not `author` (see approval_state).
+        if ((review.get("author") or review.get("user")
+             or {}).get("login")) != mine:
             continue
         if (review.get("state") or "").upper() != "CHANGES_REQUESTED":
             continue

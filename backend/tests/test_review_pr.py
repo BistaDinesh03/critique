@@ -77,7 +77,9 @@ class FakeGitHub:
         self.posted_reviews.append({"number": number, "event": event,
                                     "body": body})
         self._reviews.append({
-            "author": {"login": self.user},
+            # REST shape: `gh.reviews()` hits the REST API, which reports the
+            # reviewer as `user`, not `author` (gh's --json would say author).
+            "user": {"login": self.user},
             # What GitHub actually reports back for an EVENT_REQUEST_CHANGES
             # review is a state of CHANGES_REQUESTED.
             "state": "CHANGES_REQUESTED" if event == "REQUEST_CHANGES" else event,
@@ -135,7 +137,7 @@ PROTECTION = {
     "enforce_admins": {"enabled": True},
 }
 
-APPROVAL = {"author": {"login": "maintainer"}, "state": "APPROVED"}
+APPROVAL = {"user": {"login": "maintainer"}, "state": "APPROVED"}
 
 CLEAN_BODY = (
     "## Summary\n\n"
@@ -231,6 +233,51 @@ def test_review_is_the_default_and_never_merges():
 
 
 # ---------------------------------------------------------------------------
+# Review transport shapes: REST says `user`, gh --json says `author`
+# ---------------------------------------------------------------------------
+
+def test_rest_shaped_approval_satisfies_the_gate():
+    """`gh.reviews()` calls the REST API, whose reviews carry `user.login`.
+    An approval in that exact shape must count -- reading only the GraphQL
+    `author` field dropped every real approval and made the merge gate
+    refuse even a fully approved pull request."""
+    approval = {"user": {"login": "maintainer"}, "state": "APPROVED",
+                "commit_id": "a" * 40}
+    _, result = review_of(clean_pr(), reviews=(approval,))
+    gate = next(g for g in result.gates if g.name.startswith("Approvals"))
+    assert gate.ok, gate.detail
+    assert "1 present" in gate.detail
+
+
+def test_rest_shaped_approval_still_merges_end_to_end():
+    approval = {"user": {"login": "maintainer"}, "state": "APPROVED"}
+    gh, _ = review_of(clean_pr(), reviews=(approval,))
+    assert review_pr.main(["56", "--merge", "--skip-tests"], gh=gh) == 0
+    assert gh.merged == [(56, "merge")]
+
+
+def test_approval_state_reads_both_shapes():
+    """Both transports keep working: REST `user` and GraphQL `author`."""
+    rest = {"user": {"login": "rest-reviewer"}, "state": "APPROVED"}
+    graphql = {"author": {"login": "json-reviewer"}, "state": "APPROVED"}
+    approvals, changes = review_pr.approval_state([rest, graphql])
+    assert sorted(approvals) == ["json-reviewer", "rest-reviewer"]
+    assert changes == []
+
+
+def test_already_requested_changes_recognises_rest_shaped_reviews():
+    """The idempotency check reads the same REST payload; it must find our
+    own past review there or every re-run would post the same request."""
+    gh = FakeGitHub(clean_pr(), reviews=[{
+        "user": {"login": "maintainer"},
+        "state": "CHANGES_REQUESTED",
+        "body": f"{review_pr.REVIEW_MARKER}\nfindings:sig-123",
+    }])
+    assert review_pr.already_requested_changes(gh, 56, "sig-123") is True
+    assert review_pr.already_requested_changes(gh, 56, "different") is False
+
+
+# ---------------------------------------------------------------------------
 # Blocking states
 # ---------------------------------------------------------------------------
 
@@ -284,7 +331,7 @@ def test_running_checks_block_a_merge():
 
 def test_existing_request_for_changes_blocks():
     reviews = [APPROVAL,
-               {"author": {"login": "other"}, "state": "CHANGES_REQUESTED"}]
+               {"user": {"login": "other"}, "state": "CHANGES_REQUESTED"}]
     _, result = review_of(clean_pr(), reviews=reviews)
     assert result.status == "CHANGES_REQUESTED"
     assert "CHANGES_REQUESTED_EXISTING" in codes(result, "BLOCKING")

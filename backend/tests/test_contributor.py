@@ -101,7 +101,10 @@ class FakeGitHub:
             return False
         self.writes.setdefault("review", []).append((number, event, body))
         self._reviews.append({
-            "author": {"login": self.user},
+            # REST shape: reviews come from the REST API (`user`), not from
+            # `gh --json` (`author`). Modelling the real transport here is
+            # what keeps the approval gate tested against reality.
+            "user": {"login": self.user},
             "state": "CHANGES_REQUESTED" if event == "REQUEST_CHANGES" else event,
             "body": body,
         })
@@ -129,7 +132,8 @@ class FakeGitHub:
         if not self._comment_ok:
             return False
         self.writes["comment"].append((number, body))
-        self._comments.append({"author": {"login": self.user}, "body": body})
+        # REST shape: `issue_comments()` reads the REST API, which says `user`.
+        self._comments.append({"user": {"login": self.user}, "body": body})
         return True
 
     def merge(self, number, method):
@@ -168,7 +172,7 @@ PROTECTION = {
     "enforce_admins": {"enabled": True},
 }
 
-APPROVAL = {"author": {"login": "maintainer"}, "state": "APPROVED",
+APPROVAL = {"user": {"login": "maintainer"}, "state": "APPROVED",
             "commit_id": "a" * 40}
 
 VOLUNTEER = ("Hi! I'd like to work on this issue. Could you please assign "
@@ -716,6 +720,26 @@ def test_failing_ci_blocks_the_merge():
 
 def test_missing_approval_blocks_the_merge():
     gh, code = finalize(reviews=())
+    assert code == 1
+    assert gh.writes["merge"] == []
+
+
+def test_a_rest_shaped_approval_unblocks_the_merge():
+    """Reviews reach the tool through the REST API, which reports the
+    reviewer as `user`. An approval in that real shape must be enough to
+    merge -- reading only the GraphQL `author` field counted zero and made
+    this merge refuse forever, despite GitHub itself saying APPROVED."""
+    rest_approval = {"user": {"login": "maintainer"}, "state": "APPROVED",
+                     "commit_id": "a" * 40}
+    gh, code = finalize(reviews=(rest_approval,))
+    assert code == 0
+    assert gh.writes["merge"] == [(57, "merge")]
+
+
+def test_missing_approval_blocks_the_merge_when_the_shape_is_wrong():
+    """Fail closed in the other direction too: a review nobody can identify
+    (neither `user` nor `author`) counts as no approval at all."""
+    gh, code = finalize(reviews=({"state": "APPROVED"},))
     assert code == 1
     assert gh.writes["merge"] == []
 
