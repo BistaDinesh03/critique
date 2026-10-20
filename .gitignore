@@ -48,3 +48,6 @@ Thumbs.db
 .pytest_cache/
 .coverage
 htmlcov/
+# Python virtual environments
+.venv/
+**/.venv/
