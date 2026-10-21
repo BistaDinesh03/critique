@@ -3,6 +3,10 @@
 Thanks for your interest in contributing! Critique is meant to be simple and
 maintainable.
 
+> Translations: [简体中文](CONTRIBUTING.zh-CN.md) ·
+> [日本語](CONTRIBUTING.ja.md) · [Español](CONTRIBUTING.es.md) —
+> this English file is the canonical version.
+
 ## Getting Started
 
 1. Fork the repository
