@@ -319,7 +319,7 @@ Example — list projects currently looking for feedback (public, no
 authentication required):
 
 ```bash
-curl -s https://critique.page/api/projects
+curl -s https://critique.page/api/projects/
 ```
 
 The response is paginated (`items`, `total`, `page`, `page_size`,
