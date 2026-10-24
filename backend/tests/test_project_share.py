@@ -33,10 +33,13 @@ FRONTEND_DIR = BACKEND_DIR.parent / "frontend"
 STATIC_DIR = BACKEND_DIR.parent / "static"
 HARNESS = Path(__file__).resolve().parent / "frontend_render_harness.js"
 
-pytestmark = pytest.mark.skipif(
-    shutil.which("node") is None,
-    reason="node is required to run the frontend rendering harness",
-)
+pytestmark = [
+    pytest.mark.frontend_render,
+    pytest.mark.skipif(
+        shutil.which("node") is None,
+        reason="node is required to run the frontend rendering harness",
+    ),
+]
 
 HOMEPAGE_URL = "/api/projects/?page=1&page_size=6"
 SUBMIT_URL = "/api/projects/"

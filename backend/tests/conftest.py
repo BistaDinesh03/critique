@@ -73,6 +73,11 @@ def auth_client():
     app.dependency_overrides.clear()
     db2.close()
 
+def pytest_configure(config):
+    config.addinivalue_line(
+        "markers",
+        "frontend_render: tests that require the Node frontend rendering harness",
+    )
 
 def pytest_collection_modifyitems(config, items):
     """Prevent CI from passing when frontend-render tests are skipped for no Node."""
@@ -80,13 +85,10 @@ def pytest_collection_modifyitems(config, items):
     if ci_value not in {"1", "true", "yes", "on"} or shutil.which("node") is not None:
         return
 
-    render_items = []
-    for item in items:
-        for marker in item.iter_markers("skipif"):
-            reason = str(marker.kwargs.get("reason", "")).lower()
-            if "node" in reason and ("render" in reason or "frontend" in reason):
-                render_items.append(item)
-                break
+    render_items = [
+        item for item in items
+        if item.get_closest_marker("frontend_render") is not None
+    ]
 
     if render_items:
         examples = ", ".join(sorted({item.nodeid.split("::", 1)[0] for item in render_items})[:3])
