@@ -107,7 +107,7 @@ else is ignored.
 | GET | `/` `/discover` `/my-projects` `/project/{id}` `/project/{id}/results` | HTML pages. A CSRF cookie is issued with each page response. |
 | GET | `/health` | `{"status": "ok"}` — uptime probe. |
 | GET | `/docs`, `/redoc` | FastAPI-generated API documentation. |
-| GET | `/static/*` | CSS/JS/images; served with `Cache-Control: public, max-age=86400`. |
+| GET | `/static/*` | CSS/JS use `Cache-Control: no-cache` (revalidation); images use `Cache-Control: public, max-age=86400`. |
 
 ## Error responses
 

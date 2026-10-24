@@ -1,7 +1,7 @@
-﻿from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import func, update
-from app.database import get_db
+from app.database import get_db, in_int64_range
 from app.models import Project, Question, Response, User, ProjectView, AnalyticsEvent
 from app.schemas import (
     ProjectCreate,
@@ -19,6 +19,36 @@ from app.ranking import calculate_project_score, get_match_reason, calculate_nee
 from datetime import datetime, timedelta, timezone
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
+
+
+def _latest_active_question_subquery(db: Session):
+    """Return one row per project with its newest active question text.
+
+    ROW_NUMBER is supported by both SQLite and PostgreSQL. The question ID is
+    a deterministic tie-breaker when two questions share the same timestamp.
+    """
+    ranked_questions = (
+        db.query(
+            Question.project_id.label("project_id"),
+            Question.text.label("question_text"),
+            func.row_number()
+            .over(
+                partition_by=Question.project_id,
+                order_by=(Question.created_at.desc(), Question.id.desc()),
+            )
+            .label("question_rank"),
+        )
+        .filter(Question.is_active == True)
+        .subquery()
+    )
+    return (
+        db.query(
+            ranked_questions.c.project_id,
+            ranked_questions.c.question_text,
+        )
+        .filter(ranked_questions.c.question_rank == 1)
+        .subquery()
+    )
 
 
 @router.post("/", response_model=ProjectWithQuestion, status_code=201)
@@ -82,24 +112,16 @@ def list_projects(
         )
         recent_viewed = {v[0] for v in recent_views}
 
-    # Get candidate projects with question text
-    # SQLite-compatible: use GROUP BY to get latest active question per project
-    question_subq = (
-        db.query(
-            Question.project_id,
-            func.max(Question.text).label("question_text"),
-        )
-        .filter(Question.is_active == True)
-        .group_by(Question.project_id)
-        .subquery()
-    )
+    # Get candidate projects with the latest active question text.
+    question_subq = _latest_active_question_subquery(db)
 
     response_count_subq = (
         db.query(
-            Response.question_id,
+            Question.project_id,
             func.count(Response.id).label("response_count"),
         )
-        .group_by(Response.question_id)
+        .join(Response, Response.question_id == Question.id)
+        .group_by(Question.project_id)
         .subquery()
     )
 
@@ -110,7 +132,7 @@ def list_projects(
             func.coalesce(response_count_subq.c.response_count, 0).label("response_count"),
         )
         .outerjoin(question_subq, question_subq.c.project_id == Project.id)
-        .outerjoin(response_count_subq, response_count_subq.c.question_id == question_subq.c.project_id)
+        .outerjoin(response_count_subq, response_count_subq.c.project_id == Project.id)
         .all()
     )
 
@@ -221,23 +243,15 @@ def list_my_projects(
     user: User = Depends(get_current_user),
 ):
     """List projects owned by the current user."""
-    question_subq = (
-        db.query(
-            Question.project_id,
-            Question.text.label("question_text"),
-        )
-        .filter(Question.is_active == True)
-        .distinct(Question.project_id)
-        .order_by(Question.project_id, Question.created_at.desc())
-        .subquery()
-    )
+    question_subq = _latest_active_question_subquery(db)
 
     response_count_subq = (
         db.query(
-            Response.question_id,
+            Question.project_id,
             func.count(Response.id).label("response_count"),
         )
-        .group_by(Response.question_id)
+        .join(Response, Response.question_id == Question.id)
+        .group_by(Question.project_id)
         .subquery()
     )
 
@@ -248,7 +262,7 @@ def list_my_projects(
             func.coalesce(response_count_subq.c.response_count, 0).label("response_count"),
         )
         .outerjoin(question_subq, question_subq.c.project_id == Project.id)
-        .outerjoin(response_count_subq, response_count_subq.c.question_id == question_subq.c.project_id)
+        .outerjoin(response_count_subq, response_count_subq.c.project_id == Project.id)
         .filter(Project.owner_id == user.id)
         .order_by(Project.created_at.desc())
         .all()
@@ -276,6 +290,8 @@ def list_my_projects(
 @router.get("/{project_id}", response_model=ProjectWithQuestion)
 def get_project(project_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user_optional)):
     """Get a project with its active question. Public endpoint."""
+    if not in_int64_range(project_id):
+        raise HTTPException(status_code=404, detail="Project not found")
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")

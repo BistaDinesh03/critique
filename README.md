@@ -27,18 +27,29 @@
   <a href="CONTRIBUTING.md">Contributing</a>
 </p>
 
+<p align="center">
+  <strong>English</strong> ·
+  <a href="README.zh-CN.md">简体中文</a> ·
+  <a href="README.ja.md">日本語</a> ·
+  <a href="README.es.md">Español</a>
+</p>
+
 ## See Critique in action
 
-[![Animated preview of Critique: the homepage, the Discover feed, and a project's feedback results](docs/videos/critique-overview-preview.gif)](docs/videos/critique-overview.mp4)
+A 62-second walkthrough of the real product — the homepage, the Discover
+feed, a project page, and the feedback results a builder receives.
 
-<p align="center">
-  <sub><strong>48-second overview</strong> — the animated preview loops three
-  scenes from it; click to watch the full walkthrough.
-  Full file: <a href="docs/videos/critique-overview.mp4">critique-overview.mp4</a>
-  — a 47.8 MB MP4 committed to this repository, plus this 3.4 MB GIF preview,
-  so both are included in every clone.
-  Static frame: <a href="docs/videos/critique-overview-preview.jpg">critique-overview-preview.jpg</a>.</sub>
-</p>
+![Animated GIF preview of the Critique walkthrough: the homepage headline "Stop getting 'Looks good.'" above Get feedback on my project and Give feedback to a builder, followed by the Discover feed's project cards](docs/videos/critique-overview-preview.gif)
+
+**Want the full walkthrough? [Watch the 62-second video.](https://dineshbista.com.np/critique/watch.html)**
+
+The GIF above is a 12-second preview; the full walkthrough runs 62 seconds with
+no audio, and the watch-page player starts only when you press Play. Prefer the
+original file? Use the [direct MP4 link](https://dineshbista.com.np/critique/videos/critique-overview.mp4)
+(46.8 MB).<br />
+Original file: [docs/videos/critique-overview.mp4](docs/videos/critique-overview.mp4)
+— 1854×902, 30 fps, 62 s, H.264 MP4, 46.8 MB, committed to this repository
+so it is included in every clone, and played from the GitHub Pages watch page.
 
 ## The problem
 
@@ -288,7 +299,7 @@ cd backend
 python -m pytest tests/ -q
 ```
 
-498 tests currently pass. The suite covers API behavior, CSRF, rate
+The suite passes cleanly. It covers API behavior, CSRF, rate
 limiting, ownership checks, privacy rules, ranking, XSS, analytics
 validation, authentication flows, SEO endpoints, and frontend rendering
 through a Node-based DOM harness (skipped when Node.js is unavailable).
@@ -315,7 +326,7 @@ Example — list projects currently looking for feedback (public, no
 authentication required):
 
 ```bash
-curl -s https://critique.page/api/projects
+curl -s https://critique.page/api/projects/
 ```
 
 The response is paginated (`items`, `total`, `page`, `page_size`,

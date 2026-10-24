@@ -6,19 +6,21 @@ from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
-from app.config import settings
-from app.database import init_db
+
 from app.auth import router as auth_router
 from app.auth import session_cookie_is_valid
+from app.config import settings
 from app.csrf import generate_csrf_token, set_csrf_cookie
+from app.database import get_db, in_int64_range, init_db
+from app.models import Project
+from app.routes_analytics import router as analytics_router
+from app.routes_analytics_dashboard import router as analytics_dashboard_router
+from app.routes_badge import router as badge_router
 from app.routes_projects import router as projects_router
 from app.routes_responses import router as responses_router
 from app.routes_results import router as results_router
-from app.routes_badge import router as badge_router
-from app.routes_stats import router as stats_router
-from app.routes_analytics import router as analytics_router
-from app.routes_analytics_dashboard import router as analytics_dashboard_router
 from app.routes_seo import router as seo_router
+from app.routes_stats import router as stats_router
 
 
 class CacheControlMiddleware(BaseHTTPMiddleware):
@@ -146,13 +148,25 @@ def discover_page(request: Request):
 
 
 @app.get("/project/{project_id}", response_class=HTMLResponse)
-def project_detail_page(request: Request, project_id: int):
+def project_detail_page(request: Request, project_id: str, db: Annotated[Session, Depends(get_db)]):
+    _require_project(project_id, db)
     return _page_response(request, "project_detail.html")
 
 
 @app.get("/project/{project_id}/results", response_class=HTMLResponse)
-def project_results_page(request: Request, project_id: int):
+def project_results_page(request: Request, project_id: str, db: Annotated[Session, Depends(get_db)]):
+    _require_project(project_id, db)
     return _page_response(request, "project_results.html")
+
+
+def _require_project(project_id: str, db: Session) -> None:
+    """Reject absent or malformed IDs before serving a successful HTML shell."""
+    try:
+        parsed_id = int(project_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Project not found") from None
+    if not in_int64_range(parsed_id) or db.get(Project, parsed_id) is None:
+        raise HTTPException(status_code=404, detail="Project not found")
 
 
 

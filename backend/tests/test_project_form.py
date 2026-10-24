@@ -305,7 +305,7 @@ def test_project_form_submits_the_payload_the_api_expects(tmp_path):
     # section lives inside it), and leaves no draft behind.
     assert len(events(result, "project_submit")) == 1
     seen = [m["text"] for m in result["createdMeta"] if m.get("text")]
-    assert "Your project is live!" in seen
+    assert "Your project is live" in seen
     assert "critique_project_draft" not in result["storage"]["session"]
 
 

@@ -1,4 +1,5 @@
-﻿import time
+﻿import math
+import time
 import ipaddress
 from collections import OrderedDict
 from threading import Lock
@@ -74,7 +75,14 @@ def rate_limit(endpoint: str):
             _requests.move_to_end(key)
 
             if len(timestamps) >= config["max_requests"]:
-                raise HTTPException(status_code=429, detail="Too many requests. Please slow down.")
+                # Retry-After is the whole seconds until the oldest request in the
+                # window expires and frees a slot, rounded up and at least 1.
+                retry_after = max(1, math.ceil(timestamps[0] + config["window"] - now))
+                raise HTTPException(
+                    status_code=429,
+                    detail="Too many requests. Please slow down.",
+                    headers={"Retry-After": str(retry_after)},
+                )
 
             timestamps.append(now)
 

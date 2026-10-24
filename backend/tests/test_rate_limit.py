@@ -1,4 +1,6 @@
-﻿from fastapi.testclient import TestClient
+﻿import pytest
+from fastapi import HTTPException
+from fastapi.testclient import TestClient
 from app.main import app
 from app.database import SessionLocal
 from app.models import Project, Question, Response, User
@@ -44,6 +46,24 @@ def test_address_rotation_cannot_grow_buckets_past_cap(monkeypatch):
     assert len(limiter._requests) == 2
     assert "auth:203.0.113.1" not in limiter._requests
     assert "auth:203.0.113.3" in limiter._requests
+
+
+def test_retry_after_is_time_until_oldest_request_expires(monkeypatch):
+    reset_rate_limits()
+    now = [1000.0]
+    monkeypatch.setattr(limiter.time, "time", lambda: now[0])
+    config = limiter.RATE_LIMITS["auth"]
+
+    for _ in range(config["max_requests"]):
+        limiter.rate_limit("auth")(_request_from("203.0.113.1"))
+    now[0] += 10.5
+
+    with pytest.raises(HTTPException) as exc_info:
+        limiter.rate_limit("auth")(_request_from("203.0.113.1"))
+
+    assert exc_info.value.status_code == 429
+    assert exc_info.value.headers == {"Retry-After": str(config["window"] - 10)}
+    reset_rate_limits()
 
 
 def cleanup_database():
@@ -118,6 +138,28 @@ def test_rate_limit_blocks_over_limit():
         # 6th request should be blocked
         response = client.post("/api/projects/", json=project_payload("Blocked"))
         assert response.status_code == 429
+    finally:
+        app.dependency_overrides.clear()
+    reset_rate_limits()
+    cleanup_database()
+
+
+def test_rate_limit_429_includes_retry_after_header():
+    """429 responses tell clients how long to wait, without changing the body."""
+    reset_rate_limits()
+    cleanup_database()
+    client = create_authenticated_client()
+
+    try:
+        for i in range(5):
+            client.post("/api/projects/", json=project_payload(f"Test {i}"))
+
+        response = client.post("/api/projects/", json=project_payload("Blocked"))
+        assert response.status_code == 429
+        assert response.json() == {"detail": "Too many requests. Please slow down."}
+        retry_after = response.headers.get("Retry-After")
+        assert retry_after is not None and retry_after.isdigit()
+        assert 1 <= int(retry_after) <= limiter.RATE_LIMITS["project_create"]["window"]
     finally:
         app.dependency_overrides.clear()
     reset_rate_limits()

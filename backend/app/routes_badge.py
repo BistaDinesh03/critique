@@ -2,7 +2,7 @@
 from fastapi.responses import Response as FastAPIResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from app.database import get_db
+from app.database import get_db, in_int64_range
 from app.models import Project, Question, Response as ResponseModel
 
 router = APIRouter(prefix="/badge", tags=["badge"])
@@ -18,6 +18,8 @@ def format_count(count: int) -> str:
 @router.get("/{project_id}.svg")
 def get_badge(project_id: int, db: Session = Depends(get_db)):
     """Return a dynamic SVG badge showing feedback count for a project."""
+    if not in_int64_range(project_id):
+        raise HTTPException(status_code=404, detail="Project not found")
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")

@@ -1,18 +1,20 @@
 """Optional sharing: the success state, the platform links, the card row.
 
 Phases 2-6 and 9 of the sharing pass. After the API confirms a 201, the
-project form shows a success state with the real project -- title, public
-link, the question it asked -- and an optional, user-initiated share
-section. My Projects gets an inline share row per card, driven by the same
-``CritiqueShare`` module.
+project form shows a compact success state -- the confirmation, the
+project's title, one primary action (View project) -- with the optional,
+user-initiated share options collapsed behind a single secondary action
+(Share project) until a person asks for them. My Projects gets an inline
+share row per card, driven by the same ``CritiqueShare`` module.
 
 Sharing never posts anything by itself: the platform links only build that
 platform's own compose/share URL (fixed domains, correctly encoded), the
-copy buttons only touch the clipboard, and the whole section can be
-skipped. The panel offers exactly four compact, icon-labelled actions —
-X, Reddit, Copy link, Copy post — and nothing else. Behaviour runs through
-the Node rendering harness; URL safety and wiring are also asserted
-against the source where a live DOM is not needed.
+copy buttons only touch the clipboard, and the whole section can be left
+closed. Once open it offers exactly four compact, icon-labelled actions —
+X, Reddit, Copy link, Copy post — and nothing else; the suggested post
+sits behind its own "Create a share post" disclosure. Behaviour runs
+through the Node rendering harness; URL safety and wiring are also
+asserted against the source where a live DOM is not needed.
 
 Requires ``node`` on PATH; the whole module is skipped when it is missing.
 """
@@ -200,30 +202,57 @@ def test_successful_submission_shows_the_live_success_state(tmp_path):
     assert "critique_project_draft" not in result["storage"]["session"]
 
     seen = texts(result)
-    assert "Your project is live!" in seen
-    assert any("has been shared on Critique" in t for t in seen)
-    assert "Let more people discover your project" in seen
-    assert any("reach more builders" in t for t in seen)
+    assert "Your project is live" in seen
+    # The supporting text is exactly the one-line confirmation -- no sharing
+    # pitch folded into it.
+    assert any(t == "Your project is now on Critique." for t in seen)
+    # The share options are reachable through one compact secondary action.
+    assert "Share project" in seen
+    # The promotional filler paragraph is gone, not merely reworded.
+    assert not any("reach more builders" in t for t in seen)
 
 
-def test_success_state_shows_the_real_title_link_and_question(tmp_path):
+def test_success_state_shows_the_title_and_one_clear_link(tmp_path):
     result = submitted_page(tmp_path)
     seen = texts(result)
 
+    # The title, and nothing else of the project's details: the full card
+    # and question that used to pad the confirmation are gone.
     assert "Akiya Scout" in seen
-    assert "Scans listings for abandoned houses" in seen
-    assert "Is the price shown up front?" in seen
+    assert "Scans listings for abandoned houses" not in seen
+    assert "Is the price shown up front?" not in seen
 
     link = next(m for m in result["createdMeta"] if m.get("href") == PUBLIC_URL)
-    assert link["text"] == PUBLIC_URL
+    assert link["text"] == "View project"
+    # The named link is also the panel's single primary action.
+    assert "btn-primary" in (link.get("className") or "")
+    # ...and it really is the only filled action in the whole state: nothing
+    # else competes with it.
+    primaries = [
+        m for m in result["createdMeta"]
+        if "btn-primary" in (m.get("className") or "")
+    ]
+    assert [(m.get("text"), m.get("href")) for m in primaries] == [
+        ("View project", PUBLIC_URL)
+    ]
+    # The one secondary action sits beside it as a plain, compact button.
+    assert result["flags"]["share-toggle"]["className"] == (
+        "btn btn-secondary share-toggle"
+    )
+    # The URL is the link's destination and the post's content — never
+    # repeated as visible copy in the summary.
+    assert not any(PUBLIC_URL in t for t in seen)
 
-    # The share section exists inside the success state, marked optional.
+    # The share section exists inside the success state, marked optional,
+    # and stays collapsed until the secondary action asks for it.
     share = next(
         m for m in result["createdMeta"]
         if (m.get("tag") or "").lower() == "section"
         and m.get("className") == "share-section"
     )
     assert share is not None
+    assert result["flags"]["share-section"]["hidden"] is True
+    assert result["flags"]["share-toggle"]["ariaExpanded"] == "false"
     # And a clear way onward is always offered next to the share options.
     assert any(
         m.get("href") == "/my-projects" and m.get("text") == "Continue to My Projects"
@@ -246,7 +275,7 @@ def test_a_failed_submission_shows_no_success_and_no_share_state(tmp_path):
     assert len(posts(result)) == 1
     # The failure reports honestly and the share UI never appears.
     assert "Error" in (result["ids"].get("message") or "")
-    assert "Your project is live!" not in " ".join(result["created"])
+    assert "Your project is live" not in " ".join(result["created"])
     assert not any(
         m.get("className") == "success-share" for m in result["createdMeta"]
     )
@@ -268,6 +297,10 @@ def test_the_suggested_post_carries_the_real_project(tmp_path):
     assert "Akiya Scout" in post["value"]
     assert PUBLIC_URL in post["value"]
     assert "responses" not in post["value"]
+    # The editor is real but not part of the default view: it stays hidden
+    # behind "Create a share post" until someone asks for it.
+    assert result["flags"]["share-post-wrap"]["hidden"] is True
+    assert result["flags"]["share-post-toggle"]["ariaExpanded"] == "false"
 
 
 def test_platform_share_urls_are_encoded_and_point_at_fixed_domains(tmp_path):
@@ -325,7 +358,9 @@ def test_the_panel_offers_exactly_four_actions(tmp_path):
 
     # Exactly X, Reddit, Copy link, Copy post -- in that order, nothing else.
     actions = [
-        m for m in result["createdMeta"] if m.get("className") == "share-action"
+        m
+        for m in result["createdMeta"]
+        if (m.get("className") or "").split(" ")[0] == "share-action"
     ]
     assert [a.get("text") for a in actions] == [
         "X",
@@ -333,6 +368,10 @@ def test_the_panel_offers_exactly_four_actions(tmp_path):
         "Copy link",
         "Copy post",
     ]
+    # Four equal, light actions -- the panel's single primary action is
+    # "View project", above the share options, so nothing here fills in and
+    # competes with it.
+    assert all("share-primary" not in (a.get("className") or "") for a in actions)
 
     # The retired options are gone from the rendered DOM, not merely hidden.
     assert "LinkedIn" not in " ".join(result["created"])
@@ -378,7 +417,7 @@ def test_share_actions_carry_real_platform_icons_and_accessible_names(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# Phases 5-6: copy actions, skip, and optionality
+# Phases 5-6: copy actions, the disclosure toggles, and optionality
 # ---------------------------------------------------------------------------
 
 
@@ -418,14 +457,15 @@ def test_copy_suggested_post_copies_the_current_edited_text(tmp_path):
 
 
 def test_sharing_is_entirely_optional(tmp_path):
-    # A submission that never touches the share section succeeds completely.
+    # A submission that never touches the share options succeeds completely
+    # -- and never even reveals them.
     result = submitted_page(tmp_path)
 
     assert len(events(result, "project_submit")) == 1
-    assert "Your project is live!" in texts(result)
-    # The only share event is the section being shown; nothing was copied,
-    # nothing was opened.
-    assert len(events(result, "share_ui_shown")) == 1
+    assert "Your project is live" in texts(result)
+    # Nothing was copied, nothing was opened, and no share event fired: the
+    # options stayed collapsed.
+    assert len(events(result, "share_ui_shown")) == 0
     assert len(events(result, "share_copy_link")) == 0
     assert len(events(result, "share_copy_post")) == 0
     assert len(events(result, "share_option_clicked")) == 0
@@ -433,19 +473,68 @@ def test_sharing_is_entirely_optional(tmp_path):
     assert result["opened"] == []
 
 
-def test_skip_for_now_collapses_the_share_section_and_keeps_the_success(tmp_path):
+def test_share_toggle_reveals_the_options_and_reports_them_shown_once(tmp_path):
     result = submitted_page(
         tmp_path,
-        extra_calls=[{"clickCreatedContaining": "Skip for now"}],
+        extra_calls=[
+            {"clickCreatedContaining": "Share project"},
+            {"clickCreatedContaining": "Share project"},
+            {"clickCreatedContaining": "Share project"},
+        ],
     )
 
-    # The optional section hides; the success state and its link remain.
-    assert result["flags"]["share-section"]["display"] == "none"
-    assert "Your project is live!" in texts(result)
+    # Opened, closed, opened again: the section follows the toggle, which
+    # reports its state for assistive tech.
+    assert result["flags"]["share-section"]["hidden"] is False
+    assert result["flags"]["share-toggle"]["ariaExpanded"] == "true"
+    # The share UI is reported as shown the first time it really is on
+    # screen -- once, no matter how often the panel is opened and closed.
+    assert len(events(result, "share_ui_shown")) == 1
+    # Revealing is not interacting: nothing was copied or opened.
+    assert result["clipboard"] == []
+    assert result["opened"] == []
+
+
+def test_collapsing_the_share_options_keeps_the_success_state(tmp_path):
+    result = submitted_page(
+        tmp_path,
+        extra_calls=[
+            {"clickCreatedContaining": "Share project"},
+            {"clickCreatedContaining": "Share project"},
+        ],
+    )
+
+    # The optional section hides again; the success state and its link
+    # remain, and the toggle says so.
+    assert result["flags"]["share-section"]["hidden"] is True
+    assert result["flags"]["share-toggle"]["ariaExpanded"] == "false"
+    assert "Your project is live" in texts(result)
     assert any(m.get("href") == PUBLIC_URL for m in result["createdMeta"])
     assert result["flags"]["share-section"]["ariaLabel"] == (
         "Share your project (optional)"
     )
+    # The reveal that happened before the collapse was still reported once;
+    # nothing was copied on the way out.
+    assert len(events(result, "share_ui_shown")) == 1
+    assert result["clipboard"] == []
+
+
+def test_create_a_share_post_reveals_the_editor_on_request(tmp_path):
+    result = submitted_page(
+        tmp_path,
+        extra_calls=[
+            {"clickCreatedContaining": "Share project"},
+            {"clickCreatedContaining": "Create a share post"},
+        ],
+    )
+
+    # The editor appears only now -- not before, and not on its own.
+    assert result["flags"]["share-post-wrap"]["hidden"] is False
+    assert result["flags"]["share-post-toggle"]["ariaExpanded"] == "true"
+    # It carries the real suggested post, edits to which the copy and
+    # compose actions already respect.
+    post = next(m for m in result["createdMeta"] if m.get("value"))
+    assert post["value"] == DEFAULT_POST
 
 
 # ---------------------------------------------------------------------------
@@ -579,7 +668,9 @@ def test_card_share_row_offers_the_same_four_actions(tmp_path):
 
     # The same compact set on the card, in the same order.
     actions = [
-        m for m in result["createdMeta"] if m.get("className") == "share-action"
+        m
+        for m in result["createdMeta"]
+        if (m.get("className") or "").split(" ")[0] == "share-action"
     ]
     assert [a.get("text") for a in actions] == [
         "X",
@@ -587,6 +678,8 @@ def test_card_share_row_offers_the_same_four_actions(tmp_path):
         "Copy link",
         "Copy post",
     ]
+    # The card row keeps four equal actions -- no primary emphasis there.
+    assert "share-primary" not in (actions[3].get("className") or "")
     # In the card's balanced 2x2 wrapper, with icons.
     assert any(
         m.get("className") == "share-grid card-share" for m in result["createdMeta"]
@@ -645,9 +738,15 @@ def test_malicious_project_data_cannot_reach_the_share_markup(tmp_path):
     assert "<img src=x" not in rendered
     assert "<script" not in rendered
     assert "<svg onload" not in rendered
+    # The title is the field that still flows into the compact confirmation
+    # (and into the suggested post), so it must arrive escaped...
     assert "&lt;img" in rendered
-    assert "&lt;script" in rendered
-    assert "&lt;svg" in rendered
+    # ...while the description and question no longer reach the panel at
+    # all: not as markup, and not even as text.
+    assert "&lt;script" not in rendered
+    assert "&lt;svg" not in rendered
+    assert "alert(2)" not in rendered
+    assert "alert(3)" not in rendered
 
     # Share URLs keep it percent-encoded: no raw quote or angle bracket can
     # reach an href, so the payload can never close an attribute or open a
@@ -695,9 +794,15 @@ def test_share_links_cannot_become_unsafe_redirects(tmp_path):
 # ---------------------------------------------------------------------------
 
 
-def test_the_share_ui_stacks_on_a_phone_and_keeps_focus_visible():
+def test_the_share_ui_stays_calm_stacks_on_a_phone_and_keeps_focus_visible():
     css = (STATIC_DIR / "shared.css").read_text(encoding="utf-8")
     mobile = " ".join(mobile_blocks(css))
+
+    # The confirmation is restrained: a neutral surface with a thin accent,
+    # never the old bright-green slab.
+    success = re.search(r"\.success-share\s*\{(.*?)\}", css, re.S).group(1)
+    assert "--success-bg" not in success
+    assert "var(--success)" in success
 
     # Desktop: one compact row of four equal actions.
     assert ".share-grid" in css
@@ -711,8 +816,8 @@ def test_the_share_ui_stacks_on_a_phone_and_keeps_focus_visible():
     # guarantees nothing can overflow horizontally at 412px or narrower.
     assert ".share-grid" in mobile
     assert "grid-template-columns: repeat(2, minmax(0, 1fr))" in mobile
-    # The quiet way onward still stacks full-width below the actions.
-    assert ".share-actions" in mobile
+    # The success action row stacks full-width on the way down.
+    assert ".success-actions" in mobile
     assert "flex-direction: column" in mobile
     assert ".success-share" in mobile
 
@@ -722,8 +827,11 @@ def test_the_share_ui_stacks_on_a_phone_and_keeps_focus_visible():
     assert "order: -1" in css
     assert "flex: none" in css
 
-    # Keyboard users get a visible focus ring on every share control.
+    # Keyboard users get a visible focus ring on every share control,
+    # the two disclosure toggles included.
     assert ".share-action:focus-visible" in css
+    assert ".share-toggle:focus-visible" in css
+    assert ".share-post-toggle:focus-visible" in css
     assert "outline: 2px solid var(--focus)" in css
 
 
@@ -741,7 +849,14 @@ def test_the_share_ui_stacks_on_a_phone_and_keeps_focus_visible():
 # copy fallback, layout -- still runs against a navigator with no share at
 # all: that is the unsupported-browser case, and it must not have changed.
 
-SHARE_BUTTON = "Share project"
+# In the success state, the secondary action ("Share project") reveals the
+# options and the sheet control inside them carries a name of its own, so
+# the two can never collide in a click-by-text lookup. On a My Projects
+# card there is no toggle at all, so the native control keeps the plain
+# name there.
+REVEAL_BUTTON = "Share project"
+NATIVE_BUTTON = "Share via device"
+CARD_NATIVE_BUTTON = "Share project"
 
 
 def share_stub(outcome="resolve"):
@@ -788,7 +903,7 @@ def share_action_texts(result):
     return [
         m.get("text")
         for m in result["createdMeta"]
-        if m.get("className") == "share-action"
+        if (m.get("className") or "").split(" ")[0] == "share-action"
     ]
 
 
@@ -812,7 +927,10 @@ def test_the_native_sheet_receives_the_post_as_edited(tmp_path):
                 ),
                 "as": "edited",
             },
-            {"clickCreatedContaining": SHARE_BUTTON},
+            # Reveal the options first, the way a visitor would, then reach
+            # the sheet control inside them.
+            {"clickCreatedContaining": REVEAL_BUTTON},
+            {"clickCreatedContaining": NATIVE_BUTTON},
             READ_SHARES,
         ],
     )
@@ -829,8 +947,9 @@ def test_the_native_sheet_receives_the_post_as_edited(tmp_path):
     assert error_toasts(result) == []
     assert len(events(result, "share_option_clicked")) == 1
 
-    # The control sits above the unchanged four compact actions.
-    assert [m.get("text") for m in native_controls(result)] == [SHARE_BUTTON]
+    # The control sits above the unchanged four compact actions, under its
+    # own name.
+    assert [m.get("text") for m in native_controls(result)] == [NATIVE_BUTTON]
     assert share_action_texts(result) == ["X", "Reddit", "Copy link", "Copy post"]
 
 
@@ -857,7 +976,11 @@ def test_dismissing_the_share_sheet_reports_nothing(tmp_path):
     result = submitted_page(
         tmp_path,
         pre_calls=[share_stub("abort")],
-        extra_calls=[{"clickCreatedContaining": SHARE_BUTTON}, READ_SHARES],
+        extra_calls=[
+            {"clickCreatedContaining": REVEAL_BUTTON},
+            {"clickCreatedContaining": NATIVE_BUTTON},
+            READ_SHARES,
+        ],
     )
 
     # The sheet was opened and dismissed -- a decision, not a failure.
@@ -876,7 +999,11 @@ def test_dismissing_the_share_sheet_the_safari_way_reports_nothing(tmp_path):
     result = submitted_page(
         tmp_path,
         pre_calls=[share_stub("abort_code20")],
-        extra_calls=[{"clickCreatedContaining": SHARE_BUTTON}, READ_SHARES],
+        extra_calls=[
+            {"clickCreatedContaining": REVEAL_BUTTON},
+            {"clickCreatedContaining": NATIVE_BUTTON},
+            READ_SHARES,
+        ],
     )
 
     assert len(result["values"]["shares"]) == 1
@@ -891,7 +1018,11 @@ def test_a_share_failure_points_at_the_copy_fallback(tmp_path):
     result = submitted_page(
         tmp_path,
         pre_calls=[share_stub("error")],
-        extra_calls=[{"clickCreatedContaining": SHARE_BUTTON}, READ_SHARES],
+        extra_calls=[
+            {"clickCreatedContaining": REVEAL_BUTTON},
+            {"clickCreatedContaining": NATIVE_BUTTON},
+            READ_SHARES,
+        ],
     )
 
     # A genuine failure is reported once, and points at what still works...
@@ -916,7 +1047,11 @@ def test_when_can_share_refuses_the_control_copies_the_link(tmp_path):
                 "as": "canShareRefused",
             },
         ],
-        extra_calls=[{"clickCreatedContaining": SHARE_BUTTON}, READ_SHARES],
+        extra_calls=[
+            {"clickCreatedContaining": REVEAL_BUTTON},
+            {"clickCreatedContaining": NATIVE_BUTTON},
+            READ_SHARES,
+        ],
     )
 
     assert result["values"]["shares"] == []
@@ -941,7 +1076,11 @@ def test_a_can_share_that_throws_still_copies(tmp_path):
                 "as": "canShareThrew",
             },
         ],
-        extra_calls=[{"clickCreatedContaining": SHARE_BUTTON}, READ_SHARES],
+        extra_calls=[
+            {"clickCreatedContaining": REVEAL_BUTTON},
+            {"clickCreatedContaining": NATIVE_BUTTON},
+            READ_SHARES,
+        ],
     )
 
     assert result["values"]["shares"] == []
@@ -966,7 +1105,7 @@ def test_the_card_row_offers_the_native_sheet_too(tmp_path):
                 ),
                 "as": "row",
             },
-            {"clickCreatedContaining": SHARE_BUTTON},
+            {"clickCreatedContaining": CARD_NATIVE_BUTTON},
             READ_SHARES,
         ],
         fetch={MY_PROJECTS_URL: {"status": 200, "body": [MY_PROJECTS_LIST[0]]}},

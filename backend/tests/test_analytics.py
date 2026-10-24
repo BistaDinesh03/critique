@@ -1,8 +1,13 @@
-﻿from fastapi.testclient import TestClient
-from app.main import app
+﻿from http.cookies import SimpleCookie
+
+import pytest
+from app.analytics import VISITOR_COOKIE_MAX_AGE, VISITOR_COOKIE_NAME
+from app.config import settings
 from app.database import SessionLocal
-from app.models import AnalyticsEvent, User, Project
+from app.main import app
+from app.models import AnalyticsEvent, Project, User
 from app.rate_limit import reset_rate_limits
+from fastapi.testclient import TestClient
 
 
 def cleanup_database():
@@ -108,4 +113,38 @@ def test_dashboard_event_ratios_naming():
     finally:
         app.dependency_overrides.pop(get_current_user, None)
         db2.close()
+        cleanup_database()
+
+
+@pytest.mark.parametrize("secure", [False, True])
+def test_visitor_cookie_flags_and_tracking(monkeypatch, secure):
+    monkeypatch.setattr(settings, "SESSION_COOKIE_SECURE", secure)
+    cleanup_database()
+    try:
+        with TestClient(app, base_url="https://testserver") as client:
+            first = client.post("/api/analytics/track?event_name=page_view")
+            assert first.status_code == 200
+            assert first.json()["ok"] is True
+            cookie = SimpleCookie()
+            cookie.load(first.headers["set-cookie"])
+            visitor = cookie[VISITOR_COOKIE_NAME]
+            assert bool(visitor["secure"]) is secure
+            assert visitor["httponly"]
+            assert visitor["samesite"] == "lax"
+            assert visitor["max-age"] == str(VISITOR_COOKIE_MAX_AGE)
+            assert visitor["path"] == "/"
+
+            second = client.post("/api/analytics/track?event_name=discover_view")
+            assert second.status_code == 200
+            assert second.json()["ok"] is True
+            assert second.cookies[VISITOR_COOKIE_NAME] == visitor.value
+
+            db = SessionLocal()
+            try:
+                events = db.query(AnalyticsEvent).all()
+                assert len(events) == 2
+                assert {event.visitor_id for event in events} == {visitor.value}
+            finally:
+                db.close()
+    finally:
         cleanup_database()

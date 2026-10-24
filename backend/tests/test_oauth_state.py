@@ -134,6 +134,14 @@ def callback(browser, state=None, code="test-code"):
     return browser.get("/auth/callback?" + query, follow_redirects=False)
 
 
+def cancelled_callback(browser, state=None, error="access_denied"):
+    """The shape GitHub uses when the visitor presses Cancel: `error`, no `code`."""
+    query = "error=" + error
+    if state is not None:
+        query += "&state=" + quote(state, safe="")
+    return browser.get("/auth/callback?" + query, follow_redirects=False)
+
+
 # ---------------------------------------------------------------------------
 # 1. Normal login with the correct state succeeds
 # ---------------------------------------------------------------------------
@@ -373,13 +381,137 @@ def test_oldest_pending_state_is_evicted_after_the_cap(client, github):
     assert ok.status_code in (302, 307)
 
 
-def test_github_error_redirect_without_code_is_unaffected(client, github):
-    """GitHub cancellation/error redirect never reaches the handler (no `code`),
-    exactly as before this change."""
-    response = client.get("/auth/callback?error=access_denied", follow_redirects=False)
-    assert response.status_code == 422
+def test_cancellation_without_a_valid_state_is_still_rejected(client, github):
+    """The denial path must not weaken state validation.
+
+    GitHub's cancellation redirect carries no `code`, so before this change
+    FastAPI rejected the request with a 422 before the handler ran. The
+    handler now runs, but the state gate is still the very first thing in it:
+    a cancellation with a missing/forged state is a 400 like any other.
+    """
+    start_login(client)  # gives this browser a pending state we do not use
+    response = cancelled_callback(client, state=None)
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Invalid or missing OAuth state"
     assert github.token_calls == []
     assert "critique_session" not in response.cookies
+    # The browser's own pending state was not consumed by the bogus request.
+    assert client.cookies.get(OAUTH_STATE_COOKIE_NAME) not in (None, "", '""')
+
+
+# ---------------------------------------------------------------------------
+# 9. Cancellation on GitHub's consent screen (issue #70)
+#
+# GitHub redirects back with ?error=access_denied&state=... and no `code`.
+# Cancelling is a normal user action, so it must produce a friendly outcome
+# and do the same bookkeeping the failure path does, without ever issuing a
+# session and without relaxing the state gate.
+# ---------------------------------------------------------------------------
+
+
+def test_cancellation_redirects_instead_of_returning_422(client, github):
+    _, state, _ = start_login(client)
+    response = cancelled_callback(client, state=state)
+
+    assert response.status_code in (302, 307), response.text
+    assert response.headers["location"] == "/?auth=cancelled"
+    # Cancelling must never sign anyone in.
+    assert "critique_session" not in response.cookies
+    assert "critique_csrf" not in response.cookies
+    assert client.get("/auth/check", follow_redirects=False).status_code == 401
+    # And there is nothing to exchange, so GitHub is never contacted.
+    assert github.token_calls == []
+
+
+def test_cancellation_consumes_the_state(client, github):
+    """A cancelled attempt must not leave a usable state behind (replay test)."""
+    _, state, _ = start_login(client)
+    assert cancelled_callback(client, state=state).status_code in (302, 307)
+
+    replay = cancelled_callback(client, state=state)
+    assert replay.status_code == 400
+    assert replay.json()["detail"] == "Invalid or missing OAuth state"
+
+
+def test_cancellation_clears_return_to(client, github):
+    _, state, _ = start_login(client, return_to="/project/5")
+    assert client.cookies.get(RETURN_TO_COOKIE_NAME) not in (None, "", '""')
+
+    response = cancelled_callback(client, state=state)
+    assert response.status_code in (302, 307)
+
+    # The visitor changed their mind: a later login must not bounce them back
+    # to /project/5 because of an attempt they abandoned.
+    assert client.cookies.get(RETURN_TO_COOKIE_NAME) in (None, "", '""')
+
+
+def test_cancellation_with_a_forged_state_is_rejected(client, github):
+    start_login(client)
+    response = cancelled_callback(client, state="attacker-guessed-state")
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Invalid or missing OAuth state"
+    assert "critique_session" not in response.cookies
+
+
+def test_cancellation_with_another_browsers_state_is_rejected(client, github):
+    """Login-CSRF through the denial path: state must still be per-browser."""
+    _, attacker_state, _ = start_login(client)
+    victim = TestClient(app, follow_redirects=False)
+    start_login(victim)
+
+    response = cancelled_callback(victim, state=attacker_state)
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Invalid or missing OAuth state"
+    assert "critique_session" not in response.cookies
+
+
+def test_any_github_error_value_is_handled(client, github):
+    """`error` is treated by value, not by matching access_denied literally."""
+    _, state, _ = start_login(client)
+    response = cancelled_callback(client, state=state, error="redirect_uri_mismatch")
+
+    assert response.status_code in (302, 307)
+    assert response.headers["location"] == "/?auth=cancelled"
+    assert "critique_session" not in response.cookies
+
+
+def test_missing_code_without_error_is_not_a_crash(client, github):
+    """Neither `code` nor `error`: nothing to exchange, so treat as cancelled."""
+    _, state, _ = start_login(client)
+    response = client.get(
+        "/auth/callback?state=" + quote(state, safe=""), follow_redirects=False
+    )
+
+    assert response.status_code in (302, 307)
+    assert "critique_session" not in response.cookies
+    assert github.token_calls == []
+
+
+def test_sibling_attempts_survive_a_cancellation(client, github):
+    """Cancelling one tab must not break a login still in flight in another."""
+    _, cancelled_state, _ = start_login(client)
+    _, live_state, _ = start_login(client)
+
+    assert cancelled_callback(client, state=cancelled_state).status_code in (302, 307)
+
+    ok = callback(client, state=live_state)
+    assert ok.status_code in (302, 307)
+    assert "critique_session" in ok.cookies
+
+
+def test_success_path_is_unchanged_by_the_denial_branch(client, github):
+    """The normal code+state exchange still behaves exactly as before."""
+    _, state, _ = start_login(client, return_to="/project/5")
+    response = callback(client, state=state)
+
+    assert response.status_code in (302, 307)
+    assert response.headers["location"] == "/project/5"
+    assert "critique_session" in response.cookies
+    assert len(github.token_calls) == 1
+    assert github.token_calls[0]["json"]["code"] == "test-code"
+    assert client.get("/auth/check", follow_redirects=False).json()["authenticated"] is True
 
 
 # ---------------------------------------------------------------------------

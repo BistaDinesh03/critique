@@ -946,6 +946,19 @@
     </header>
 
     <main class="container-wide" style="max-width: 1100px;">
+        <!-- Shown on load when the backend redirects here with ?error=email_link
+             (expired, already-used, or invalid magic link). It sits at the very
+             top of the page, outside the submit form and before the script that
+             fills it, so it is the first thing a returning visitor sees. -->
+        <div id="auth-error-banner" class="auth-error-banner" role="alert"></div>
+
+        <!-- Shown on load when the backend redirects here with ?auth=cancelled
+             (the visitor pressed Cancel on GitHub's consent screen). Same slot
+             as the banner above, but neutral rather than alarming: cancelling
+             is a normal choice, not a failure. -->
+        <div id="auth-cancelled-banner" class="alert alert-warning" role="status"
+             style="display: none; max-width: 72ch; margin-left: auto; margin-right: auto;"></div>
+
         <section class="hero">
             <h2>Stop getting "Looks good."</h2>
             <p class="subheadline">Ask one question. Get real answers.</p>
@@ -1324,9 +1337,69 @@
                 document.getElementById('logout-btn').style.display = 'none';
             }
         }
-        
+
+        // The backend sends visitors back to the homepage with
+        // ?error=email_link when a magic link is expired, already used, or
+        // otherwise invalid (see /auth/email/verify). Surface that here so the
+        // visitor is told what happened instead of landing on an unexplained
+        // homepage. The wording stays generic on purpose: it must not reveal
+        // whether an email address or account exists.
+        const EMAIL_LINK_ERROR = /[?&]error=email_link(?=&|$)/;
+
+        function showAuthErrorBanner() {
+            const search = window.location.search || '';
+            if (!EMAIL_LINK_ERROR.test(search)) return;
+
+            const banner = document.getElementById('auth-error-banner');
+            if (!banner) return;
+
+            banner.style.display = 'block';
+            banner.textContent = "That email sign-in link is no longer valid. " +
+                "Links expire after a short time and can only be used once. " +
+                "Please request a new one from the Login menu.";
+
+            // Drop the flag from the URL so a refresh (or the browser's own
+            // reload) does not replay the same banner, keeping any other
+            // query params (the resume flags) intact. Removing the first
+            // parameter can leave a bare '&' where the '?' used to be.
+            const cleaned = search
+                .replace(EMAIL_LINK_ERROR, '')
+                .replace(/^&/, '?')
+                .replace(/\?$/, '');
+            window.history.replaceState(null, '', window.location.pathname + cleaned + window.location.hash);
+        }
+
+        // The GitHub OAuth callback sends visitors back to the homepage with
+        // ?auth=cancelled when they press Cancel on GitHub's consent screen
+        // (see /auth/callback). Cancelling is a normal choice, so this says
+        // what happened in a neutral tone and, unlike the email-link banner,
+        // leaves no impression that something went wrong. The flag is stripped
+        // from the URL for the same reason: a refresh should not replay it.
+        const AUTH_CANCELLED = /[?&]auth=cancelled(?=&|$)/;
+
+        function showAuthCancelledBanner() {
+            const search = window.location.search || '';
+            if (!AUTH_CANCELLED.test(search)) return;
+
+            const banner = document.getElementById('auth-cancelled-banner');
+            if (!banner) return;
+
+            banner.style.display = 'block';
+            banner.textContent = "GitHub sign-in was cancelled, so you're not " +
+                "signed in. Nothing went wrong — you can try again whenever " +
+                "you like.";
+
+            const cleaned = search
+                .replace(AUTH_CANCELLED, '')
+                .replace(/^&/, '?')
+                .replace(/\?$/, '');
+            window.history.replaceState(null, '', window.location.pathname + cleaned + window.location.hash);
+        }
+
         // Run auth check immediately on script load
         checkAuth();
+        showAuthCancelledBanner();
+        showAuthErrorBanner();
 
         async function loadHomepageProjects() {
             const container = document.getElementById('homepage-projects');
@@ -1443,7 +1516,8 @@
 
         // The success state, shown only after the API confirms the project
         // was created (201 with the created project in the response body).
-        // Sharing lives inside it and stays completely optional.
+        // It stays compact; sharing lives behind one secondary action inside
+        // it and stays completely optional.
         function showProjectLive(data) {
             var msg = document.getElementById('message');
             var project = data && data.project;
@@ -1451,15 +1525,13 @@
                 // The 201 still confirms creation even if the body is not the
                 // shape we expect: report the truth, without the share section.
                 msg.className = 'message';
-                msg.textContent = 'Your project is live!';
+                msg.textContent = 'Your project is live';
                 return;
             }
             msg.className = 'message';
             CritiqueShare.renderSuccess(msg, {
                 projectId: project.id,
-                title: project.title || '',
-                description: project.description || '',
-                questionText: (data.question && data.question.text) || ''
+                title: project.title || ''
             });
         }
 

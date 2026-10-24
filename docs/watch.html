@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Watch the Critique walkthrough</title>
+  <style>
+    :root { color-scheme: light dark; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      padding: 1.5rem;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      text-align: center;
+    }
+    h1 {
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    video {
+      display: block;
+      width: 100%;
+      max-width: 880px;
+      height: auto;
+      aspect-ratio: 1854 / 902;
+      background: #000;
+      border-radius: 8px;
+    }
+    nav {
+      display: flex;
+      gap: 1.25rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      font-size: 0.9rem;
+    }
+    a { color: #4493f8; }
+    a:hover { text-decoration: none; }
+    a:focus-visible { outline: 2px solid #4493f8; outline-offset: 3px; }
+    .note {
+      margin: 0;
+      max-width: 56ch;
+      font-size: 0.85rem;
+      color: #8b949e;
+    }
+  </style>
+</head>
+<body>
+  <h1>Critique &mdash; 62-second product walkthrough</h1>
+  <video controls playsinline preload="none" width="1854" height="902"
+         poster="videos/critique-overview-poster.jpg"
+         aria-label="Critique product walkthrough: homepage, Discover feed, project page, and feedback results">
+    <source src="videos/critique-overview.mp4" type="video/mp4">
+    Your browser cannot play this MP4.
+    <a href="videos/critique-overview.mp4">Open the video file directly</a>.
+  </video>
+  <p class="note">62 seconds, no audio &mdash; press Play to start. Nothing autoplays.</p>
+  <nav>
+    <a href="https://github.com/BistaDinesh03/critique">&larr; Back to Critique</a>
+    <a href="videos/critique-overview.mp4">Direct video link</a>
+  </nav>
+</body>
+</html>

@@ -3,6 +3,10 @@
 Thanks for your interest in contributing! Critique is meant to be simple and
 maintainable.
 
+> Translations: [简体中文](CONTRIBUTING.zh-CN.md) ·
+> [日本語](CONTRIBUTING.ja.md) · [Español](CONTRIBUTING.es.md) —
+> this English file is the canonical version.
+
 ## Getting Started
 
 1. Fork the repository
@@ -36,7 +40,9 @@ cd backend
 python -m pytest tests/ -q
 ```
 
-Expected: **346 passed**. Install [Node.js](https://nodejs.org) first — the
+Expected: a clean run. The suite grows with almost every PR, so trust
+pytest's own summary (and the CI `test` check) rather than a hardcoded
+count in this file. Install [Node.js](https://nodejs.org) first — the
 frontend-render tests need `node` on PATH and are skipped without it.
 
 For a faster feedback loop while working on a focused change, run a single
@@ -48,8 +54,11 @@ python -m pytest tests/test_main.py::test_health_check -q
 python -m pytest tests/ -q -k health_check
 ```
 
-The frontend-render test modules are skipped when `node` is not on PATH. This
-is expected; install Node.js if your change affects frontend rendering.
+The frontend-render test modules are skipped when `node` is not on PATH.
+This is expected when you run the suite locally; install Node.js if your
+change affects frontend rendering. In CI the behavior is deliberately the
+opposite: the collection guard in `backend/tests/conftest.py` fails the run
+when `node` is missing, so render tests can never skip silently there.
 
 ## Development Guidelines
 
@@ -79,6 +88,7 @@ Critique intentionally avoids complexity. Before adding anything, ask:
 
 - Keep PRs focused and small
 - Describe what you changed and why
+- No secrets, unrelated changes, or test results you did not actually run
 - Link any related issues
 - Be respectful and patient
 
@@ -184,6 +194,8 @@ It will not assign an issue to somebody who has not commented asking for it,
 close an issue that is merely mentioned in a description, thank a contributor
 before the merge is confirmed, or send a second message. Full usage:
 [docs/contributor-workflow.md](docs/contributor-workflow.md).
+
+For the project-specific review checklist, see the [Maintainer Pull Request Review Checklist](docs/maintainer-guide.md).
 
 ## Communication
 

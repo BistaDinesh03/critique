@@ -1,6 +1,6 @@
 ﻿from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
-from app.database import get_db
+from app.database import get_db, in_int64_range
 from app.models import Project, Question, Response, User
 from app.schemas import ResponseOwnerOut
 from app.stats import calculate_stats
@@ -17,6 +17,8 @@ def get_project_results(
     current_user: User = Depends(get_current_user_optional),
 ):
     """Get aggregated results. Public stats; owner sees written responses."""
+    if not in_int64_range(project_id):
+        raise HTTPException(status_code=404, detail="Project not found")
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")

@@ -108,3 +108,36 @@ def test_delete_without_csrf_rejected():
     finally:
         app.dependency_overrides.clear()
     cleanup_database()
+
+
+def test_csrf_token_endpoint_sets_cookie_for_fresh_client():
+    """Test that GET /auth/csrf-token sets the cookie it returns, and the pair passes CSRF."""
+    cleanup_database()
+    client, _ = create_authenticated_client()
+
+    try:
+        token_resp = client.get("/auth/csrf-token")
+        assert token_resp.status_code == 200
+        token = token_resp.json()["csrf_token"]
+        assert f"{CSRF_COOKIE_NAME}={token}" in token_resp.headers.get("set-cookie", "")
+        assert client.cookies.get(CSRF_COOKIE_NAME) == token
+
+        # Reuse the cookie the endpoint set plus the matching header.
+        client.headers["X-CSRF-Token"] = token
+        response = client.post("/api/projects/", json=create_project_payload())
+        assert response.status_code == 201
+    finally:
+        app.dependency_overrides.clear()
+    cleanup_database()
+
+
+def test_csrf_token_endpoint_echoes_existing_cookie():
+    """Test that GET /auth/csrf-token echoes an existing cookie without rotating it."""
+    client = TestClient(app)
+    client.cookies.set(CSRF_COOKIE_NAME, "existing_token")
+
+    response = client.get("/auth/csrf-token")
+    assert response.status_code == 200
+    assert response.json() == {"csrf_token": "existing_token"}
+    assert CSRF_COOKIE_NAME not in response.headers.get("set-cookie", "")
+    assert client.cookies.get(CSRF_COOKIE_NAME) == "existing_token"

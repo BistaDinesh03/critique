@@ -24,7 +24,8 @@ from sqlalchemy import event
 
 from app.database import SessionLocal, engine, init_db
 from app.main import app
-from app.models import Project, Question, User
+from app.models import Project, Question, Response, User
+from app.auth import get_current_user
 
 client = TestClient(app)
 
@@ -214,3 +215,149 @@ def test_project_list_response_contract_is_unchanged(seed_projects):
             "question_text",
             "response_count",
         } <= set(item)
+
+
+def test_project_list_response_count_with_drifted_question_id():
+    """A project whose question id differs from its project id reports the correct count in Discover."""
+    init_db()
+    db = SessionLocal()
+    user = User(username="drift_user_" + uuid.uuid4().hex[:8])
+    db.add(user)
+    db.commit()
+
+    p1 = Project(
+        title="Drift Project 1",
+        description="First project",
+        owner_id=user.id,
+        feedback_count=0,
+    )
+    db.add(p1)
+    db.commit()
+    q1 = Question(text="Q1 text", project_id=p1.id, is_active=True)
+    db.add(q1)
+    db.commit()
+
+    # Advance Question sequence with an inactive question to guarantee drift
+    q_dummy = Question(text="Retired question", project_id=p1.id, is_active=False)
+    db.add(q_dummy)
+    db.commit()
+
+    p2 = Project(
+        title="Drift Project 2",
+        description="Project with drifted question id",
+        owner_id=user.id,
+        feedback_count=2,
+    )
+    db.add(p2)
+    db.commit()
+    q2 = Question(text="Q2 text", project_id=p2.id, is_active=True)
+    db.add(q2)
+    db.commit()
+
+    assert p2.id != q2.id, f"test requires drifted ids, got project.id={p2.id} == question.id={q2.id}"
+
+    r1 = Response(
+        clarity="very_clear",
+        would_use="yes",
+        suggestion="Great",
+        question_id=q2.id,
+        user_id=user.id,
+        ip_hash="hash1",
+    )
+    r2 = Response(
+        clarity="mostly_clear",
+        would_use="maybe",
+        suggestion="Good",
+        question_id=q2.id,
+        user_id=user.id,
+        ip_hash="hash2",
+    )
+    db.add_all([r1, r2])
+    db.commit()
+
+    try:
+        response = client.get("/api/projects/?page=1&page_size=50")
+        assert response.status_code == 200
+        items = {item["id"]: item for item in response.json()["items"]}
+        assert p2.id in items, "Project 2 should be in Discover items"
+        assert items[p2.id]["response_count"] == 2
+
+        # Verify self-heal does not overwrite feedback_count with 0
+        db.refresh(p2)
+        assert p2.feedback_count == 2
+    finally:
+        db.query(Response).filter(Response.question_id.in_([q1.id, q_dummy.id, q2.id])).delete(synchronize_session=False)
+        db.query(Question).filter(Question.id.in_([q1.id, q_dummy.id, q2.id])).delete(synchronize_session=False)
+        db.query(Project).filter(Project.id.in_([p1.id, p2.id])).delete(synchronize_session=False)
+        db.query(User).filter(User.id == user.id).delete(synchronize_session=False)
+        db.commit()
+        db.close()
+
+
+def test_my_projects_response_count_with_drifted_question_id():
+    """A project whose question id differs from its project id reports the correct count in My Projects."""
+    init_db()
+    db = SessionLocal()
+    user = User(username="drift_owner_" + uuid.uuid4().hex[:8])
+    db.add(user)
+    db.commit()
+
+    p1 = Project(
+        title="Owner Project 1",
+        description="First project",
+        owner_id=user.id,
+        feedback_count=0,
+    )
+    db.add(p1)
+    db.commit()
+    q1 = Question(text="Q1 text", project_id=p1.id, is_active=True)
+    db.add(q1)
+    db.commit()
+
+    q_dummy = Question(text="Retired question", project_id=p1.id, is_active=False)
+    db.add(q_dummy)
+    db.commit()
+
+    p2 = Project(
+        title="Owner Project 2",
+        description="Project with drifted question id",
+        owner_id=user.id,
+        feedback_count=3,
+    )
+    db.add(p2)
+    db.commit()
+    q2 = Question(text="Q2 text", project_id=p2.id, is_active=True)
+    db.add(q2)
+    db.commit()
+
+    assert p2.id != q2.id, f"test requires drifted ids, got project.id={p2.id} == question.id={q2.id}"
+
+    responses = [
+        Response(
+            clarity="very_clear",
+            would_use="yes",
+            suggestion=f"Suggestion {i}",
+            question_id=q2.id,
+            user_id=user.id,
+            ip_hash=f"owner_hash_{i}",
+        )
+        for i in range(3)
+    ]
+    db.add_all(responses)
+    db.commit()
+
+    app.dependency_overrides[get_current_user] = lambda: user
+    try:
+        response = client.get("/api/projects/my/list")
+        assert response.status_code == 200
+        items = {item["id"]: item for item in response.json()}
+        assert p2.id in items, "Project 2 should be in My Projects items"
+        assert items[p2.id]["response_count"] == 3
+    finally:
+        app.dependency_overrides.pop(get_current_user, None)
+        db.query(Response).filter(Response.question_id.in_([q1.id, q_dummy.id, q2.id])).delete(synchronize_session=False)
+        db.query(Question).filter(Question.id.in_([q1.id, q_dummy.id, q2.id])).delete(synchronize_session=False)
+        db.query(Project).filter(Project.id.in_([p1.id, p2.id])).delete(synchronize_session=False)
+        db.query(User).filter(User.id == user.id).delete(synchronize_session=False)
+        db.commit()
+        db.close()

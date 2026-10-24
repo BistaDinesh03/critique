@@ -1,5 +1,5 @@
 ﻿import httpx
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.responses import RedirectResponse, JSONResponse
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from sqlalchemy.orm import Session
@@ -12,6 +12,7 @@ import hashlib
 import hmac
 import secrets
 import time
+from collections import OrderedDict
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 from pydantic import BaseModel, Field
@@ -24,8 +25,26 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 # Separate from the IP-based rate limiter in app/rate_limit.py.
 # Keyed on normalized email to prevent one IP from spamming a single inbox
 # and to prevent a single email from being bombed from many IPs.
-_EMAIL_COOLDOWN = {}
+# The endpoint is unauthenticated, so the map must stay bounded the same way
+# the general rate limiter was bounded in #48: expired entries are swept
+# periodically and a hard cap with LRU eviction bounds memory when new
+# addresses arrive faster than their 60-second windows expire.
+_EMAIL_COOLDOWN: OrderedDict[str, float] = OrderedDict()
 _EMAIL_COOLDOWN_SECONDS = 60
+_EMAIL_COOLDOWN_SWEEP_INTERVAL = 100
+_EMAIL_COOLDOWN_MAX_TRACKED_KEYS = 10_000
+_email_cooldown_calls = 0
+
+
+def _sweep_expired_email_cooldown(now: float) -> None:
+    """Drop entries whose cooldown window has fully elapsed."""
+    expired = [
+        email
+        for email, last in _EMAIL_COOLDOWN.items()
+        if now - last >= _EMAIL_COOLDOWN_SECONDS
+    ]
+    for email in expired:
+        del _EMAIL_COOLDOWN[email]
 
 
 def _email_cooldown_check_and_set(normalized_email: str) -> bool:
@@ -33,11 +52,22 @@ def _email_cooldown_check_and_set(normalized_email: str) -> bool:
 
     Otherwise record the request time and return False (allow).
     """
+    global _email_cooldown_calls
+    _email_cooldown_calls += 1
     now = time.time()
+    if _email_cooldown_calls % _EMAIL_COOLDOWN_SWEEP_INTERVAL == 0:
+        _sweep_expired_email_cooldown(now)
+
     last = _EMAIL_COOLDOWN.get(normalized_email)
     if last is not None and (now - last) < _EMAIL_COOLDOWN_SECONDS:
         return True
+    if (
+        normalized_email not in _EMAIL_COOLDOWN
+        and len(_EMAIL_COOLDOWN) >= _EMAIL_COOLDOWN_MAX_TRACKED_KEYS
+    ):
+        _EMAIL_COOLDOWN.popitem(last=False)
     _EMAIL_COOLDOWN[normalized_email] = now
+    _EMAIL_COOLDOWN.move_to_end(normalized_email)
     return False
 
 serializer = URLSafeTimedSerializer(settings.SECRET_KEY, salt="session")
@@ -57,7 +87,7 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
         raise HTTPException(status_code=401, detail="Not authenticated")
 
     try:
-        data = serializer.loads(token, max_age=86400 * 7)
+        data = serializer.loads(token, max_age=settings.SESSION_COOKIE_MAX_AGE)
         user_id = data.get("user_id")
     except (BadSignature, SignatureExpired):
         raise HTTPException(status_code=401, detail="Invalid or expired session")
@@ -77,16 +107,19 @@ def get_current_user_optional(request: Request, db: Session = Depends(get_db)):
         return None
 
 
-def session_cookie_is_valid(request: Request, max_age: int = 86400 * 7) -> bool:
+def session_cookie_is_valid(request: Request, max_age: Optional[int] = None) -> bool:
     """Cheap session probe for stamping early auth state into served pages.
 
     Verifies the cookie's signature and age only -- no database lookup -- so
     page responses stay fast. It is a hint for the first paint: the browser
     still runs /auth/check (DB-backed) and adopts whatever it answers.
+    The configured session lifetime is used unless an explicit max_age is given.
     """
     token = request.cookies.get(SESSION_COOKIE_NAME)
     if not token:
         return False
+    if max_age is None:
+        max_age = settings.SESSION_COOKIE_MAX_AGE
     try:
         serializer.loads(token, max_age=max_age)
         return True
@@ -226,15 +259,50 @@ def github_login(
     return response
 
 
+# Indicator appended to the homepage URL when the visitor cancels on GitHub's
+# consent screen. There is no flash-message system, so the callback reports the
+# outcome through the query string and the homepage turns it into a banner.
+AUTH_CANCELLED_INDICATOR = "/?auth=cancelled"
+
+
+def _oauth_cancelled_response(remaining: list) -> RedirectResponse:
+    """Friendly outcome for a GitHub OAuth attempt the visitor did not complete.
+
+    Pressing "Cancel" on GitHub's consent screen is a normal user action, not a
+    failure of ours, so this is not an error response. Two bookkeeping steps
+    still have to happen, exactly as on the failure path:
+
+    * the accepted state is consumed, so the browser is not left holding an
+      in-flight attempt it can never finish (and which would otherwise linger
+      for the rest of its ten-minute life);
+    * ``critique_return_to`` is cleared, so a later, unrelated login does not
+      suddenly bounce the visitor back to a page they asked for before they
+      changed their mind.
+
+    The target is a fixed literal, so no open-redirect validation is involved.
+    """
+    response = RedirectResponse(AUTH_CANCELLED_INDICATOR)
+    response.delete_cookie(RETURN_TO_COOKIE_NAME)
+    _set_pending_states_cookie(response, remaining)
+    return response
+
+
 @router.get("/callback")
 async def github_callback(
-    code: str,
     request: Request,
+    code: Optional[str] = None,
     state: Optional[str] = None,
+    error: Optional[str] = None,
     db: Session = Depends(get_db),
     _: None = Depends(rate_limit("auth")),
 ):
-    """Handle GitHub OAuth callback, validating state, and create session."""
+    """Handle GitHub OAuth callback, validating state, and create session.
+
+    GitHub sends the browser back in one of two shapes: ``?code=...&state=...``
+    when the visitor authorises the app, and ``?error=access_denied&state=...``
+    with no ``code`` when they press Cancel. Both carry the state we issued, so
+    both are gated on it before anything else happens.
+    """
     # Validate state before contacting GitHub: missing, unknown, expired,
     # forged, or replayed states are rejected outright.
     pending = _load_pending_states(request.cookies.get(OAUTH_STATE_COOKIE_NAME))
@@ -244,6 +312,14 @@ async def github_callback(
     # Single-use: this state is dropped from the browser's pending list on the
     # response we are about to return, success or failure.
     remaining = [s for s in pending if not hmac.compare_digest(s, state)]
+
+    # Cancellation (or any other outcome GitHub reports through `error`), and
+    # the no-code-at-all case, never reach the token exchange. Handling them
+    # here keeps the visitor out of a framework-generated 422 validation blob.
+    # No session is issued on this path, so nothing about it can authenticate
+    # anyone.
+    if error or not code:
+        return _oauth_cancelled_response(remaining)
 
     async with httpx.AsyncClient() as client:
         token_response = await client.post(
@@ -327,11 +403,12 @@ def check_auth(user: User = Depends(get_current_user)):
 
 
 @router.get("/csrf-token")
-def get_csrf_token(request: Request):
-    """Return the CSRF token for the current session."""
+def get_csrf_token(request: Request, response: Response):
+    """Return the CSRF token for the current session, setting the cookie if absent."""
     token = request.cookies.get("critique_csrf")
     if not token:
         token = generate_csrf_token()
+        set_csrf_cookie(response, token)
     return {"csrf_token": token}
 
 # ============================================================================
