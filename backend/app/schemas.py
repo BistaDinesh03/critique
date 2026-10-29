@@ -10,6 +10,15 @@ class ProjectCreate(BaseModel):
     url: Optional[str] = Field(None, max_length=500)
     image_url: Optional[str] = Field(None, max_length=500)
 
+    @field_validator("title")
+    @classmethod
+    def validate_title(cls, v: str) -> str:
+        """Trim and reject whitespace-only titles: min_length counts spaces."""
+        v = v.strip()
+        if not v:
+            raise ValueError("Title cannot be empty or whitespace")
+        return v
+
     @field_validator("url", "image_url")
     @classmethod
     def validate_url(cls, v: Optional[str]) -> Optional[str]:
@@ -51,6 +60,15 @@ class ProjectListItem(BaseModel):
 class QuestionCreate(BaseModel):
     """Schema for creating a new question."""
     text: str = Field(..., min_length=1, max_length=500)
+
+    @field_validator("text")
+    @classmethod
+    def validate_text(cls, v: str) -> str:
+        """Trim and reject whitespace-only text: min_length counts spaces."""
+        v = v.strip()
+        if not v:
+            raise ValueError("Question text cannot be empty or whitespace")
+        return v
 
 
 class QuestionOut(BaseModel):
