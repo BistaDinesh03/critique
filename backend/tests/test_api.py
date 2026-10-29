@@ -44,20 +44,60 @@ def test_create_project_with_question(auth_client):
 
 
 def test_list_projects_with_pagination(auth_client):
-    """Test listing projects with pagination."""
-    cleanup_database()
-    create_test_project(auth_client, title="Project One")
-    create_test_project(auth_client, title="Project Two")
-    create_test_project(auth_client, title="Project Three")
-
-    response = auth_client.get("/api/projects/?page=1&page_size=2")
-    assert response.status_code == 200
-    data = response.json()
-    assert data["page"] == 1
-    assert data["page_size"] == 2
-    assert isinstance(data["items"], list)
+    """Test visible projects and metadata across multiple pages."""
+    from app.auth import get_current_user_optional
 
     cleanup_database()
+    current_user = __import__("app.main", fromlist=["app"]).app.dependency_overrides[
+        get_current_user_optional
+    ]()
+    db = SessionLocal()
+    project_ids = []
+    try:
+        owners = []
+        for index in range(5):
+            owner = User(username=f"pagination_owner_{index}")
+            db.add(owner)
+            db.commit()
+            db.refresh(owner)
+            if owner.id != current_user.id:
+                owners.append(owner)
+        for index, owner in enumerate(owners[:4]):
+            project = Project(
+                title=f"Pagination Project {index + 1}",
+                description="Visible project for pagination coverage",
+                url=f"https://example.com/{index + 1}",
+                owner_id=owner.id,
+                feedback_count=0,
+                discover_impressions=0,
+            )
+            db.add(project)
+            db.commit()
+            db.refresh(project)
+            project_ids.append(project.id)
+            db.add(Question(text=f"Question {index + 1}?", project_id=project.id, is_active=True))
+            db.commit()
+
+        first = auth_client.get("/api/projects/?page=1&page_size=2")
+        second = auth_client.get("/api/projects/?page=2&page_size=2")
+        assert first.status_code == second.status_code == 200
+        first_data, second_data = first.json(), second.json()
+        first_titles = {item["title"] for item in first_data["items"]}
+        second_titles = {item["title"] for item in second_data["items"]}
+        expected_titles = {f"Pagination Project {index}" for index in range(1, 5)}
+        assert len(first_titles) == len(second_titles) == 2
+        assert first_titles | second_titles == expected_titles
+        assert first_data["total"] == len(first_data["items"]) == 2
+        assert second_data["total"] == len(second_data["items"]) == 2
+        assert first_data["page"] == 1 and second_data["page"] == 2
+        assert first_data["page_size"] == second_data["page_size"] == 2
+        assert first_data["total_pages"] == second_data["total_pages"] == 2
+        assert set(item["id"] for item in first_data["items"]).isdisjoint(
+            item["id"] for item in second_data["items"]
+        )
+    finally:
+        db.close()
+        cleanup_database()
 
 
 def test_get_project_with_question(auth_client):

@@ -96,8 +96,7 @@ def list_projects(
 ):
     """List projects with ranking. Public endpoint."""
     # No SELECT count(*) here: the paginated response is built from the ranked
-    # result (total=len(items), total_pages from len(final_ranked)), so the
-    # total row count was computed on every request and never used. Dropping it
+    # result, so no separate count query is needed. Dropping it
     # removes one database round trip from the busiest read endpoint.
     offset = (page - 1) * page_size
 

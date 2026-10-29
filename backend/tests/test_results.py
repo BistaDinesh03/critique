@@ -112,7 +112,8 @@ def test_results_many_responses(auth_client):
     assert response.status_code == 200
     data = response.json()
     assert data["stats"]["total"] == 3
-    assert len(data["responses"]) >= 0  # owner sees 3, public sees 0
+    assert data["is_owner"] is True
+    assert len(data["responses"]) == 3
     cleanup_database()
 
 
