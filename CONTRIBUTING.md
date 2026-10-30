@@ -1,4 +1,4 @@
-﻿# Contributing to Critique
+# Contributing to Critique
 
 Thanks for your interest in contributing! Critique is meant to be simple and
 maintainable.
@@ -255,6 +255,8 @@ before the merge is confirmed, or send a second message. Full usage:
 For the project-specific review checklist, see the [Maintainer Pull Request Review Checklist](docs/maintainer-guide.md).
 
 ## Communication
+
+We are committed to providing a welcoming and inspiring community for all. Please review our [Code of Conduct](CODE_OF_CONDUCT.md).
 
 - Be kind and constructive
 - Assume good intentions
