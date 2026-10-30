@@ -149,6 +149,8 @@ def test_discover_skeleton_resolves_to_real_project_cards(tmp_path):
     assert any(meta["className"] == "project-card" for meta in result["createdMeta"])
     assert "Ship the thing" in result["html"]
     assert result["flags"]["project-list"]["ariaBusy"] == "false"
+    assert result["flags"]["project-list"]["role"] == "list"
+    assert result["flags"]["project-list"]["ariaLabel"] == "Projects asking for feedback"
     # The busy announcement is cleared with the message, not left spinning.
     assert result["ids"]["project-list-status"] == ""
 
@@ -181,6 +183,27 @@ def test_discover_skeleton_resolves_to_a_retryable_error(tmp_path):
     assert "Try again" in result["ids"]["project-list"]
     assert result["flags"]["project-list"]["ariaBusy"] == "false"
     assert result["ids"]["project-list-status"] == "Couldn't load projects."
+    # Error state drops role=list to satisfy aria-required-children for non-card content.
+    assert result["flags"]["project-list"]["role"] is None
+    assert result["flags"]["project-list"]["ariaLabel"] is None
+
+
+def test_discover_empty_state_drops_list_role(tmp_path):
+    result = run(
+        tmp_path,
+        "discover.html",
+        [{"fn": "loadProjects", "args": [1]}],
+        fetch={
+            "/api/projects/": {
+                "status": 200,
+                "body": {"items": [], "total": 0, "page": 1, "total_pages": 1},
+            }
+        },
+    )
+    assert "empty-state" in result["ids"]["project-list"]
+    assert result["flags"]["project-list"]["role"] is None
+    assert result["flags"]["project-list"]["ariaLabel"] is None
+    assert result["flags"]["project-list"]["ariaBusy"] == "false"
 
 
 def test_project_page_reports_an_error_when_the_project_fails_to_load(tmp_path):

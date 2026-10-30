@@ -1,4 +1,4 @@
-﻿// Test-only harness: executes every <script> a frontend page declares (inline
+// Test-only harness: executes every <script> a frontend page declares (inline
 // blocks and local /static/*.js assets) inside a minimal DOM stub and returns
 // the HTML the page actually produced.
 //
@@ -881,6 +881,7 @@ async function main() {
   const flags = {};
   const flagOf = (el) => ({
     hidden: !!el.hidden,
+    role: el.getAttribute ? el.getAttribute('role') : null,
     ariaExpanded: el.getAttribute ? el.getAttribute('aria-expanded') : null,
     ariaLabel: el.getAttribute ? el.getAttribute('aria-label') : null,
     // Loading placeholders are announced through aria-busy and hidden with
