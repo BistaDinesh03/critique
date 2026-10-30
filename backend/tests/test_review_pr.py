@@ -536,6 +536,44 @@ def test_unconfigured_branch_protection_fails_the_gate():
     assert gh.merged == []
 
 
+def test_unreadable_branch_protection_is_reported_as_unverified():
+    gh, result = review_of(
+        clean_pr(), protection=review_pr.BranchProtectionUnreadable(403))
+    gate = next(g for g in result.gates if "Branch protection" in g.name)
+    assert gate.ok is False
+    assert "could not verify" in gate.detail
+    assert "HTTP 403" in gate.detail
+    assert "not enabled" not in gate.detail
+    assert "not enabled" not in gate.manual_fix
+    assert gate.manual_fix
+    approvals = next(g for g in result.gates if g.name.startswith("Approvals"))
+    assert "requirements unknown" in approvals.detail
+    assert review_pr.main(["56", "--merge", "--skip-tests"], gh=gh) == 1
+    assert gh.merged == []
+
+
+def test_branch_protection_maps_http_status_to_outcome():
+    class Proc:
+        def __init__(self, returncode, stdout="", stderr=""):
+            self.returncode = returncode
+            self.stdout = stdout
+            self.stderr = stderr
+
+    def client(status):
+        def runner(*_args, **_kwargs):
+            if status == 200:
+                return Proc(0, stdout='{"enforce_admins": {"enabled": true}}')
+            return Proc(1, stderr=f"gh: Forbidden (HTTP {status})")
+        return review_pr.GitHub("owner/repo", runner=runner)
+
+    assert client(404).branch_protection("main") is None
+    unreadable = client(403).branch_protection("main")
+    assert isinstance(unreadable, review_pr.BranchProtectionUnreadable)
+    assert unreadable.status == 403
+    assert client(200).branch_protection("main") == {
+        "enforce_admins": {"enabled": True}}
+
+
 def test_no_ci_configuration_fails_the_gate():
     pr = clean_pr(statusCheckRollup=[])
     gh, result = review_of(pr)
