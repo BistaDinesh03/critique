@@ -711,6 +711,14 @@ def test_the_test_environment_carries_no_tokens():
     assert "PATH" in env
 
 
+def test_the_test_environment_carries_the_oauth_client_id(monkeypatch):
+    """tests.yml sets GITHUB_CLIENT_ID for the suite; the review tool must
+    reproduce that contract or test_login_sends_state_to_github fails."""
+    monkeypatch.setenv("GITHUB_CLIENT_ID", "ci-test-client-id")
+    env = review_pr._sanitized_env()
+    assert env.get("GITHUB_CLIENT_ID") == "ci-test-client-id"
+
+
 def test_pytest_output_is_parsed_without_being_trusted():
     output = (
         "FAILED tests/test_a.py::test_one - AssertionError\n"

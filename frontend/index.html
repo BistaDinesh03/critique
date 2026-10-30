@@ -1103,7 +1103,7 @@
                     <span class="review-tag">Security</span>
                     <span class="review-tag">UI</span>
                     <span class="review-tag">Analytics</span>
-                    <span class="review-tag accent">70 tests passing</span>
+                    <span class="review-tag accent">Test suite</span>
                 </div>
             </article>
 
@@ -1639,7 +1639,9 @@
                     msg.textContent = 'Session expired. Please refresh and try again.';
                 } else {
                     msg.className = 'alert alert-error';
-                    msg.textContent = 'Error: ' + JSON.stringify(data);
+                    msg.textContent = (typeof data.detail === 'string' && data.detail)
+                        ? data.detail
+                        : 'Failed to submit. Please try again.';
                 }
             } catch (error) {
                 msg.className = 'alert alert-error';

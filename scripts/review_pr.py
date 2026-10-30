@@ -1046,6 +1046,10 @@ def _sanitized_env() -> Dict[str, str]:
         "PATH", "PATHEXT", "HOME", "USERPROFILE", "HOMEPATH", "APPDATA",
         "LOCALAPPDATA", "SYSTEMROOT", "SYSTEMDRIVE", "COMSPEC", "WINDIR",
         "TEMP", "TMP", "NUMBER_OF_PROCESSORS", "LANG", "LC_ALL",
+        # Public OAuth client id, not a secret: tests.yml sets it for the suite
+        # (docs/pull-request-review.md documents the contract), so the review
+        # tool must carry it through or the OAuth state test fails spuriously.
+        "GITHUB_CLIENT_ID",
     ]
     env = {k: os.environ[k] for k in keep if os.environ.get(k)}
     env["PYTHONIOENCODING"] = "utf-8"

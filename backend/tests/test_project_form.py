@@ -341,6 +341,59 @@ def test_an_anonymous_project_submission_keeps_the_draft_and_offers_sign_in(tmp_
     assert "alert-error" not in result["flags"]["message"]["className"]
 
 
+def test_a_failed_project_submission_shows_the_detail_not_raw_json(tmp_path):
+    """The API's detail sentence is shown; the response body is never
+    stringified into the visitor's error message (#225)."""
+    result = run(
+        tmp_path,
+        "index.html",
+        FILL_PROJECT,
+        fetch={
+            HOMEPAGE_URL: {"status": 200, "body": {"total": 0, "items": []}},
+            SUBMIT_URL: {
+                "status": 400,
+                "body": {"detail": "Title is already taken"},
+            },
+        },
+    )
+
+    message = result["flags"]["message"]
+    assert "alert-error" in message["className"]
+    assert result["ids"]["message"] == "Title is already taken"
+    # No fragment of the raw response body reaches the visitor.
+    assert "detail" not in result["ids"]["message"]
+
+
+def test_a_validation_failure_falls_back_to_a_sentence_not_an_array(tmp_path):
+    """422 detail is a list of objects; stringifying it would dump JSON at the
+    visitor, so the fixed sentence is used instead (#225)."""
+    result = run(
+        tmp_path,
+        "index.html",
+        FILL_PROJECT,
+        fetch={
+            HOMEPAGE_URL: {"status": 200, "body": {"total": 0, "items": []}},
+            SUBMIT_URL: {
+                "status": 422,
+                "body": {
+                    "detail": [
+                        {
+                            "loc": ["body", "project_data", "title"],
+                            "msg": "Field required",
+                            "type": "value_error.missing",
+                        }
+                    ]
+                },
+            },
+        },
+    )
+
+    message = result["flags"]["message"]
+    assert "alert-error" in message["className"]
+    assert result["ids"]["message"] == "Failed to submit. Please try again."
+    assert "value_error" not in result["ids"]["message"]
+
+
 # ---------------------------------------------------------------------------
 # The feedback page's hierarchy (Phase 4)
 # ---------------------------------------------------------------------------
