@@ -399,8 +399,7 @@ product feedback are welcome. A good place to start is an issue labeled
 4. Run the test suite
 5. Open a pull request
 
-[CONTRIBUTING.md](CONTRIBUTING.md) has the full guidelines, and
-[SECURITY.md](SECURITY.md) explains how to report vulnerabilities.
+[CONTRIBUTING.md](CONTRIBUTING.md) has the full guidelines, and the [first-contributor walkthrough](docs/first-contributors.md) shows how to take one issue from claiming it to opening a pull request. [SECURITY.md](SECURITY.md) explains how to report vulnerabilities.
 
 **Looking for something to work on?** Start with the curated plan in
 [docs/issue-roadmap.md](docs/issue-roadmap.md) — 50 reviewed issues with the

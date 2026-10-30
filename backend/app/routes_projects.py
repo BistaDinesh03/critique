@@ -132,6 +132,7 @@ def list_projects(
         )
         .outerjoin(question_subq, question_subq.c.project_id == Project.id)
         .outerjoin(response_count_subq, response_count_subq.c.project_id == Project.id)
+        .order_by(Project.id.asc())
         .all()
     )
 
@@ -170,8 +171,8 @@ def list_projects(
             "match_reason": match_reason,
         })
 
-    # Sort by score descending
-    ranked_items.sort(key=lambda x: x["score"], reverse=True)
+    # Sort by score descending with project id ascending as deterministic tie-breaker
+    ranked_items.sort(key=lambda x: (-x["score"], x["project"].id))
 
     # Apply diversity: max 1 project per owner in first 6 results
     first_six = []

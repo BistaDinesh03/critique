@@ -1,3 +1,5 @@
+import pytest
+
 from fastapi.testclient import TestClient
 from app.main import app
 from app.auth import _is_safe_return_path
@@ -37,6 +39,20 @@ def test_safe_return_path_rejects_scheme_in_path():
 
 def test_safe_return_path_rejects_long_input():
     assert _is_safe_return_path("/" + "a" * 600) is False
+
+
+@pytest.mark.parametrize("control", [chr(c) for c in range(32)] + ["\x7f"])
+def test_safe_return_path_rejects_control_characters(control):
+    assert _is_safe_return_path(f"/{control}/evil.com") is False
+
+
+@pytest.mark.parametrize("path", ["/\t/evil.com", "/\n/evil.com", "/\r\n/evil.com"])
+def test_login_route_ignores_control_characters_in_return_to(path):
+    response = client.get(
+        "/auth/login", params={"return_to": path}, follow_redirects=False,
+    )
+    assert response.status_code in (302, 307)
+    assert "critique_return_to" not in response.cookies
 
 
 def test_login_route_ignores_external_return_to():

@@ -24,6 +24,9 @@ by FastAPI from `frontend/`; everything below returns JSON unless noted.
 
 ### Rate limits
 
+The limits below are per client IP. Magic-link requests also have a separate
+per-email cooldown described after the table.
+
 | Key | Limit |
 |---|---|
 | `auth` (OAuth login/callback) | 10 requests / 60 s |
@@ -34,6 +37,13 @@ by FastAPI from `frontend/`; everything below returns JSON unless noted.
 | `response_submit` | 10 requests / 5 min |
 | `analytics` (track) | 60 requests / 60 s |
 
+**Per-email cooldown:** a repeat `/auth/email/start` request for the same
+normalized email address within 60 seconds intentionally returns `{"ok": true}`
+without sending another email. This is separate from the IP-based
+`email_login_start` limit; that limit still applies and can return `429`.
+The cooldown is tracked in process memory, not as a durable delivery limit.
+Reporting send failures is separately tracked in [#81](https://github.com/BistaDinesh03/critique/issues/81).
+
 ## Authentication — `/auth`
 
 | Method | Path | Auth | CSRF | Notes |
@@ -43,7 +53,7 @@ by FastAPI from `frontend/`; everything below returns JSON unless noted.
 | GET | `/auth/logout` | — | — | Clears session and CSRF cookies; redirects to `/`. |
 | GET | `/auth/check` | Required | — | `{"authenticated": true, "username": "..."}` or `401`. |
 | GET | `/auth/csrf-token` | — | — | `{"csrf_token": "..."}`; also sets the `critique_csrf` cookie if absent. |
-| POST | `/auth/email/start` | — | Required | Body `{"email": "...", "return_to"?: "/path"}`. Requests a magic link (15-minute, single-use). Always `{"ok": true}` regardless of whether the address exists or sending succeeded. Rate-limited (`email_login_start`). |
+| POST | `/auth/email/start` | — | Required | Body `{"email": "...", "return_to"?: "/path"}`. Requests a magic link (15-minute, single-use). Always `{"ok": true}` regardless of whether the address exists or sending succeeded. Within the intentional 60-second per-email cooldown, repeat requests return that same success without sending another email. Separately rate-limited per IP (`email_login_start`). |
 | GET | `/auth/email/verify?token=...` | — | — | Consumes the token atomically, sets the session, redirects. Invalid/expired/used tokens redirect to `/?error=email_link`. Rate-limited (`email_login_verify`). |
 
 `return_to` is validated against an allowlist of safe local paths; anything
@@ -100,11 +110,22 @@ else is ignored.
 | GET | `/robots.txt` | Allows public crawling; disallows `/my-projects`, `/api/`, `/auth/`, `/health`. |
 | GET | `/sitemap.xml` | Homepage, `/discover`, and every project page (dynamic). |
 
+Every absolute URL in both endpoints (the `Sitemap:` line in `/robots.txt`
+and each `<loc>` in `/sitemap.xml`) is built from `settings.APP_URL`, read per
+request. Surrounding whitespace and any trailing slash are stripped
+(`https://critique.page/` becomes `https://critique.page`); if `APP_URL` is
+unset or blank, the origin falls back to `http://127.0.0.1:8000`. An absolute
+origin is required because crawlers cannot resolve a root-relative `<loc>`,
+and the `Sitemap:` line is specified as an absolute URL. Self-hosted
+deployments should set `APP_URL` to their public origin so crawlers are
+pointed at the right site.
+
 ## Pages and misc
 
 | Method | Path | Notes |
 |---|---|---|
 | GET | `/` `/discover` `/my-projects` `/project/{id}` `/project/{id}/results` | HTML pages. A CSRF cookie is issued with each page response. |
+| GET | `/google8ffd0ae5f931d1e6.html` | Google Search Console site-verification file. |
 | GET | `/health` | `{"status": "ok"}` — uptime probe. |
 | GET | `/docs`, `/redoc` | FastAPI-generated API documentation. |
 | GET | `/static/*` | CSS/JS use `Cache-Control: no-cache` (revalidation); images use `Cache-Control: public, max-age=86400`. |

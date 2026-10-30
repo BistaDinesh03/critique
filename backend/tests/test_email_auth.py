@@ -130,10 +130,13 @@ def test_start_requires_csrf(fake_email):
     assert r.status_code == 403
 
 
-def test_start_unsafe_return_to_is_dropped(client, fake_email):
+@pytest.mark.parametrize("return_to", [
+    "https://evil.com", "/\t/evil.com", "/\n/evil.com", "/\r\n/evil.com",
+])
+def test_start_unsafe_return_to_is_dropped(client, fake_email, return_to):
     email = _unique_email()
     try:
-        r = client.post("/auth/email/start", json={"email": email, "return_to": "https://evil.com"})
+        r = client.post("/auth/email/start", json={"email": email, "return_to": return_to})
         assert r.status_code == 200
         assert r.json() == {"ok": True}
 
@@ -388,10 +391,13 @@ def test_verify_respects_safe_return_to(client):
         _cleanup_user_by_email(email)
 
 
-def test_verify_drops_unsafe_return_to_at_insert(client):
+@pytest.mark.parametrize("return_to", [
+    "https://evil.com", "/\t/evil.com", "/\n/evil.com", "/\r\n/evil.com",
+])
+def test_verify_drops_unsafe_return_to_at_insert(client, return_to):
     """If the stored return_to is somehow unsafe, verify falls back to '/'."""
     email = _unique_email()
-    raw = _insert_token(email, return_to="https://evil.com")
+    raw = _insert_token(email, return_to=return_to)
     try:
         r = client.get(f"/auth/email/verify?token={raw}")
         assert r.status_code in (302, 303, 307)

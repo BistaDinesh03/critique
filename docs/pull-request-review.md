@@ -253,12 +253,7 @@ none:
   still be wrong.
 - **It never merges on its own.** It does not auto-merge from its own
   analysis, and nothing in it can bypass branch protection.
-- **Duplicate suppression has not been exercised against a posted review.**
-  No pull request in this repository has ever had a review on it, so the
-  re-read-before-posting check has been run against real *empty* review state
-  and against review objects in GitHub's documented shape. The first real
-  `--request-changes` is worth watching, and it is a comment rather than
-  anything destructive if the de-duplication misreads the situation.
+- **Duplicate suppression has not been exercised against a review posted by this tool.** Pull requests in this repository have received human and bot reviews, but none of the reviews checked contains the tool's `<!-- critique-review-pr -->` marker. The re-read-before-posting check has therefore been tested against empty review state and review objects in GitHub's documented shape, but not against a review previously posted by this tool. The first real `--request-changes` is worth watching, and it is a comment rather than anything destructive if the de-duplication misreads the situation.
 
 ## Troubleshooting
 

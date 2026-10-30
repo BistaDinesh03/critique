@@ -180,6 +180,8 @@ def test_impressions_still_count_every_shown_project(seed_projects):
 
     first = client.get("/api/projects/?page=1&page_size=50").json()
     shown = [item["id"] for item in first["items"]]
+    assert shown, "project list must not be empty"
+    assert set(project_ids) <= set(shown), "seeded projects must be listed"
 
     after_first = impressions()
     for project_id in project_ids:
@@ -361,3 +363,27 @@ def test_my_projects_response_count_with_drifted_question_id():
         db.query(User).filter(User.id == user.id).delete(synchronize_session=False)
         db.commit()
         db.close()
+
+
+def test_discover_ranking_is_deterministic_and_pages_are_disjoint(seed_projects):
+    """Multiple identical queries return identical ordering, and consecutive pages are disjoint."""
+    seed_projects(12)
+
+    # First request
+    resp1 = client.get("/api/projects/?page=1&page_size=6").json()
+    ids_page1_run1 = [p["id"] for p in resp1["items"]]
+
+    # Second identical request must produce the exact same sequence
+    resp2 = client.get("/api/projects/?page=1&page_size=6").json()
+    ids_page1_run2 = [p["id"] for p in resp2["items"]]
+
+    assert ids_page1_run1 == ids_page1_run2, "identical queries produced different ordering"
+
+    # Page 2 request
+    resp_page2 = client.get("/api/projects/?page=2&page_size=6").json()
+    ids_page2 = [p["id"] for p in resp_page2["items"]]
+
+    # Consecutive pages must be disjoint
+    overlap = set(ids_page1_run1) & set(ids_page2)
+    assert not overlap, f"page 1 and page 2 overlap on project ids: {overlap}"
+

@@ -150,6 +150,9 @@ def _is_safe_return_path(path: str) -> bool:
     # Cap length to prevent abuse
     if len(path) > 500:
         return False
+    # URL parsers may strip controls before interpreting a redirect target.
+    if any(ord(char) < 0x20 or ord(char) == 0x7f for char in path):
+        return False
     return True
 
 

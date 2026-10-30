@@ -72,6 +72,13 @@ Notes:
   is sent (send failures are swallowed) — GitHub login is unaffected.
 - Magic-link requests always return the same generic success response, so the
   endpoint cannot be used to probe which email addresses have accounts.
+- A repeat request for the same normalized email address within 60 seconds
+  intentionally returns `{"ok": true}` without sending another email. Wait for
+  the cooldown before retrying; an immediate resend producing no email is
+  expected, not necessarily a provider configuration problem. The separate
+  per-IP request limit still applies (see [API rate limits](api.md#rate-limits)).
+  The cooldown is held in process memory. Reporting send failures is a separate
+  change tracked in [#81](https://github.com/BistaDinesh03/critique/issues/81).
 
 ## Local Development Without Either Provider
 

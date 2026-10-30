@@ -1,4 +1,4 @@
-﻿from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Annotated
 
@@ -179,6 +179,8 @@ def google_verification():
     """Serve Google Search Console verification file."""
     static_dir = Path(__file__).resolve().parent.parent.parent / "static"
     file_path = static_dir / "google8ffd0ae5f931d1e6.html"
+    if not file_path.is_file():
+        raise HTTPException(status_code=404, detail="Verification file not found")
     return HTMLResponse(content=file_path.read_text(encoding="utf-8"))
 
 

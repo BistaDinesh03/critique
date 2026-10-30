@@ -232,6 +232,7 @@
         let currentPage = 1;
         const pageSize = 9;
         let totalPages = 1;
+        let lastPaginationFocus = null;
 
         // Attribute-safe HTML escaping: &, <, >, " and ' are all escaped so a
         // user-controlled value can never break out of a quoted HTML attribute.
@@ -311,7 +312,15 @@
             list.setAttribute('aria-label', 'Projects asking for feedback');
             list.innerHTML = skeletonCardHtml().repeat(6);
             setListBusy(true, 'Loading projects...');
-            document.getElementById('pagination').style.display = 'none';
+            const pagination = document.getElementById('pagination');
+            if (pagination && pagination.style.display !== 'none') {
+                const prev = document.getElementById('prev-btn');
+                const next = document.getElementById('next-btn');
+                if (prev) prev.disabled = true;
+                if (next) next.disabled = true;
+            } else if (pagination) {
+                pagination.style.display = 'none';
+            }
         }
 
         function showEmpty() {
@@ -359,10 +368,24 @@
                 listContainer.appendChild(card);
             });
             if (totalPages > 1) {
+                const prevBtn = document.getElementById('prev-btn');
+                const nextBtn = document.getElementById('next-btn');
                 document.getElementById('pagination').style.display = 'flex';
-                document.getElementById('prev-btn').disabled = currentPage <= 1;
-                document.getElementById('next-btn').disabled = currentPage >= totalPages;
+                prevBtn.disabled = currentPage <= 1;
+                nextBtn.disabled = currentPage >= totalPages;
                 document.getElementById('page-info').textContent = 'Page ' + currentPage + ' of ' + totalPages;
+                if (lastPaginationFocus) {
+                    const targetBtn = lastPaginationFocus === 'next' ? nextBtn : prevBtn;
+                    const altBtn = lastPaginationFocus === 'next' ? prevBtn : nextBtn;
+                    if (targetBtn && !targetBtn.disabled) {
+                        targetBtn.focus();
+                    } else if (altBtn && !altBtn.disabled) {
+                        altBtn.focus();
+                    }
+                    lastPaginationFocus = null;
+                }
+            } else {
+                document.getElementById('pagination').style.display = 'none';
             }
         }
 
@@ -404,7 +427,10 @@ async function loadProjects(page) {
 
         function changePage(delta) {
             const newPage = currentPage + delta;
-            if (newPage >= 1 && newPage <= totalPages) { loadProjects(newPage); }
+            if (newPage >= 1 && newPage <= totalPages) {
+                lastPaginationFocus = delta > 0 ? 'next' : 'prev';
+                loadProjects(newPage);
+            }
         }
 
         loadProjects(1);
