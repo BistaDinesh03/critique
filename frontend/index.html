@@ -1355,8 +1355,23 @@
 
             banner.style.display = 'block';
             banner.textContent = "That email sign-in link is no longer valid. " +
-                "Links expire after a short time and can only be used once. " +
-                "Please request a new one from the Login menu.";
+                "Links expire after 15 minutes and can only be used once. " +
+                "You can request a new one below.";
+
+            // Give the visitor the next step instead of asking them to find
+            // the Login menu: this opens the same auth-choice menu.
+            const action = document.createElement('button');
+            action.type = 'button';
+            action.className = 'btn btn-secondary auth-error-action';
+            action.textContent = 'Request a new link';
+            action.addEventListener('click', function() {
+                banner.style.display = 'none';
+                const loginBtn = document.getElementById('login-btn');
+                if (!loginBtn) return;
+                if (typeof loginBtn.click === 'function') loginBtn.click();
+                if (typeof loginBtn.focus === 'function') loginBtn.focus();
+            });
+            banner.appendChild(action);
 
             // Drop the flag from the URL so a refresh (or the browser's own
             // reload) does not replay the same banner, keeping any other

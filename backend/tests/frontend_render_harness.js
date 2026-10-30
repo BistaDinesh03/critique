@@ -22,7 +22,7 @@
 //   }
 //
 // Prints a single JSON object on stdout:
-//   { errors: [], html, created, createdMeta, flags, requests, storage, ids, values }
+//   { errors: [], html, created, createdMeta, flags, requests, storage, ids, values, focused }
 // `created`/`createdMeta` only contain elements that are actually attached to
 // the document (a node the page built but never appended is never shown to
 // anyone); `createdMeta` exposes reflected properties (href, type, name,
@@ -53,6 +53,11 @@ function detachChildren(el) {
   });
   el.children = [];
 }
+
+// The last element the page moved to with .focus(). Focus management is part
+// of the auth UX (each screen moves a keyboard user to its heading or first
+// field), so the harness records it instead of throwing the call away.
+let focusedElement = null;
 
 function makeElement(tagName, created) {
   const state = { html: null, text: '' };
@@ -172,7 +177,7 @@ function makeElement(tagName, created) {
     querySelectorAll() {
       return [];
     },
-    focus() {},
+    focus() { focusedElement = el; },
     blur() {},
     click() {},
     reset() {},
@@ -277,7 +282,12 @@ function makeFetch(routes) {
       body: options && options.body ? String(options.body) : '',
     });
     const key = Object.keys(routes).find((k) => target.indexOf(k) !== -1);
-    const spec = key ? routes[key] : { status: 404, body: {} };
+    let spec = key ? routes[key] : { status: 404, body: {} };
+    // A route can also be a list of responses consumed in order, which models
+    // a first send followed by a rejected resend.
+    if (Array.isArray(spec)) spec = spec.length > 1 ? spec.shift() : spec[0];
+    // A scenario can leave a request in flight to observe the sending state.
+    if (spec.pending) return new Promise(() => {});
     const status = spec.status || 200;
     return Promise.resolve({
       ok: status >= 200 && status < 300,
@@ -667,6 +677,9 @@ async function main() {
         el = makeElement(tag);
         el.id = idMatch[1];
         if (classMatch) el.className = classMatch[1];
+        // Honour the real hidden attribute: it is page-visible state (the
+        // expired-link notice ships hidden and is revealed by script).
+        if (/(^|\s)hidden(\s|=|$)/.test(attrs)) el.hidden = true;
         elements.set(idMatch[1], el);
         parentOf().appendChild(el);
       }
@@ -774,6 +787,9 @@ async function main() {
       if (event.bubbles && !event.propagationStopped) {
         bubbleAlongPath(event, errors);
       }
+      // Let async handlers (fetch -> re-render) settle before the scenario's
+      // next action, the way a person waits for the screen to change.
+      await settle(0);
       continue;
     }
 
@@ -796,6 +812,7 @@ async function main() {
         continue;
       }
       bubbleToDocument(makeEvent('click', target, eventPathOf(target)), errors);
+      await settle(0);
       continue;
     }
 
@@ -857,11 +874,23 @@ async function main() {
   const createdHtml = rendered.map((el) => el.ownInnerHTML()).filter(Boolean);
   const createdMeta = rendered.map((el) => ({
     tag: el.tagName,
+    id: el.id,
     className: el.className,
     href: el.href,
     type: el.type,
     name: el.name,
     placeholder: el.placeholder,
+    // Form-control state used by the auth flows: a sending button is disabled
+    // and marked busy, errors are linked to their input, and the email input
+    // advertises its autocomplete/inputmode contract.
+    disabled: !!el.disabled,
+    autocomplete: el.getAttribute ? el.getAttribute('autocomplete') : null,
+    inputMode: el.getAttribute ? el.getAttribute('inputmode') : null,
+    ariaInvalid: el.getAttribute ? el.getAttribute('aria-invalid') : null,
+    ariaDescribedBy: el.getAttribute ? el.getAttribute('aria-describedby') : null,
+    ariaBusy: el.getAttribute ? el.getAttribute('aria-busy') : null,
+    ariaLive: el.getAttribute ? el.getAttribute('aria-live') : null,
+    role: el.getAttribute ? el.getAttribute('role') : null,
     text: el.textContent,
     // Form-control state: a textarea's content lives in .value, never in
     // textContent, so editable text is only assertable through this.
@@ -934,6 +963,16 @@ async function main() {
       storage: { session: dumpStorage(sessionStorage), local: dumpStorage(localStorage) },
       ids,
       values,
+      // Which element last received focus, so keyboard-navigation contracts
+      // (each auth screen starts at its heading) are testable.
+      focused: focusedElement
+        ? {
+            tag: focusedElement.tagName,
+            id: focusedElement.id,
+            className: focusedElement.className,
+            text: focusedElement.textContent,
+          }
+        : null,
     })
   );
 }

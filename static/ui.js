@@ -180,35 +180,63 @@ var CritiqueUI = (function() {
         return node;
     }
 
+    // Shared copy. Every login gate uses the same words for the same action so
+    // the choice feels like one product rather than a per-page form.
+    var AUTH_COPY = {
+        welcomeTitle: 'Welcome to Critique',
+        welcomeMessage: 'Get honest feedback on your projects from real people.',
+        githubNote: 'GitHub takes one click if you already have an account. Email works just as well.',
+        emailTitle: 'Continue with email',
+        emailMessage: "We'll send you a secure sign-in link. No password needed.",
+        send: 'Email me a sign-in link',
+        sending: 'Sending sign-in link\u2026',
+        checkTitle: 'Check your inbox',
+        resend: 'Resend sign-in link',
+        resending: 'Sending another link\u2026',
+        changeEmail: 'Change email',
+        genericError: "We couldn't send the link. Check your connection and try again.",
+        rateLimitError: 'Too many attempts. Please wait a minute, then try again.'
+    };
+
+    var EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    var RESEND_COOLDOWN_MS = 60 * 1000;
+    var emailFieldSeq = 0;
+
+    function makeTitle(text) {
+        var title = document.createElement('h2');
+        title.className = 'login-prompt-title';
+        title.textContent = text;
+        title.setAttribute('tabindex', '-1');
+        return title;
+    }
+
+    function focusAfterRender(node) {
+        if (!node || typeof node.focus !== 'function') return;
+        try {
+            node.focus({ preventScroll: true });
+        } catch (e) {
+            try { node.focus(); } catch (e2) {}
+        }
+    }
+
     // Renders: title / message / GitHub button / email button / supporting notes.
     // config = {
-    //   title, message, notes[], returnTo, context, showLabel,
+    //   title, message, notes[], returnTo, context,
     //   onStart(method)  -> called when a method is chosen (save drafts here),
-    //   emailSentHint
+    //   emailSentHint, resendCooldownMs
     // }
-    function renderAuthChoice(el, config) {
+    function renderAuthChoice(el, config, focusTarget) {
         if (!el) return;
         config = config || {};
         var context = config.context === undefined ? null : config.context;
 
         el.innerHTML = '';
         el.className = 'login-prompt';
+        el.removeAttribute('aria-busy');
 
-        if (config.title) {
-            var title = document.createElement('div');
-            title.className = 'login-prompt-title';
-            title.textContent = config.title;
-            el.appendChild(title);
-        }
-        if (config.message) {
-            appendText(el, 'login-prompt-text', config.message);
-        }
-        if (config.showLabel !== false) {
-            var label = document.createElement('div');
-            label.className = 'login-prompt-label';
-            label.textContent = 'Continue with:';
-            el.appendChild(label);
-        }
+        var title = makeTitle(config.title || AUTH_COPY.welcomeTitle);
+        el.appendChild(title);
+        appendText(el, 'login-prompt-text', config.message || AUTH_COPY.welcomeMessage);
 
         var actions = document.createElement('div');
         actions.className = 'login-prompt-actions';
@@ -237,74 +265,125 @@ var CritiqueUI = (function() {
 
         el.appendChild(actions);
 
-        var notes = config.notes && config.notes.length ? config.notes : ['No password required.'];
+        var notes = config.notes && config.notes.length ? config.notes.slice() : ['No password required.'];
+        if (notes.indexOf(AUTH_COPY.githubNote) === -1) notes.push(AUTH_COPY.githubNote);
         for (var i = 0; i < notes.length; i++) {
             appendText(el, 'login-prompt-note', notes[i]);
         }
+
+        // Focus management: the gate is a new screen, so keyboard users start
+        // at its heading. Going Back from the email form targets the email
+        // option they came from instead.
+        if (focusTarget === 'email') focusAfterRender(emailBtn);
+        else focusAfterRender(title);
     }
 
-    function renderEmailForm(el, config) {
+    function renderEmailForm(el, config, initialEmail) {
         config = config || {};
         var context = config.context === undefined ? null : config.context;
 
         el.innerHTML = '';
         el.className = 'login-prompt';
+        el.removeAttribute('aria-busy');
 
-        if (config.title) {
-            var title = document.createElement('div');
-            title.className = 'login-prompt-title';
-            title.textContent = config.title;
-            el.appendChild(title);
-        }
-        if (config.message) {
-            appendText(el, 'login-prompt-text', config.message);
-        }
+        el.appendChild(makeTitle(AUTH_COPY.emailTitle));
+        appendText(el, 'login-prompt-text', AUTH_COPY.emailMessage);
 
         var form = document.createElement('form');
         form.className = 'login-prompt-form';
         form.setAttribute('novalidate', 'novalidate');
 
+        var fieldId = 'auth-email-' + (++emailFieldSeq);
+        var errorId = fieldId + '-error';
+
+        var field = document.createElement('div');
+        field.className = 'login-prompt-field';
+
+        var label = document.createElement('label');
+        label.className = 'login-prompt-field-label';
+        label.setAttribute('for', fieldId);
+        label.textContent = 'Email';
+        field.appendChild(label);
+
         var emailInput = document.createElement('input');
         emailInput.type = 'email';
+        emailInput.id = fieldId;
         emailInput.name = 'email';
         emailInput.required = true;
         emailInput.autocomplete = 'email';
         emailInput.placeholder = 'you@example.com';
-        emailInput.setAttribute('aria-label', 'Email address');
+        emailInput.value = initialEmail || '';
+        emailInput.setAttribute('autocomplete', 'email');
+        emailInput.setAttribute('inputmode', 'email');
+        emailInput.setAttribute('autocapitalize', 'none');
+        emailInput.setAttribute('spellcheck', 'false');
+        emailInput.setAttribute('aria-describedby', errorId);
+        emailInput.setAttribute('aria-invalid', 'false');
         emailInput.className = 'form-input';
-        form.appendChild(emailInput);
+        field.appendChild(emailInput);
+
+        var errorEl = document.createElement('p');
+        errorEl.className = 'login-prompt-error';
+        errorEl.id = errorId;
+        errorEl.setAttribute('role', 'alert');
+        field.appendChild(errorEl);
+
+        form.appendChild(field);
 
         var sendBtn = document.createElement('button');
         sendBtn.type = 'submit';
         sendBtn.className = 'btn btn-primary';
-        sendBtn.textContent = 'Send login link';
+        sendBtn.textContent = AUTH_COPY.send;
         form.appendChild(sendBtn);
-
-        var errorEl = document.createElement('div');
-        errorEl.className = 'login-prompt-error';
-        errorEl.setAttribute('role', 'alert');
-        form.appendChild(errorEl);
 
         var backBtn = document.createElement('button');
         backBtn.type = 'button';
         backBtn.className = 'btn-link';
         backBtn.textContent = 'Back';
+        backBtn.setAttribute('aria-label', 'Back to sign-in options');
         backBtn.addEventListener('click', function() {
-            renderAuthChoice(el, config);
+            if (submitting) return;
+            renderAuthChoice(el, config, 'email');
         });
         form.appendChild(backBtn);
 
+        var submitting = false;
+
+        function setBusy(busy) {
+            submitting = busy;
+            sendBtn.disabled = busy;
+            backBtn.disabled = busy;
+            sendBtn.setAttribute('aria-busy', busy ? 'true' : 'false');
+            sendBtn.textContent = busy ? AUTH_COPY.sending : AUTH_COPY.send;
+        }
+
+        function showError(message) {
+            errorEl.textContent = message;
+            emailInput.setAttribute('aria-invalid', 'true');
+        }
+
+        emailInput.addEventListener('input', function() {
+            if (!errorEl.textContent) return;
+            errorEl.textContent = '';
+            emailInput.setAttribute('aria-invalid', 'false');
+        });
+
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
+            // A second submit while the first request is in flight must not
+            // send a second link.
+            if (submitting) return;
             errorEl.textContent = '';
+            emailInput.setAttribute('aria-invalid', 'false');
+
             var emailValue = (emailInput.value || '').trim();
-            if (!emailValue || emailValue.indexOf('@') === -1) {
-                errorEl.textContent = 'Please enter a valid email address.';
+            if (!EMAIL_PATTERN.test(emailValue)) {
+                showError('Enter a valid email address, like you@example.com.');
+                focusAfterRender(emailInput);
                 return;
             }
 
-            sendBtn.disabled = true;
-            sendBtn.textContent = 'Sending...';
+            setBusy(true);
 
             try {
                 var response = await fetch('/auth/email/start', {
@@ -321,49 +400,180 @@ var CritiqueUI = (function() {
                 });
                 if (response.ok) {
                     trackAuthEvent('email_verification_sent', context);
+                    // Success is only shown after the backend confirmed the
+                    // request; the endpoint always answers generically, so this
+                    // never reveals whether an account exists.
                     renderCheckEmail(el, config, emailValue);
-                } else {
-                    sendBtn.disabled = false;
-                    sendBtn.textContent = 'Send login link';
-                    errorEl.textContent = "Couldn't send the link. Please try again.";
+                    return;
                 }
+                setBusy(false);
+                showError(response.status === 429
+                    ? AUTH_COPY.rateLimitError
+                    : AUTH_COPY.genericError);
             } catch (err) {
-                sendBtn.disabled = false;
-                sendBtn.textContent = 'Send login link';
-                errorEl.textContent = "Couldn't send the link. Please try again.";
+                setBusy(false);
+                showError(AUTH_COPY.genericError);
             }
         });
 
         el.appendChild(form);
-        emailInput.focus();
+        focusAfterRender(emailInput);
     }
 
     function renderCheckEmail(el, config, emailValue) {
         config = config || {};
+        var context = config.context === undefined ? null : config.context;
+        var cooldownMs = typeof config.resendCooldownMs === 'number'
+            ? config.resendCooldownMs
+            : RESEND_COOLDOWN_MS;
 
         el.innerHTML = '';
         el.className = 'login-prompt';
+        el.removeAttribute('aria-busy');
 
-        var title = document.createElement('div');
-        title.className = 'login-prompt-title';
-        title.textContent = 'Check your email';
+        var title = makeTitle(AUTH_COPY.checkTitle);
         el.appendChild(title);
 
-        appendText(el, 'login-prompt-text', 'We sent you a secure login link to ' + emailValue + '.');
+        var sent = document.createElement('p');
+        sent.className = 'login-prompt-text';
+        sent.appendChild(document.createTextNode('We sent a secure sign-in link to '));
+        var address = document.createElement('strong');
+        address.className = 'login-prompt-email';
+        address.textContent = emailValue;
+        sent.appendChild(address);
+        sent.appendChild(document.createTextNode('.'));
+        el.appendChild(sent);
+
         appendText(
             el,
             'login-prompt-note',
             config.emailSentHint || 'Click the link in the email to finish signing in.'
         );
+        appendText(
+            el,
+            'login-prompt-note',
+            'The link expires in 15 minutes and can only be used once.'
+        );
+        appendText(
+            el,
+            'login-prompt-note',
+            "Don't see it? Check your spam or promotions folder."
+        );
 
-        var again = document.createElement('button');
-        again.type = 'button';
-        again.className = 'btn-link';
-        again.textContent = 'Use a different email';
-        again.addEventListener('click', function() {
-            renderEmailForm(el, config);
+        var status = document.createElement('p');
+        status.className = 'login-prompt-status';
+        status.setAttribute('role', 'status');
+        status.setAttribute('aria-live', 'polite');
+        el.appendChild(status);
+
+        var resendBtn = document.createElement('button');
+        resendBtn.type = 'button';
+        resendBtn.className = 'btn btn-secondary';
+        resendBtn.textContent = AUTH_COPY.resend;
+        el.appendChild(resendBtn);
+
+        var changeBtn = document.createElement('button');
+        changeBtn.type = 'button';
+        changeBtn.className = 'btn-link';
+        changeBtn.textContent = AUTH_COPY.changeEmail;
+        el.appendChild(changeBtn);
+
+        if (cooldownMs <= 0) {
+            resendBtn.disabled = false;
+        }
+
+        var lastSentAt = Date.now();
+        var resending = false;
+        var timer = null;
+
+        function secondsLeft() {
+            var elapsed = Date.now() - lastSentAt;
+            var left = cooldownMs - elapsed;
+            return left > 0 ? Math.ceil(left / 1000) : 0;
+        }
+
+        function paintCooldown() {
+            var left = secondsLeft();
+            if (left > 0) {
+                resendBtn.disabled = true;
+                resendBtn.textContent = 'Resend in ' + left + 's';
+            } else {
+                resendBtn.disabled = false;
+                resendBtn.textContent = AUTH_COPY.resend;
+            }
+        }
+
+        paintCooldown();
+        if (cooldownMs > 0 && typeof setInterval === 'function') {
+            timer = setInterval(function() {
+                paintCooldown();
+                if (secondsLeft() === 0 && timer !== null) {
+                    clearInterval(timer);
+                    timer = null;
+                }
+            }, 1000);
+        }
+
+        resendBtn.addEventListener('click', async function() {
+            if (resending) return;
+            var left = secondsLeft();
+            if (left > 0) {
+                status.textContent = 'You can request another link in ' + left + ' seconds.';
+                return;
+            }
+
+            resending = true;
+            status.textContent = '';
+            resendBtn.disabled = true;
+            resendBtn.setAttribute('aria-busy', 'true');
+            resendBtn.textContent = AUTH_COPY.resending;
+
+            try {
+                var response = await fetch('/auth/email/start', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': readCsrfToken()
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        email: emailValue,
+                        return_to: authReturnTo(config)
+                    })
+                });
+                if (response.ok) {
+                    lastSentAt = Date.now();
+                    status.textContent = 'A new sign-in link is on its way. Check your inbox.';
+                    paintCooldown();
+                } else if (response.status === 429) {
+                    status.textContent = AUTH_COPY.rateLimitError;
+                    resendBtn.disabled = false;
+                    resendBtn.textContent = AUTH_COPY.resend;
+                } else {
+                    status.textContent = AUTH_COPY.genericError;
+                    resendBtn.disabled = false;
+                    resendBtn.textContent = AUTH_COPY.resend;
+                }
+            } catch (err) {
+                status.textContent = AUTH_COPY.genericError;
+                resendBtn.disabled = false;
+                resendBtn.textContent = AUTH_COPY.resend;
+            }
+
+            resending = false;
+            resendBtn.setAttribute('aria-busy', 'false');
         });
-        el.appendChild(again);
+
+        changeBtn.addEventListener('click', function() {
+            if (resending) return;
+            if (timer !== null) {
+                clearInterval(timer);
+                timer = null;
+            }
+            renderEmailForm(el, config, emailValue);
+        });
+
+        focusAfterRender(title);
     }
 
     // Adds an auth-choice menu to the navbar Login button. The button keeps its
@@ -407,11 +617,7 @@ var CritiqueUI = (function() {
                 trackAuthEvent('login_prompt_shown', null);
             }
             renderAuthChoice(panel, {
-                title: null,
-                message: null,
-                showLabel: false,
                 returnTo: window.location.pathname + window.location.search,
-                notes: ['No password required.'],
                 emailSentHint: 'Click the link in the email to finish signing in.'
             });
         }

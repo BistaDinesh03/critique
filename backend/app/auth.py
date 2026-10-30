@@ -132,27 +132,34 @@ RETURN_TO_COOKIE_NAME = "critique_return_to"
 
 
 def _is_safe_return_path(path: str) -> bool:
-    """Return True if path is a safe same-origin relative path."""
-    if not path:
-        return False
-    # Must start with "/" (relative to origin)
-    if not path.startswith("/"):
-        return False
-    # Reject protocol-relative URLs ("//evil.com")
-    if path.startswith("//"):
-        return False
-    # Reject backslash tricks ("/\evil.com")
-    if path.startswith("/\\"):
-        return False
-    # Reject anything containing a scheme separator
-    if "://" in path:
+    """Return True if path is a safe same-origin relative path.
+
+    The value ends up in a ``Location`` header, so anything a browser could
+    interpret as another origin, a scheme, or a header/line break is rejected:
+    control characters, whitespace, backslashes, protocol-relative URLs and
+    explicit schemes. Percent-encoded characters stay allowed.
+    """
+    if not path or not isinstance(path, str):
         return False
     # Cap length to prevent abuse
     if len(path) > 500:
         return False
-    # URL parsers may strip controls before interpreting a redirect target.
-    if any(ord(char) < 0x20 or ord(char) == 0x7f for char in path):
+    # Must start with "/" (relative to origin), but never "//" or "/\".
+    if not path.startswith("/"):
         return False
+    if path.startswith("//"):
+        return False
+    # Reject anything containing a scheme separator or a backslash trick
+    # ("/\evil.com", "\/evil.com").
+    if "://" in path or "\\" in path:
+        return False
+    for ch in path:
+        code = ord(ch)
+        # URL parsers may strip controls before interpreting a redirect
+        # target, so reject C0 and C1 controls plus any Unicode whitespace:
+        # they are malformed here and can be used for header splitting.
+        if code < 0x20 or 0x7F <= code <= 0x9F or ch.isspace():
+            return False
     return True
 
 

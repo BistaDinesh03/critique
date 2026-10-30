@@ -99,7 +99,7 @@ def assert_offers_both_methods(html, **extra):
 EMAIL_OPS = [
     {"clickCreatedContaining": EMAIL},
     {"setValuePlaceholder": {"placeholder": "you@example.com", "value": "builder@example.com"}},
-    {"submitCreatedContaining": "Send login link"},
+    {"submitCreatedContaining": "Email me a sign-in link"},
 ]
 
 
@@ -180,7 +180,7 @@ def test_feedback_gate_email_choice_opens_the_email_form(tmp_path):
     assert len(events(result, "auth_method_selected_email")) == 1
     assert events(result, "auth_method_selected_github") == []
     assert events(result, "login_started") == []
-    assert "Send login link" in result["html"]
+    assert "Email me a sign-in link" in result["html"]
     assert "Back" in result["html"]
     assert "critique_feedback_1" in result["storage"]["session"]
     assert "critique_feedback_1_email_fallback" in result["storage"]["local"]
@@ -203,7 +203,7 @@ def test_feedback_gate_email_link_resumes_the_feedback_flow(tmp_path):
     assert body["email"] == "builder@example.com"
     assert body["return_to"] == "/project/1?resume=feedback"
     assert len(events(result, "email_verification_sent")) == 1
-    assert "Check your email" in result["html"]
+    assert "Check your inbox" in result["html"]
 
 
 def test_email_send_failure_keeps_the_form_and_says_so(tmp_path):
@@ -220,20 +220,32 @@ def test_email_send_failure_keeps_the_form_and_says_so(tmp_path):
             {"fn": "showInlineLoginPrompt", "args": []},
             *EMAIL_OPS,
         ],
-        fetch={"/auth/email/start": {"status": 429, "body": {}}},
+        fetch={"/auth/email/start": {"status": 500, "body": {}}},
         location="/project/1",
     )
     assert result["errors"] == [], f"page script errors: {result['errors']}"
     assert len(email_posts(result)) == 1, result["requests"]
     # The failure is reported, and no success is claimed.
-    assert "Couldn't send the link. Please try again." in result["html"]
-    assert "Check your email" not in result["html"]
+    assert "We couldn't send the link. Check your connection and try again." in result["html"]
+    assert "Check your inbox" not in result["html"]
     assert len(events(result, "email_verification_sent")) == 0
     # The form is still there and re-enabled so the user can retry.
-    assert "Send login link" in result["html"]
+    assert "Email me a sign-in link" in result["html"]
     assert any(
         m.get("placeholder") == "you@example.com" for m in result["createdMeta"]
     ), result["createdMeta"]
+    # The field error is announced and tied to the input.
+    assert any(m.get("role") == "alert" for m in result["createdMeta"])
+    email_input = next(
+        m for m in result["createdMeta"] if m.get("tag") == "INPUT" and m.get("name") == "email"
+    )
+    assert email_input["ariaInvalid"] == "true"
+    send_buttons = [
+        m
+        for m in result["createdMeta"]
+        if m.get("tag") == "BUTTON" and "Email me a sign-in link" in (m.get("text") or "")
+    ]
+    assert send_buttons and send_buttons[0]["disabled"] is False
 
 
 # ---------------------------------------------------------------------------
@@ -300,7 +312,7 @@ def test_project_submit_gate_email_choice_opens_the_email_form(tmp_path):
     )
     assert len(events(result, "auth_method_selected_email")) == 1
     assert events(result, "auth_method_selected_github") == []
-    assert "Send login link" in result["html"]
+    assert "Email me a sign-in link" in result["html"]
     assert "critique_project_draft" in result["storage"]["session"]
 
 
@@ -401,7 +413,7 @@ def test_nav_menu_stays_open_when_an_option_is_chosen(tmp_path):
     )
     assert result["flags"]["nav-login-menu"]["hidden"] is False
     assert result["flags"]["login-btn"]["ariaExpanded"] == "true"
-    assert "Send login link" in result["html"]
+    assert "Email me a sign-in link" in result["html"]
     assert len(events(result, "auth_method_selected_email")) == 1
 
 
@@ -463,7 +475,7 @@ def test_mobile_login_menu_stays_open_while_an_option_is_chosen(tmp_path):
     assert result["flags"]["navbar-toggle"]["ariaExpanded"] == "true"
     assert "navbar-nav-open" in (result["flags"]["navbar-nav"]["className"] or "")
     assert result["flags"]["nav-login-menu"]["hidden"] is False
-    assert "Send login link" in result["html"]
+    assert "Email me a sign-in link" in result["html"]
 
 
 def test_tapping_login_a_second_time_closes_only_the_auth_menu(tmp_path):
@@ -623,3 +635,294 @@ def test_homepage_never_hardcodes_a_builder_count():
     assert not re.search(r"Join\s+\d+\s+builders", source)
     assert "total_builders" in source  # the count still comes from /api/stats
     assert re.search(r"total_builders\s*>\s*0", source)  # nothing is claimed at 0
+
+
+# ---------------------------------------------------------------------------
+# First-time sign-in: choice copy, email form, sending, confirmation, resend
+# ---------------------------------------------------------------------------
+
+WELCOME = "Welcome to Critique"
+TAGLINE = "Get honest feedback on your projects from real people."
+GITHUB_NOTE = (
+    "GitHub takes one click if you already have an account. "
+    "Email works just as well."
+)
+EMAIL_SUPPORT = "We'll send you a secure sign-in link. No password needed."
+
+EMAIL_FLOW = [
+    {"clickId": "login-btn"},
+    {"clickCreatedContaining": EMAIL},
+    {"setValuePlaceholder": {"placeholder": "you@example.com", "value": "builder@example.com"}},
+    {"submitCreatedContaining": "Email me a sign-in link"},
+]
+
+
+def input_meta(result, name="email"):
+    return next(
+        m
+        for m in result["createdMeta"]
+        if m.get("tag") == "INPUT" and m.get("name") == name
+    )
+
+
+def test_login_choice_uses_the_welcome_copy(tmp_path):
+    result = run(tmp_path, "index.html", [{"clickId": "login-btn"}])
+    html = result["html"]
+    assert WELCOME in html
+    assert TAGLINE in html
+    assert NO_PASSWORD in html
+    assert GITHUB_NOTE in html
+    assert "Continue with GitHub" in html
+    assert "Continue with email" in html
+
+
+def test_choice_screen_moves_focus_to_its_heading(tmp_path):
+    result = run(tmp_path, "index.html", [{"clickId": "login-btn"}])
+    assert result["focused"] is not None, "the choice screen must move focus"
+    assert result["focused"]["tag"] == "H2"
+    assert result["focused"]["text"] == WELCOME
+
+
+def test_back_returns_focus_to_the_email_option(tmp_path):
+    result = run(
+        tmp_path,
+        "index.html",
+        [
+            {"clickId": "login-btn"},
+            {"clickCreatedContaining": EMAIL},
+            {"clickCreatedContaining": "Back"},
+        ],
+    )
+    assert result["focused"]["tag"] == "BUTTON"
+    assert "btn-secondary" in result["focused"]["className"]
+
+
+def test_confirmation_moves_focus_to_its_heading(tmp_path):
+    result = run(tmp_path, "index.html", EMAIL_FLOW, fetch=EMAIL_START)
+    assert result["focused"]["tag"] == "H2"
+    assert result["focused"]["text"] == "Check your inbox"
+
+
+def test_email_form_has_a_visible_label_and_email_attributes(tmp_path):
+    result = run(
+        tmp_path,
+        "index.html",
+        [{"clickId": "login-btn"}, {"clickCreatedContaining": EMAIL}],
+    )
+    html = result["html"]
+    assert "Continue with email" in html
+    assert EMAIL_SUPPORT in html
+    assert "Back" in html
+
+    label = next(m for m in result["createdMeta"] if m.get("tag") == "LABEL")
+    assert label["text"] == "Email"
+
+    field = input_meta(result)
+    assert field["type"] == "email"
+    assert field["autocomplete"] == "email"
+    assert field["inputMode"] == "email"
+    assert field["ariaInvalid"] == "false"
+    assert field["ariaDescribedBy"], "the email input must point at its error text"
+
+
+def test_invalid_email_is_rejected_without_a_request(tmp_path):
+    result = run(
+        tmp_path,
+        "index.html",
+        [
+            {"clickId": "login-btn"},
+            {"clickCreatedContaining": EMAIL},
+            {"setValuePlaceholder": {"placeholder": "you@example.com", "value": "not-an-email"}},
+            {"submitCreatedContaining": "Email me a sign-in link"},
+        ],
+    )
+    assert email_posts(result) == []
+    assert "Enter a valid email address, like you@example.com." in result["html"]
+    assert input_meta(result)["ariaInvalid"] == "true"
+
+
+def test_sending_state_marks_the_button_busy_and_disabled(tmp_path):
+    result = run(
+        tmp_path,
+        "index.html",
+        EMAIL_FLOW,
+        fetch={"/auth/email/start": {"pending": True}},
+    )
+    html = result["html"]
+    assert "Sending sign-in link" in html
+    assert "Check your inbox" not in html
+
+    sending = next(
+        m
+        for m in result["createdMeta"]
+        if m.get("tag") == "BUTTON" and "Sending sign-in link" in (m.get("text") or "")
+    )
+    assert sending["disabled"] is True
+    assert sending["ariaBusy"] == "true"
+
+
+def test_duplicate_submit_sends_only_one_link(tmp_path):
+    result = run(
+        tmp_path,
+        "index.html",
+        [
+            *EMAIL_FLOW,
+            {"submitCreatedContaining": "Sending sign-in link"},
+        ],
+        fetch={"/auth/email/start": {"pending": True}},
+    )
+    assert len(email_posts(result)) == 1, result["requests"]
+
+
+def test_successful_request_shows_confirmation_and_recovery_actions(tmp_path):
+    result = run(tmp_path, "index.html", EMAIL_FLOW, fetch=EMAIL_START)
+    html = result["html"]
+    assert len(email_posts(result)) == 1
+    assert "Check your inbox" in html
+    assert "builder@example.com" in html
+    assert "expires in 15 minutes" in html
+    assert "can only be used once" in html
+    assert "Check your spam or promotions folder." in html
+    assert "Resend in" in html
+    assert "Change email" in html
+    assert any(m.get("role") == "status" for m in result["createdMeta"])
+
+
+def test_resend_is_on_cooldown_right_after_sending(tmp_path):
+    result = run(
+        tmp_path,
+        "index.html",
+        [*EMAIL_FLOW, {"clickCreatedContaining": "Resend in"}],
+        fetch=EMAIL_START,
+    )
+    assert len(email_posts(result)) == 1, result["requests"]
+    assert re.search(r"You can request another link in (59|60) seconds\.", result["html"])
+    resend = next(
+        m
+        for m in result["createdMeta"]
+        if m.get("tag") == "BUTTON" and "Resend in" in (m.get("text") or "")
+    )
+    assert resend["disabled"] is True
+
+
+def test_resend_after_cooldown_sends_another_link_and_announces_it(tmp_path):
+    result = run(
+        tmp_path,
+        "index.html",
+        [
+            *EMAIL_FLOW,
+            {
+                "evaluate": (
+                    "(function(orig) { Date.now = function() { return orig() + 120000; }; "
+                    "return Date.now(); })(Date.now)"
+                )
+            },
+            {"clickCreatedContaining": "Resend in"},
+        ],
+        fetch={
+            "/auth/email/start": [
+                {"status": 200, "body": {"ok": True}},
+                {"status": 200, "body": {"ok": True}},
+            ]
+        },
+    )
+    assert len(email_posts(result)) == 2, result["requests"]
+    assert "A new sign-in link is on its way. Check your inbox." in result["html"]
+    assert "Resend in" in result["html"]
+
+
+def test_resend_rate_limit_is_reported_without_false_success(tmp_path):
+    result = run(
+        tmp_path,
+        "index.html",
+        [
+            *EMAIL_FLOW,
+            {
+                "evaluate": (
+                    "(function(orig) { Date.now = function() { return orig() + 120000; }; "
+                    "return Date.now(); })(Date.now)"
+                )
+            },
+            {"clickCreatedContaining": "Resend in"},
+        ],
+        fetch={
+            "/auth/email/start": [
+                {"status": 200, "body": {"ok": True}},
+                {"status": 429, "body": {}},
+            ]
+        },
+    )
+    assert len(email_posts(result)) == 2, result["requests"]
+    assert "Too many attempts. Please wait a minute, then try again." in result["html"]
+    assert "on its way" not in result["html"]
+    resend = next(
+        m
+        for m in result["createdMeta"]
+        if m.get("tag") == "BUTTON" and (m.get("text") or "") == "Resend sign-in link"
+    )
+    assert resend["disabled"] is False
+
+
+def test_change_email_returns_to_a_prefilled_form(tmp_path):
+    result = run(
+        tmp_path,
+        "index.html",
+        [*EMAIL_FLOW, {"clickCreatedContaining": "Change email"}],
+        fetch=EMAIL_START,
+    )
+    html = result["html"]
+    assert "Continue with email" in html
+    assert EMAIL_SUPPORT in html
+    assert "Check your inbox" not in html
+    assert input_meta(result)["value"] == "builder@example.com"
+
+
+def test_expired_or_used_link_explains_what_happened(tmp_path):
+    result = run(
+        tmp_path,
+        "index.html",
+        [{"fn": "showAuthErrorBanner", "args": []}],
+        location="/?error=email_link",
+    )
+    banner = result["ids"].get("auth-error-banner", "")
+    assert "That email sign-in link is no longer valid." in banner
+    assert "expire after 15 minutes" in banner
+    assert "can only be used once" in banner
+    assert "Request a new link" in result["html"]
+    assert result["flags"]["auth-error-banner"]["display"] == "block"
+
+
+def test_expired_link_action_dismisses_the_banner(tmp_path):
+    result = run(
+        tmp_path,
+        "index.html",
+        [
+            {"fn": "showAuthErrorBanner", "args": []},
+            {"clickCreatedContaining": "Request a new link"},
+        ],
+        location="/?error=email_link",
+    )
+    assert result["flags"]["auth-error-banner"]["display"] == "none"
+
+
+def test_no_expired_link_banner_on_a_normal_visit(tmp_path):
+    result = run(
+        tmp_path,
+        "index.html",
+        [{"fn": "showAuthErrorBanner", "args": []}],
+    )
+    assert "no longer valid" not in result["ids"].get("auth-error-banner", "")
+    assert result["flags"]["auth-error-banner"]["display"] is None
+
+
+def test_login_prompt_is_mobile_and_keyboard_ready():
+    css = (BACKEND_DIR.parent / "static" / "shared.css").read_text(encoding="utf-8")
+    assert "@media (prefers-reduced-motion: reduce)" in css
+    assert ".login-prompt .btn:focus-visible" in css
+    assert "@media (max-width: 600px)" in css
+    # Controls are native buttons/inputs, so they are keyboard operable and
+    # cannot become a focus trap or a div with a click handler.
+    source = (BACKEND_DIR.parent / "static" / "ui.js").read_text(encoding="utf-8")
+    assert "document.createElement('button')" in source
+    assert "document.createElement('input')" in source
+    assert "document.createElement('label')" in source

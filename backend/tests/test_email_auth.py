@@ -151,6 +151,30 @@ def test_start_unsafe_return_to_is_dropped(client, fake_email, return_to):
         _cleanup_tokens_by_email(email)
 
 
+def test_start_control_character_return_to_is_dropped(client, fake_email):
+    """CR/LF and other controls cannot survive into the stored redirect."""
+    email = _unique_email()
+    try:
+        r = client.post(
+            "/auth/email/start",
+            json={
+                "email": email,
+                "return_to": "/project/1\r\nLocation: https://evil.com",
+            },
+        )
+        assert r.status_code == 200
+
+        db = SessionLocal()
+        try:
+            row = db.query(EmailLoginToken).filter(EmailLoginToken.email == email).first()
+            assert row is not None
+            assert row.return_to is None
+        finally:
+            db.close()
+    finally:
+        _cleanup_tokens_by_email(email)
+
+
 def test_start_anti_enumeration_existing_vs_new(client, fake_email):
     """Two calls â€” one for an email that has a user, one for an email that doesn't â€” return identical responses."""
     init_db()

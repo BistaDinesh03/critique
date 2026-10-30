@@ -195,7 +195,8 @@ img {
     top: calc(100% + 8px);
     right: 0;
     z-index: 200;
-    width: 264px;
+    width: 320px;
+    max-width: calc(100vw - 32px);
 }
 
 .nav-login-menu .login-prompt {
@@ -211,8 +212,12 @@ img {
     margin-bottom: var(--space-2);
 }
 
+.nav-login-menu .login-prompt-text {
+    font-size: var(--text-sm);
+}
+
 .nav-login-menu .login-prompt-actions {
-    margin-top: 0;
+    margin-top: var(--space-3);
 }
 
 .nav-login-menu .login-prompt-actions .btn {
@@ -1633,94 +1638,66 @@ img {
 
 
 /* ============================================
-   Login Prompt (inline, when 401)
+   Login Prompt (auth choice, email form, confirmation)
    ============================================ */
 
 .login-prompt {
     display: block;
-    background: var(--surface-muted);
+    background: #ffffff;
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
-    padding: var(--space-4) var(--space-5);
+    padding: var(--space-6);
     margin-top: var(--space-4);
+    text-align: left;
 }
 
 .login-prompt-title {
-    font-size: var(--text-base);
-    font-weight: 700;
-    color: var(--text-primary);
-    margin-bottom: var(--space-1);
-}
-
-.login-prompt-text {
-    font-size: var(--text-sm);
-    color: var(--text-secondary);
-    margin-bottom: var(--space-3);
-    line-height: 1.5;
-}
-
-.login-prompt .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-2);
-}
-
-@media (max-width: 600px) {
-    .login-prompt {
-        padding: var(--space-3) var(--space-4);
-    }
-    .login-prompt .btn {
-        width: 100%;
-        justify-content: center;
-    }
-}
-
-/* ===== Login prompt layout (email + GitHub auth choice) ===== */
-.login-prompt {
-    padding: var(--space-6, 32px);
-    background: #ffffff;
-    border: 1px solid #e5e7eb;
-    border-radius: var(--radius-lg, 12px);
-}
-
-.login-prompt-title {
-    font-size: 22px;
+    font-size: 20px;
     line-height: 1.3;
     font-weight: 700;
-    color: var(--text-primary, #111);
-    margin: 0 0 var(--space-2, 8px) 0;
+    color: var(--text-primary);
+    margin: 0 0 var(--space-2);
     letter-spacing: -0.015em;
 }
 
+.login-prompt-title:focus {
+    outline: none;
+}
+
 .login-prompt-text {
-    color: var(--text-secondary, #4b5563);
-    font-size: var(--text-base, 16px);
-    line-height: 1.5;
+    color: var(--text-secondary);
+    font-size: var(--text-base);
+    line-height: 1.55;
     margin: 0;
 }
 
-.login-prompt-label {
-    display: none;
+.login-prompt-email {
+    color: var(--text-primary);
+    font-weight: 600;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .login-prompt-actions {
     display: flex;
     flex-direction: column;
-    gap: var(--space-3, 12px);
-    margin: var(--space-5, 24px) 0 0 0;
+    gap: var(--space-3);
+    margin: var(--space-5) 0 0;
 }
 
-.login-prompt-actions .btn {
+.login-prompt-actions .btn,
+.login-prompt-form .btn,
+.login-prompt > .btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: var(--space-3, 12px);
+    gap: var(--space-3);
     width: 100%;
-    min-height: 48px;
-    padding: 12px 20px;
-    font-size: var(--text-base, 16px);
+    min-height: 46px;
+    padding: 11px 18px;
+    font-size: var(--text-base);
     font-weight: 600;
-    border-radius: var(--radius-md, 8px);
+    border-radius: var(--radius-md);
     text-decoration: none;
     box-sizing: border-box;
     line-height: 1.2;
@@ -1735,81 +1712,116 @@ img {
 
 .login-prompt-actions .btn-secondary {
     background: #ffffff;
-    color: var(--text-primary, #111);
+    color: var(--text-primary);
     border: 1px solid #d1d5db;
 }
 
 .login-prompt-actions .btn-secondary:hover {
     background: #ffffff;
-    border-color: var(--accent, #2563eb);
-    color: var(--accent, #2563eb);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.login-prompt .btn:focus-visible,
+.login-prompt .btn-link:focus-visible,
+.login-prompt-form .form-input:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+}
+
+.login-prompt .btn[disabled],
+.login-prompt .btn[aria-busy="true"] {
+    opacity: 0.6;
+    cursor: default;
+}
+
+.login-prompt .btn-link[disabled] {
+    opacity: 0.55;
+    cursor: default;
+    text-decoration: none;
 }
 
 .login-prompt-note {
-    color: var(--text-secondary, #6b7280);
-    font-size: var(--text-sm, 14px);
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
     line-height: 1.5;
-    margin: var(--space-3, 12px) 0 0 0;
+    margin: var(--space-2) 0 0;
 }
 
 .login-prompt-note:first-of-type {
-    margin-top: var(--space-5, 24px);
+    margin-top: var(--space-4);
+}
+
+.login-prompt-status {
+    min-height: 18px;
+    margin: var(--space-3) 0 0;
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+    line-height: 1.5;
 }
 
 .login-prompt-form {
     display: flex;
     flex-direction: column;
-    gap: var(--space-3, 12px);
-    margin: var(--space-5, 24px) 0 0 0;
+    gap: var(--space-3);
+    margin: var(--space-5) 0 0;
+}
+
+.login-prompt-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.login-prompt-field-label {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--text-primary);
 }
 
 .login-prompt-form .form-input {
     width: 100%;
-    padding: 12px 16px;
-    font-size: var(--text-base, 16px);
+    min-height: 46px;
+    padding: 11px 14px;
+    font-size: var(--text-base);
     font-family: inherit;
-    border: 1px solid var(--border, #e5e7eb);
-    border-radius: var(--radius-md, 8px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
     background: #ffffff;
-    color: var(--text-primary, #111);
+    color: var(--text-primary);
     box-sizing: border-box;
 }
 
 .login-prompt-form .form-input:focus {
-    outline: none;
-    border-color: var(--accent, #2563eb);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.login-prompt-form .form-input[aria-invalid="true"] {
+    border-color: #dc2626;
+}
+
+.login-prompt-form .form-input[aria-invalid="true"]:focus {
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.14);
 }
 
 .login-prompt-error {
-    color: #dc2626;
-    font-size: var(--text-sm, 14px);
+    color: #b91c1c;
+    font-size: var(--text-sm);
     line-height: 1.5;
-    min-height: 20px;
-}
-
-.login-prompt-form .btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    min-height: 48px;
-    padding: 12px 20px;
-    font-size: var(--text-base, 16px);
-    font-weight: 600;
-    border-radius: var(--radius-md, 8px);
-    box-sizing: border-box;
+    min-height: 0;
+    margin: 0;
 }
 
 .login-prompt-form .btn-link,
 .login-prompt .btn-link {
     background: none;
     border: none;
-    color: var(--text-muted, #6b7280);
-    font-size: var(--text-sm, 14px);
+    color: var(--text-muted);
+    font-size: var(--text-sm);
     cursor: pointer;
     text-decoration: underline;
-    padding: var(--space-2, 8px) 0 0 0;
+    padding: var(--space-2) 0 0;
     font-family: inherit;
     width: auto;
     min-height: 0;
@@ -1818,5 +1830,41 @@ img {
 
 .login-prompt-form .btn-link:hover,
 .login-prompt .btn-link:hover {
-    color: var(--accent, #2563eb);
+    color: var(--accent);
+}
+
+/* Links that sit directly in the panel (e.g. "Change email") line up with
+   the centred buttons above them. */
+.login-prompt > .btn-link {
+    display: block;
+    width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Next step inside the expired-link banner. */
+.auth-error-banner .auth-error-action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: fit-content;
+    min-height: 40px;
+    margin-top: var(--space-3);
+    padding: 8px 16px;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    border-radius: var(--radius-md);
+}
+
+@media (max-width: 600px) {
+    .login-prompt {
+        padding: var(--space-4);
+    }
+    .login-prompt-title {
+        font-size: 19px;
+    }
+    .login-prompt .btn {
+        width: 100%;
+        justify-content: center;
+    }
 }
