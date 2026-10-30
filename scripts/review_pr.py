@@ -388,23 +388,31 @@ class GitHub:
             args += ["--repo", self.repo]
         return self.gh(args, timeout=180)
 
+    def _paginate(self, path: str) -> List[Dict[str, Any]]:
+        page = 1
+        items: List[Dict[str, Any]] = []
+        sep = "&" if "?" in path else "?"
+        while True:
+            status, body = self.api("GET", f"{path}{sep}per_page=100&page={page}")
+            if status != 200 or not body.strip():
+                break
+            try:
+                page_items = json.loads(body)
+            except json.JSONDecodeError:
+                break
+            if not isinstance(page_items, list) or not page_items:
+                break
+            items.extend(page_items)
+            if len(page_items) < 100:
+                break
+            page += 1
+        return items
+
     def reviews(self, number: int) -> List[Dict[str, Any]]:
-        status, body = self.api("GET", f"repos/{self.repo}/pulls/{number}/reviews")
-        if status != 200 or not body.strip():
-            return []
-        try:
-            return json.loads(body)
-        except json.JSONDecodeError:
-            return []
+        return self._paginate(f"repos/{self.repo}/pulls/{number}/reviews")
 
     def issue_comments(self, number: int) -> List[Dict[str, Any]]:
-        status, body = self.api("GET", f"repos/{self.repo}/issues/{number}/comments")
-        if status != 200 or not body.strip():
-            return []
-        try:
-            return json.loads(body)
-        except json.JSONDecodeError:
-            return []
+        return self._paginate(f"repos/{self.repo}/issues/{number}/comments")
 
     def branch_protection(
         self, branch: str
