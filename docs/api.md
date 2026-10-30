@@ -21,6 +21,13 @@ by FastAPI from `frontend/`; everything below returns JSON unless noted.
 - **Validation errors** return `422` (FastAPI/Pydantic) or `400` with a
   `detail` field. Unknown server errors return
   `500 {"detail": "Internal server error"}` without stack traces.
+- **404 responses** depend on the request path and `Accept` header. For
+  non-`/api/` paths, an `Accept` header containing `text/html` receives the
+  branded HTML page with status `404`. JSON clients and the default `*/*`
+  receive JSON instead. Every `/api/*` path returns its JSON `{"detail": ...}`
+  error even with `Accept: text/html`, including missing API resources.
+  Other error statuses (`400`, `401`, `403`, `409`, `422`, `429`, `500`)
+  retain their JSON responses for all clients.
 
 ### Rate limits
 
@@ -139,7 +146,7 @@ pointed at the right site.
 | 403 | `{"detail": "Invalid or missing CSRF token"}` | Missing/mismatched `X-CSRF-Token`. |
 | 403 | `{"detail": "Not authorized"}` | Signed in but not allowed (e.g., dashboard). |
 | 403 | `{"detail": "You cannot delete this project"}` | Delete attempted by a non-owner. |
-| 404 | `{"detail": "Not Found"}` | Unknown route or resource. |
+| 404 | HTML page or `{"detail": "Not Found"}` (resource-specific `detail` where applicable) | Non-`/api/` paths return branded HTML when `Accept` contains `text/html`; JSON clients and default `*/*` get JSON. `/api/*` always gets JSON, including missing resources (for example `{"detail": "Project not found"}`). |
 | 409 | `{"detail": "You have already responded to this question"}` | Second response to the same question. |
 | 422 | `{"detail": [...]}` | Pydantic validation failure. |
 | 429 | `{"detail": "Too many requests. Please slow down."}` | Rate limit exceeded. |
