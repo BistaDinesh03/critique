@@ -182,7 +182,12 @@ def test_csrf_failure_is_still_a_submit_error(tmp_path):
 
     assert len(events(result, "feedback_submit_error")) == 1
     assert events(result, "feedback_submit") == []
-    assert "Session expired. Please refresh." in result["ids"]["message"]
+    assert "Session expired." in result["ids"]["message"]
+    # Refreshing is the only fix for a stale CSRF/session pair, so the answers
+    # must already be in the draft before the visitor is told to refresh.
+    draft = json.loads(result["storage"]["session"]["critique_feedback_1"])
+    assert draft["clarity"] == "very_clear"
+    assert draft["would_use"] == "yes"
 
 
 def test_server_error_is_still_a_submit_error(tmp_path):
