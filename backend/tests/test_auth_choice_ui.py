@@ -203,6 +203,8 @@ def test_feedback_gate_email_link_resumes_the_feedback_flow(tmp_path):
     assert body["email"] == "builder@example.com"
     assert body["return_to"] == "/project/1?resume=feedback"
     assert len(events(result, "email_verification_sent")) == 1
+    # Same counting rule as GitHub: one started sign-in per auth attempt.
+    assert len(events(result, "login_started")) == 1
     assert "Check your inbox" in result["html"]
 
 
@@ -229,6 +231,7 @@ def test_email_send_failure_keeps_the_form_and_says_so(tmp_path):
     assert "We couldn't send the link. Check your connection and try again." in result["html"]
     assert "Check your inbox" not in result["html"]
     assert len(events(result, "email_verification_sent")) == 0
+    assert events(result, "login_started") == []
     # The form is still there and re-enabled so the user can retry.
     assert "Email me a sign-in link" in result["html"]
     assert any(
@@ -330,6 +333,7 @@ def test_project_submit_email_link_resumes_the_submit(tmp_path):
     assert len(sent) == 1, result["requests"]
     assert json.loads(sent[0]["body"])["return_to"] == "/?resume=project_submit"
     assert len(events(result, "email_verification_sent")) == 1
+    assert len(events(result, "login_started")) == 1
 
 
 # ---------------------------------------------------------------------------

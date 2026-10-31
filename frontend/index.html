@@ -1635,8 +1635,11 @@
                     saveProjectDraft();
                     showProjectInlineLoginPrompt(msg);
                 } else if (response.status === 403) {
+                    // Refreshing fixes a stale CSRF/session pair but reloads
+                    // the page, so keep the project first.
+                    saveProjectDraft();
                     msg.className = 'alert alert-error';
-                    msg.textContent = 'Session expired. Please refresh and try again.';
+                    msg.textContent = 'Session expired. Your project is saved — refresh and try again.';
                 } else {
                     msg.className = 'alert alert-error';
                     msg.textContent = 'Error: ' + JSON.stringify(data);

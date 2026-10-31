@@ -341,6 +341,25 @@ def test_an_anonymous_project_submission_keeps_the_draft_and_offers_sign_in(tmp_
     assert "alert-error" not in result["flags"]["message"]["className"]
 
 
+def test_a_stale_session_project_submission_keeps_the_draft(tmp_path):
+    """403 means refresh; the refresh must not empty the form."""
+    result = run(
+        tmp_path,
+        "index.html",
+        FILL_PROJECT,
+        fetch={
+            HOMEPAGE_URL: {"status": 200, "body": {"total": 0, "items": []}},
+            SUBMIT_URL: {"status": 403, "body": {"detail": "CSRF failed"}},
+        },
+    )
+
+    assert len(posts(result)) == 1, result["requests"]
+    draft = json.loads(result["storage"]["session"]["critique_project_draft"])
+    assert draft["title"] == "Akiya Scout"
+    assert draft["question"] == "Is the price shown up front?"
+    assert "Session expired." in result["ids"]["message"]
+
+
 # ---------------------------------------------------------------------------
 # The feedback page's hierarchy (Phase 4)
 # ---------------------------------------------------------------------------
