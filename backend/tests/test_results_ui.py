@@ -27,6 +27,19 @@ def test_each_frontend_page_has_one_top_level_heading():
         assert len(headings) == 1, f"{page.name} has {len(headings)} <h1> headings"
 
 
+def test_no_page_hardcodes_a_test_count():
+    """Every hard-coded count drifts (#73, #164, #182, #229): the public pages
+    and scripts must never claim a number of passing tests."""
+    static_dir = REPO_DIR / "static"
+    offenders = []
+    for folder in (FRONTEND_DIR, static_dir):
+        for page in sorted(folder.glob("*.html")):
+            text = page.read_text(encoding="utf-8")
+            if re.search(r"\d[\d,]*\s*\+?\s*tests?\s+passing", text, flags=re.IGNORECASE):
+                offenders.append(page.name)
+    assert not offenders, f"hard-coded test count in: {', '.join(offenders)}"
+
+
 pytestmark = [
     pytest.mark.frontend_render,
     pytest.mark.skipif(
