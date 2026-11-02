@@ -347,7 +347,7 @@ Critique is designed with security and privacy in mind:
 | **Private written feedback** | Suggestions are returned only to the project owner |
 | **Safe redirect handling** | Login `return_to` values are validated against a local-path allowlist |
 | **Environment-based secrets** | Credentials come from environment variables and are never stored in the repository |
-| **Minimal analytics** | Events validated against a server-side allowlist; no third-party tracking scripts; no raw IP addresses stored (only SHA-256 hashes for duplicate detection) |
+| **Minimal analytics** | Events validated against a server-side allowlist; no third-party tracking scripts; no raw IP addresses stored (only keyed HMAC-SHA-256 digests for duplicate detection, stable while `SECRET_KEY` is unchanged) |
 
 [SECURITY.md](SECURITY.md) lists the full behavior and explains how to
 report a vulnerability.
