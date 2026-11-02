@@ -71,10 +71,60 @@ else is ignored.
 | Method | Path | Auth | CSRF | Rate limit | Notes |
 |---|---|---|---|---|---|
 | POST | `/api/projects/` | Required | Required | `project_create` | Creates a project and its first question. Returns `201` with `{project, question}`. |
-| GET | `/api/projects/` | — | — | — | Discover feed. Query: `page` (≥1, default 1), `page_size` (1–50, default 10). Deterministically ranked. |
+| GET | `/api/projects/` | — | — | — | Discover feed. Query: `page` (≥1, default 1), `page_size` (1–50, default 10). Deterministically ranked. Returns paginated body with `items`, `total`, `page`, `page_size`, and `total_pages`. |
 | GET | `/api/projects/my/list` | Required | — | — | All projects owned by the session user. |
 | GET | `/api/projects/{project_id}` | — | — | — | One project with its active question; `404` if not found. |
 | DELETE | `/api/projects/{project_id}` | Required | Required | `project_delete` | Owner-only. `204` on success; `404` if the project does not exist; `403` if you are signed in but not the owner. |
+
+### Paginated project list response (`GET /api/projects/`)
+
+Response example:
+
+```json
+{
+  "items": [
+    {
+      "id": 1,
+      "title": "Akiya Scout",
+      "description": "Find abandoned houses in Japan",
+      "url": "https://akiya-scout.example.com",
+      "image_url": "https://example.com/screenshot.png",
+      "owner_id": 4,
+      "created_at": "2026-08-15T12:00:00Z",
+      "question_text": "Can you understand what this website does within 10 seconds?",
+      "response_count": 12
+    }
+  ],
+  "total": 42,
+  "page": 1,
+  "page_size": 10,
+  "total_pages": 5
+}
+```
+
+Top-level pagination fields:
+
+| Field | Type | Description |
+|---|---|---|
+| `items` | array | List of project objects for the current page. |
+| `total` | integer | Total count of all matching projects across all pages (global count, consistent with `total_pages`). |
+| `page` | integer | Current 1-based page number. |
+| `page_size` | integer | Number of items requested per page (1–50). |
+| `total_pages` | integer | Total number of pages available (minimum 1). |
+
+Each object in `items` contains:
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | integer | Unique project identifier. |
+| `title` | string | Project title. |
+| `description` | string \| null | Project description. |
+| `url` | string \| null | Target project URL. |
+| `image_url` | string \| null | URL of uploaded screenshot, if provided. |
+| `owner_id` | integer | User ID of the project owner. |
+| `created_at` | string (ISO 8601) | Timestamp of project creation. |
+| `question_text` | string \| null | Text of the latest active question. |
+| `response_count` | integer | Total number of responses to the active question. |
 
 ## Feedback — `/api/projects/{project_id}/responses`
 
