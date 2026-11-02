@@ -1,4 +1,6 @@
-﻿from app.database import init_db, SessionLocal
+﻿import pytest
+
+from app.database import init_db, SessionLocal
 from app.models import Project, Question, Response, User
 
 
@@ -160,3 +162,37 @@ def test_unauthenticated_create_project():
     }
     response = client.post("/api/projects/", json=payload)
     assert response.status_code == 401
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("   ", None),
+        (" \n\t ", None),
+        (None, None),
+        ("  Find abandoned houses  ", "Find abandoned houses"),
+        ("Find abandoned houses", "Find abandoned houses"),
+    ],
+)
+def test_project_description_is_trimmed_or_dropped(auth_client, raw, expected):
+    """
+    Whitespace-only descriptions must not be stored.
+
+    ``max_length`` counts spaces, so ``"   "`` satisfies the length check
+    and would be persisted: the project then renders with a blank
+    description. Non-empty values keep their meaning but lose the padding.
+    """
+    cleanup_database()
+    payload = {
+        "project_data": {
+            "title": "Akiya Scout",
+            "description": raw,
+            "url": "https://akiya-scout.example.com",
+            "image_url": None,
+        },
+        "question_data": {"text": "Is this clear?"},
+    }
+    response = auth_client.post("/api/projects/", json=payload)
+    assert response.status_code == 201
+    assert response.json()["project"]["description"] == expected
+    cleanup_database()
