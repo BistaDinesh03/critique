@@ -68,32 +68,10 @@ else is ignored.
 | Method | Path | Auth | CSRF | Rate limit | Notes |
 |---|---|---|---|---|---|
 | POST | `/api/projects/` | Required | Required | `project_create` | Creates a project and its first question. Returns `201` with `{project, question}`. |
-| GET | `/api/projects/` | — | — | — | Discover feed. Query: `page` (≥1, default 1), `page_size` (1–50, default 10). Deterministically ranked. |
+| GET | `/api/projects/` | — | — | — | Discover feed. Query: `page` (≥1, default 1), `page_size` (1–50, default 10). Deterministically ranked. Returns paginated body with `items`, `total`, `page`, `page_size`, and `total_pages`. |
 | GET | `/api/projects/my/list` | Required | — | — | All projects owned by the session user. |
 | GET | `/api/projects/{project_id}` | — | — | — | One project with its active question; `404` if not found. |
 | DELETE | `/api/projects/{project_id}` | Required | Required | `project_delete` | Owner-only. `204` on success; `404` if the project does not exist; `403` if you are signed in but not the owner. |
-
-#### Paginated Project Feed Response
-
-`GET /api/projects/` returns a JSON envelope:
-
-```json
-{
-  "items": [...],
-  "total": 42,
-  "page": 1,
-  "page_size": 10,
-  "total_pages": 5
-}
-```
-
-| Field | Type | Description |
-|---|---|---|
-| `items` | array | List of project objects for the current page, deterministically ranked. |
-| `total` | integer | Global count: total number of matching visible projects across all pages. |
-| `page` | integer | Current 1-based page number. |
-| `page_size` | integer | Maximum number of items per page. |
-| `total_pages` | integer | Total available pages (`ceil(total / page_size)`). |
 
 ## Feedback — `/api/projects/{project_id}/responses`
 

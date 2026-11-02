@@ -89,14 +89,85 @@ def test_list_projects_with_pagination(auth_client):
         expected_titles = {f"Pagination Project {index}" for index in range(1, 5)}
         assert len(first_titles) == len(second_titles) == 2
         assert first_titles | second_titles == expected_titles
-        assert len(first_data["items"]) == len(second_data["items"]) == 2
-        assert first_data["total"] == second_data["total"] == 4
+        assert first_data["total"] == len(first_data["items"]) == 2
+        assert second_data["total"] == len(second_data["items"]) == 2
         assert first_data["page"] == 1 and second_data["page"] == 2
         assert first_data["page_size"] == second_data["page_size"] == 2
         assert first_data["total_pages"] == second_data["total_pages"] == 2
         assert set(item["id"] for item in first_data["items"]).isdisjoint(
             item["id"] for item in second_data["items"]
         )
+    finally:
+        db.close()
+        cleanup_database()
+
+
+def test_list_projects_pagination_contract():
+    """Test that GET /api/projects/ returns the documented paginated response contract shape."""
+    from fastapi.testclient import TestClient
+    from app.main import app
+
+    cleanup_database()
+    client = TestClient(app)
+    db = SessionLocal()
+    try:
+        owner = User(username="contract_user")
+        db.add(owner)
+        db.commit()
+        db.refresh(owner)
+        project = Project(
+            title="Contract Project",
+            description="A test project for response contract",
+            url="https://example.com/contract",
+            image_url=None,
+            owner_id=owner.id,
+            feedback_count=0,
+            discover_impressions=0,
+        )
+        db.add(project)
+        db.commit()
+        db.refresh(project)
+        db.add(Question(text="Does this meet the contract?", project_id=project.id, is_active=True))
+        db.commit()
+
+        response = client.get("/api/projects/?page=1&page_size=10")
+        assert response.status_code == 200
+        data = response.json()
+
+        assert set(data.keys()) == {"items", "total", "page", "page_size", "total_pages"}
+        assert isinstance(data["items"], list)
+        assert isinstance(data["total"], int)
+        assert isinstance(data["page"], int)
+        assert isinstance(data["page_size"], int)
+        assert isinstance(data["total_pages"], int)
+        assert data["total"] == 1
+        assert data["total_pages"] == 1
+        assert data["page"] == 1
+        assert data["page_size"] == 10
+        assert len(data["items"]) == 1
+
+        item = data["items"][0]
+        expected_item_keys = {
+            "id",
+            "title",
+            "description",
+            "url",
+            "image_url",
+            "owner_id",
+            "created_at",
+            "question_text",
+            "response_count",
+        }
+        assert set(item.keys()) == expected_item_keys
+        assert item["id"] == project.id
+        assert item["title"] == "Contract Project"
+        assert item["description"] == "A test project for response contract"
+        assert item["url"] == "https://example.com/contract"
+        assert item["image_url"] is None
+        assert item["owner_id"] == owner.id
+        assert isinstance(item["created_at"], str)
+        assert item["question_text"] == "Does this meet the contract?"
+        assert item["response_count"] == 0
     finally:
         db.close()
         cleanup_database()
