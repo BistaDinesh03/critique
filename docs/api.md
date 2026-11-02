@@ -80,7 +80,7 @@ else is ignored.
 
 | Method | Path | Auth | CSRF | Rate limit | Notes |
 |---|---|---|---|---|---|
-| POST | `.../responses` | Required | Required | `response_submit` | Body: `clarity` (enum), `would_use` (enum), optional `suggestion` text. Returns `201`. One response per user per question — a second submission returns `409`. The client IP is stored only as a SHA-256 hash. |
+| POST | `.../responses` | Required | Required | `response_submit` | Body: `clarity` (enum), `would_use` (enum), optional `suggestion` text. Returns `201`. One response per user per question — a second submission returns `409`. The client IP is stored only as a keyed HMAC-SHA-256 digest, stable while `SECRET_KEY` remains unchanged; raw IP addresses are not stored. |
 | GET | `.../responses` | Optional | — | — | Owner receives written `suggestion` text; everyone else receives scores only (`id`, `clarity`, `would_use`, `question_id`, `created_at`). `404` if the project does not exist. |
 
 ## Results — `/api/projects/{project_id}/results`
