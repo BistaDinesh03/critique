@@ -526,6 +526,12 @@
             margin: 0 auto;
         }
 
+        @media (max-width: 900px) {
+            .fb-carousel[data-enhanced="true"] .fb-slide {
+                flex: 0 0 calc((100% - var(--fb-gap)) / 2);
+            }
+        }
+
         @media (max-width: 600px) {
             .benefits {
                 grid-template-columns: 1fr;
@@ -564,7 +570,7 @@
 
 
         .real-feedback {
-            max-width: 800px;
+            max-width: 1040px;
             margin: 0 auto var(--space-8);
         }
 
@@ -593,13 +599,147 @@
             border: 1px solid var(--border);
             border-radius: 16px;
             padding: var(--space-5);
+            /* Flex column so the quote/summary absorbs the slack that equal-
+               height stretching leaves behind, keeping the metadata row pinned
+               to the bottom of every card instead of pooling empty space. */
+            display: flex;
+            flex-direction: column;
         }
 
-        .review-card + .review-card {
-            margin-top: var(--space-6);
+        /* ===== Testimonial carousel =====
+           Progressive by design: without JavaScript the track wraps and every
+           card stays reachable; once the script runs it marks the carousel
+           data-enhanced and the row becomes a single clipped, paged track. */
+        .fb-carousel {
+            --fb-gap: var(--space-5);
+            position: relative;
         }
 
-        .review-header {
+        .fb-viewport {
+            overflow: visible;
+        }
+
+        .fb-track {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: stretch;
+            gap: var(--fb-gap);
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .fb-slide {
+            flex: 1 1 300px;
+            min-width: 0;
+            display: flex;
+        }
+
+        .fb-slide .review-card {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .fb-carousel[data-enhanced="true"] .fb-viewport {
+            overflow: hidden;
+        }
+
+        .fb-carousel[data-enhanced="true"] .fb-track {
+            flex-wrap: nowrap;
+            transition: transform 400ms ease;
+        }
+
+        .fb-carousel[data-enhanced="true"] .fb-slide {
+            flex: 0 0 calc((100% - var(--fb-gap) * 2) / 3);
+        }
+
+        .fb-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: var(--space-4);
+            margin-top: var(--space-5);
+        }
+
+        .fb-controls[hidden] {
+            display: none;
+        }
+
+        .fb-nav,
+        .fb-toggle {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            min-width: 36px;
+            min-height: 36px;
+            padding: 0 var(--space-3);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: var(--text-sm);
+            font-weight: 600;
+            line-height: 1;
+            cursor: pointer;
+            transition: border-color var(--transition-fast), color var(--transition-fast);
+        }
+
+        .fb-nav {
+            width: 36px;
+            padding: 0;
+            border-radius: 50%;
+        }
+
+        .fb-nav svg {
+            display: block;
+            width: 16px;
+            height: 16px;
+        }
+
+        .fb-nav:hover,
+        .fb-toggle:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .fb-dots {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-1);
+        }
+
+        .fb-dot {
+            position: relative;
+            width: 24px;
+            height: 24px;
+            padding: 0;
+            border: 0;
+            background: transparent;
+            cursor: pointer;
+        }
+
+        .fb-dot::before {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--border);
+            transform: translate(-50%, -50%);
+            transition: background-color var(--transition-fast);
+        }
+
+        .fb-dot:hover::before,
+        .fb-dot[aria-current="true"]::before {
+            background: var(--accent);
+        }
+
+                .review-header {
             display: flex;
             align-items: flex-start;
             justify-content: space-between;
@@ -627,6 +767,27 @@
             color: var(--text-primary);
             flex-shrink: 0;
             border: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        /* Deterministic identicon (SVG injected by JS; the initial above is
+           the no-JavaScript fallback). */
+        .review-avatar svg {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .fb-id-bg {
+            fill: var(--surface-muted);
+        }
+
+        .fb-id-neutral {
+            fill: var(--text-muted);
+        }
+
+        .fb-id-accent {
+            fill: var(--accent);
         }
 
         .review-name {
@@ -698,6 +859,11 @@
             flex-wrap: wrap;
             font-size: var(--text-xs);
             color: var(--text-secondary);
+            /* Anchors the metadata row to the card bottom, so a short quote
+               leaves its breathing room above the row instead of pooling
+               empty space beneath it. */
+            margin-top: auto;
+            padding-top: var(--space-3);
         }
 
         .review-meta-dot {
@@ -733,6 +899,10 @@
 
             .review-header {
                 gap: var(--space-3);
+            }
+
+            .fb-carousel[data-enhanced="true"] .fb-slide {
+                flex: 0 0 100%;
             }
         }
 
@@ -929,7 +1099,7 @@
 </head>
 <body>
     <header class="navbar">
-        <a href="/" class="navbar-brand">
+        <a href="/" class="navbar-brand" aria-current="page">
             <img src="/static/logo.svg" alt="Critique" width="32" height="32">
             Critique
         </a>
@@ -1068,83 +1238,127 @@
             </div>
         </section>
 
-        <section class="real-feedback">
-            <h2>What builders say</h2>
+        <section class="real-feedback" aria-labelledby="real-feedback-title">
+            <h2 id="real-feedback-title">What builders say</h2>
             <p class="subtitle">Feedback from builders who took a look at Critique.</p>
 
-            <article class="review-card" aria-labelledby="review-josh-name">
-                <div class="review-header">
-                    <div class="review-author">
-                        <div class="review-avatar" aria-hidden="true">J</div>
-                        <div>
-                            <h3 class="review-name" id="review-josh-name">Josh Clark</h3>
-                            <p class="review-role">Founder of Disband</p>
-                        </div>
-                    </div>
-                    <div class="review-score-block">
-                        <div class="review-score">6.9 <span class="review-score-total">/ 10</span></div>
-                        <div class="review-score-label">Overall</div>
-                    </div>
+            <div class="fb-carousel" id="fb-carousel" role="region" aria-roledescription="carousel" aria-label="What builders say" data-autoplay="5500">
+                <div class="fb-viewport" id="fb-viewport">
+                    <ul class="fb-track" id="fb-track" role="list">
+                        <li class="fb-slide">
+                            <article class="review-card" aria-labelledby="review-josh-name">
+                                <div class="review-header">
+                                    <div class="review-author">
+                                        <div class="review-avatar" data-name="Josh Clark" aria-hidden="true">J</div>
+                                        <div>
+                                            <h3 class="review-name" id="review-josh-name">Josh Clark</h3>
+                                            <p class="review-role">Founder of Disband</p>
+                                        </div>
+                                    </div>
+                                    <div class="review-score-block">
+                                        <div class="review-score">6.9 <span class="review-score-total">/ 10</span></div>
+                                        <div class="review-score-label">Overall</div>
+                                    </div>
+                                </div>
+
+                                <p class="review-summary">
+                                    Praised the concept, flagged submission friction, inconsistent icons, UI mismatches, and concerns around analytics and security.
+                                </p>
+
+                                <div class="review-meta">
+                                    <span>External review</span>
+                                    <span class="review-meta-dot" aria-hidden="true">·</span>
+                                    <span>Sept 2026</span>
+                                    <span class="review-meta-dot" aria-hidden="true">·</span>
+                                    <span>Feedback received → improvements shipped</span>
+                                </div>
+
+                                <div class="review-tags">
+                                    <span class="review-tag">Security</span>
+                                    <span class="review-tag">UI</span>
+                                    <span class="review-tag">Analytics</span>
+                                    <span class="review-tag accent">70 tests passing</span>
+                                </div>
+                            </article>
+                        </li>
+
+                        <li class="fb-slide">
+                            <article class="review-card" aria-labelledby="review-alex-name">
+                                <div class="review-header">
+                                    <div class="review-author">
+                                        <div class="review-avatar" data-name="Alex Lovesyuk" aria-hidden="true">A</div>
+                                        <div>
+                                            <h3 class="review-name" id="review-alex-name">Alex Lovesyuk</h3>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <blockquote class="review-quote">
+                                    <p>“Critique's focus on honest feedback for builders caught my eye.”</p>
+                                </blockquote>
+
+                                <div class="review-meta">
+                                    <span>External review</span>
+                                    <span class="review-meta-dot" aria-hidden="true">·</span>
+                                    <span>Twitter</span>
+                                    <span class="review-meta-dot" aria-hidden="true">·</span>
+                                    <span>Oct 2026</span>
+                                </div>
+                            </article>
+                        </li>
+
+                        <li class="fb-slide">
+                            <article class="review-card" aria-labelledby="review-dennis-name">
+                                <div class="review-header">
+                                    <div class="review-author">
+                                        <div class="review-avatar" data-name="Dennis" aria-hidden="true">D</div>
+                                        <div>
+                                            <h3 class="review-name" id="review-dennis-name">Dennis</h3>
+                                            <p class="review-role">DEV</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <blockquote class="review-quote">
+                                    <p>“I like the idea behind Critique, especially the focus on helping builders improve their products through real feedback. I appreciate that you took my suggestions seriously and actually implemented improvements based on them. That kind of responsiveness makes a real difference. I'd definitely recommend Critique to other builders who want honest feedback and want to improve their products.”</p>
+                                </blockquote>
+                            </article>
+                        </li>
+
+                        <li class="fb-slide">
+                            <article class="review-card" aria-labelledby="review-peter-name">
+                                <div class="review-header">
+                                    <div class="review-author">
+                                        <div class="review-avatar" data-name="Peter" aria-hidden="true">P</div>
+                                        <div>
+                                            <h3 class="review-name" id="review-peter-name">Peter</h3>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <blockquote class="review-quote">
+                                    <p>Just tried Critique and left some feedback on a project. Noice concept, especally the focuse on specific question rether than generic revew.keep bui;ding</p>
+                                </blockquote>
+
+                                <div class="review-meta">
+                                    <span>Community feedback</span>
+                                </div>
+                            </article>
+                        </li>
+                    </ul>
                 </div>
 
-                <p class="review-summary">
-                    Praised the concept, flagged submission friction, inconsistent icons, UI mismatches, and concerns around analytics and security.
-                </p>
-
-                <div class="review-meta">
-                    <span>External review</span>
-                    <span class="review-meta-dot" aria-hidden="true">·</span>
-                    <span>Sept 2026</span>
-                    <span class="review-meta-dot" aria-hidden="true">·</span>
-                    <span>Feedback received → improvements shipped</span>
+                <div class="fb-controls" id="fb-controls" hidden>
+                    <button type="button" class="fb-nav" id="fb-prev" aria-label="Previous testimonials">
+                        <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M10 3 5 8l5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <div class="fb-dots" id="fb-dots" role="group" aria-label="Testimonial pages"></div>
+                    <button type="button" class="fb-nav" id="fb-next" aria-label="Next testimonials">
+                        <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <button type="button" class="fb-toggle" id="fb-pause">Pause</button>
                 </div>
-
-                <div class="review-tags">
-                    <span class="review-tag">Security</span>
-                    <span class="review-tag">UI</span>
-                    <span class="review-tag">Analytics</span>
-                    <span class="review-tag accent">70 tests passing</span>
-                </div>
-            </article>
-
-            <article class="review-card" aria-labelledby="review-alex-name">
-                <div class="review-header">
-                    <div class="review-author">
-                        <div class="review-avatar" aria-hidden="true">A</div>
-                        <div>
-                            <h3 class="review-name" id="review-alex-name">Alex Lovesyuk</h3>
-                        </div>
-                    </div>
-                </div>
-
-                <blockquote class="review-quote">
-                    <p>“Critique's focus on honest feedback for builders caught my eye.”</p>
-                </blockquote>
-
-                <div class="review-meta">
-                    <span>External review</span>
-                    <span class="review-meta-dot" aria-hidden="true">·</span>
-                    <span>Twitter</span>
-                    <span class="review-meta-dot" aria-hidden="true">·</span>
-                    <span>Oct 2026</span>
-                </div>
-            </article>
-
-            <article class="review-card" aria-labelledby="review-dennis-name">
-                <div class="review-header">
-                    <div class="review-author">
-                        <div class="review-avatar" aria-hidden="true">D</div>
-                        <div>
-                            <h3 class="review-name" id="review-dennis-name">Dennis</h3>
-                            <p class="review-role">DEV</p>
-                        </div>
-                    </div>
-                </div>
-
-                <blockquote class="review-quote">
-                    <p>“I like the idea behind Critique, especially the focus on helping builders improve their products through real feedback. I appreciate that you took my suggestions seriously and actually implemented improvements based on them. That kind of responsiveness makes a real difference. I'd definitely recommend Critique to other builders who want honest feedback and want to improve their products.”</p>
-                </blockquote>
-            </article>
+            </div>
 
             <div class="feedback-cta">
                 <a href="#submit" class="btn btn-primary">Get feedback on my project</a>
@@ -1847,6 +2061,440 @@
                 toggle.focus();
             }
         });
+    })();
+    </script>
+
+<script>
+    // Homepage testimonials: local deterministic identicons plus a paged
+    // carousel. Progressive by design -- with JavaScript disabled the cards
+    // wrap in the static grid from the stylesheet and the controls stay
+    // hidden, so every testimonial remains reachable.
+    var CritiqueTestimonials = (function () {
+        'use strict';
+
+        var DEFAULT_AUTOPLAY_MS = 5500;
+        var GAP_FALLBACK_PX = 24; // matches --fb-gap: var(--space-5)
+
+        // --- Deterministic identicons -------------------------------------
+        // FNV-1a over the normalised name: the same name always replays the
+        // same avatar, generated locally with SVG only -- no network calls and
+        // no external images.
+        function hashName(name) {
+            var text = String(name === null || name === undefined ? '' : name).trim().toLowerCase();
+            var hash = 2166136261;
+            for (var i = 0; i < text.length; i++) {
+                hash = Math.imul(hash ^ text.charCodeAt(i), 16777619) >>> 0;
+            }
+            return hash >>> 0;
+        }
+
+        // mulberry32: a tiny deterministic PRNG so a name replays the exact
+        // same sequence of cells on every visit and every machine.
+        function mulberry32(seed) {
+            var a = seed >>> 0;
+            return function () {
+                a = (a + 0x6D2B79F5) | 0;
+                var t = Math.imul(a ^ (a >>> 15), 1 | a);
+                t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+                return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+            };
+        }
+
+        // A 5x5 grid mirrored across the vertical axis, drawn as rounded
+        // cells over a circle. Neutral tokens carry the pattern; a share of
+        // cells picks up the blue accent.
+        function identicon(name) {
+            var rand = mulberry32(hashName(name) || 0x9e3779b9);
+            var cell = 8;
+            var rects = '';
+            var filled = 0;
+            for (var row = 0; row < 5; row++) {
+                for (var col = 0; col < 3; col++) {
+                    if (rand() < 0.5) {
+                        var tone = rand() < 0.35 ? 'fb-id-accent' : 'fb-id-neutral';
+                        var y = row * cell + 1;
+                        var x = col * cell + 1;
+                        rects += '<rect class="' + tone + '" x="' + x + '" y="' + y + '" width="6" height="6" rx="1"/>';
+                        filled++;
+                        if (col < 2) {
+                            var mirrorX = (4 - col) * cell + 1;
+                            rects += '<rect class="' + tone + '" x="' + mirrorX + '" y="' + y + '" width="6" height="6" rx="1"/>';
+                        }
+                    }
+                }
+            }
+            if (!filled) {
+                rects = '<rect class="fb-id-neutral" x="17" y="17" width="6" height="6" rx="1"/>';
+            }
+            return '<svg viewBox="0 0 40 40" aria-hidden="true" focusable="false">' +
+                '<rect class="fb-id-bg" width="40" height="40" rx="20"/>' + rects + '</svg>';
+        }
+
+        // --- Carousel controller ------------------------------------------
+        function byId(id) {
+            return document.getElementById(id);
+        }
+
+        function readReducedMotion() {
+            try {
+                if (typeof window !== 'undefined' && window.matchMedia) {
+                    var mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+                    if (mq && typeof mq.matches === 'boolean') return mq.matches;
+                }
+            } catch (e) {
+                // Treat an unusable media query as "motion allowed".
+            }
+            return false;
+        }
+
+        function init() {
+            var root = byId('fb-carousel');
+            var viewport = byId('fb-viewport');
+            var track = byId('fb-track');
+            var controls = byId('fb-controls');
+            var dotsEl = byId('fb-dots');
+            var prevBtn = byId('fb-prev');
+            var nextBtn = byId('fb-next');
+            var pauseBtn = byId('fb-pause');
+            if (!root || !track || !controls) return null;
+
+            // The page may tune the interval, but it stays inside the 5-6s
+            // band the design calls for.
+            var autoplayMs = DEFAULT_AUTOPLAY_MS;
+            if (root.getAttribute) {
+                var declared = parseInt(root.getAttribute('data-autoplay'), 10);
+                if (declared >= 5000 && declared <= 6000) autoplayMs = declared;
+            }
+
+            var state = {
+                page: 0,
+                pages: 1,
+                perView: 3,
+                slideCount: 0,
+                autoplayMs: autoplayMs,
+                userPaused: false,
+                reducedMotion: readReducedMotion(),
+                reasons: { hover: false, focus: false, touch: false, hidden: false },
+                running: false,
+                timer: 0
+            };
+            // Reduced motion never rotates on its own; Play stays available
+            // as an explicit, user-initiated exception.
+            if (state.reducedMotion) state.userPaused = true;
+
+            function slidesOf() {
+                var out = [];
+                var kids = track.children || [];
+                for (var i = 0; i < kids.length; i++) {
+                    var kid = kids[i];
+                    if (kid && kid.classList && kid.classList.contains('fb-slide')) out.push(kid);
+                }
+                return out;
+            }
+
+            function gapPx() {
+                try {
+                    if (window.getComputedStyle) {
+                        var cs = window.getComputedStyle(track);
+                        var parsed = cs && cs.getPropertyValue ? parseFloat(cs.getPropertyValue('column-gap')) : NaN;
+                        if (!isNaN(parsed) && parsed > 0) return parsed;
+                    }
+                } catch (e) {
+                    // Fall through to the token value.
+                }
+                return GAP_FALLBACK_PX;
+            }
+
+            // Cards per view comes from the rendered layout, so the script
+            // never has to duplicate the stylesheet's breakpoints. When layout
+            // is not measurable (e.g. the render harness) the desktop count is
+            // the safe default.
+            function measurePerView() {
+                try {
+                    if (viewport && viewport.getBoundingClientRect && slidesOf) {
+                        var vw = viewport.getBoundingClientRect().width;
+                        var first = slidesOf()[0];
+                        if (vw > 0 && first && first.getBoundingClientRect) {
+                            var sw = first.getBoundingClientRect().width;
+                            if (sw > 0) {
+                                var gap = gapPx();
+                                return Math.max(1, Math.round((vw + gap) / (sw + gap)));
+                            }
+                        }
+                    }
+                } catch (e) {
+                    // Layout not measurable: assume three across.
+                }
+                return 3;
+            }
+
+            function autoplayWanted() {
+                if (state.pages <= 1) return false;
+                if (state.userPaused || state.reducedMotion) return false;
+                return !state.reasons.hover && !state.reasons.focus &&
+                    !state.reasons.touch && !state.reasons.hidden;
+            }
+
+            function tick() {
+                goTo(state.page + 1, true);
+            }
+
+            function syncAutoplay() {
+                if (autoplayWanted() && !state.running) {
+                    state.running = true;
+                    state.timer = setInterval(tick, state.autoplayMs);
+                } else if (!autoplayWanted() && state.running) {
+                    state.running = false;
+                    clearInterval(state.timer);
+                    state.timer = 0;
+                }
+            }
+
+            function renderDots() {
+                if (!dotsEl) return;
+                if (state.pages <= 1) {
+                    dotsEl.innerHTML = '';
+                    return;
+                }
+                var html = '';
+                for (var i = 0; i < state.pages; i++) {
+                    html += '<button type="button" class="fb-dot" data-page="' + i +
+                        '" aria-label="Show testimonial page ' + (i + 1) + ' of ' + state.pages + '"' +
+                        (i === state.page ? ' aria-current="true"' : '') + '></button>';
+                }
+                dotsEl.innerHTML = html;
+            }
+
+            function applyTransform() {
+                if (!track.style) return;
+                try {
+                    // One page of slides always shifts exactly 100% + gap,
+                    // whichever breakpoint (3/2/1 per view) is active.
+                    track.style.transform = state.pages <= 1
+                        ? ''
+                        : 'translateX(calc(-1 * ' + state.page + ' * (100% + ' + gapPx() + 'px)))';
+                } catch (e) {
+                    // Inline styles unavailable; the static grid still shows all cards.
+                }
+            }
+
+            function updatePauseButton() {
+                if (!pauseBtn) return;
+                pauseBtn.innerHTML = state.userPaused ? 'Play' : 'Pause';
+            }
+
+            function goTo(index, automatic) {
+                if (state.pages <= 1) return;
+                if (!automatic) {
+                    // Deliberate navigation hands control to the user:
+                    // rotation stays off until Play is pressed again.
+                    state.userPaused = true;
+                    updatePauseButton();
+                }
+                var target = index % state.pages;
+                if (target < 0) target += state.pages;
+                state.page = target;
+                renderDots();
+                applyTransform();
+                syncAutoplay();
+            }
+
+            function pauseFor(reason) {
+                if (!state.reasons.hasOwnProperty(reason)) return;
+                state.reasons[reason] = true;
+                syncAutoplay();
+            }
+
+            function resumeFor(reason) {
+                if (!state.reasons.hasOwnProperty(reason)) return;
+                state.reasons[reason] = false;
+                syncAutoplay();
+            }
+
+            var touchOrigin = null;
+
+            function onTouchStart(e) {
+                pauseFor('touch');
+                var t = e && e.touches && e.touches[0];
+                if (t) touchOrigin = { x: t.clientX, y: t.clientY };
+            }
+
+            function onTouchMove(e) {
+                if (!touchOrigin) return;
+                var t = e && e.touches && e.touches[0];
+                if (!t) return;
+                var dx = t.clientX - touchOrigin.x;
+                var dy = t.clientY - touchOrigin.y;
+                // Claim horizontal swipes only, so vertical scrolling is never hijacked.
+                if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy) && e.preventDefault) {
+                    e.preventDefault();
+                }
+            }
+
+            function onTouchEnd(e) {
+                var t = e && e.changedTouches && e.changedTouches[0];
+                if (touchOrigin && t) {
+                    var dx = t.clientX - touchOrigin.x;
+                    var dy = t.clientY - touchOrigin.y;
+                    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+                        goTo(state.page + (dx < 0 ? 1 : -1), false);
+                    }
+                }
+                touchOrigin = null;
+                resumeFor('touch');
+            }
+
+            function handleVisibility() {
+                state.reasons.hidden = document.hidden === true;
+                syncAutoplay();
+            }
+
+            function snapshot() {
+                return {
+                    slideCount: state.slideCount,
+                    perView: state.perView,
+                    pages: state.pages,
+                    page: state.page,
+                    controlsVisible: !controls.hidden,
+                    autoplayActive: autoplayWanted(),
+                    running: state.running,
+                    autoplayMs: state.autoplayMs,
+                    userPaused: state.userPaused,
+                    reducedMotion: state.reducedMotion,
+                    pausedFor: {
+                        hover: state.reasons.hover,
+                        focus: state.reasons.focus,
+                        touch: state.reasons.touch,
+                        hidden: state.reasons.hidden
+                    }
+                };
+            }
+
+            function refresh() {
+                var slideCount = slidesOf().length;
+                state.slideCount = slideCount;
+                state.perView = measurePerView();
+                state.pages = Math.max(1, Math.ceil(slideCount / state.perView));
+                if (state.page > state.pages - 1) state.page = state.pages - 1;
+                if (state.page < 0) state.page = 0;
+                // Controls only exist while there is more than one page.
+                controls.hidden = state.pages <= 1;
+                renderDots();
+                applyTransform();
+                updatePauseButton();
+                syncAutoplay();
+                return snapshot();
+            }
+
+            function setMotionPreference(reduced) {
+                state.reducedMotion = !!reduced;
+                if (state.reducedMotion) state.userPaused = true;
+                updatePauseButton();
+                syncAutoplay();
+            }
+
+            function applyIdenticons() {
+                if (!document.querySelectorAll) return;
+                var avatars = document.querySelectorAll('.review-avatar[data-name]');
+                for (var i = 0; i < avatars.length; i++) {
+                    var avatar = avatars[i];
+                    var name = avatar.getAttribute ? avatar.getAttribute('data-name') : '';
+                    if (!name) continue;
+                    avatar.innerHTML = identicon(name);
+                }
+            }
+
+            // Pause while the pointer is over the carousel, while keyboard
+            // focus is inside it, during touch interaction, and while the tab
+            // is hidden; each resumes when the interaction ends.
+            if (root.addEventListener) {
+                root.addEventListener('mouseenter', function () { pauseFor('hover'); });
+                root.addEventListener('mouseleave', function () { resumeFor('hover'); });
+                root.addEventListener('focusin', function () { pauseFor('focus'); });
+                root.addEventListener('focusout', function (e) {
+                    var next = e && e.relatedTarget;
+                    if (!next || !root.contains || !root.contains(next)) resumeFor('focus');
+                });
+                root.addEventListener('touchstart', onTouchStart, { passive: true });
+                root.addEventListener('touchmove', onTouchMove, { passive: false });
+                root.addEventListener('touchend', onTouchEnd);
+                root.addEventListener('touchcancel', onTouchEnd);
+            }
+            if (prevBtn && prevBtn.addEventListener) {
+                prevBtn.addEventListener('click', function () { goTo(state.page - 1, false); });
+            }
+            if (nextBtn && nextBtn.addEventListener) {
+                nextBtn.addEventListener('click', function () { goTo(state.page + 1, false); });
+            }
+            if (pauseBtn && pauseBtn.addEventListener) {
+                pauseBtn.addEventListener('click', function () {
+                    state.userPaused = !state.userPaused;
+                    updatePauseButton();
+                    syncAutoplay();
+                });
+            }
+            if (dotsEl && dotsEl.addEventListener) {
+                dotsEl.addEventListener('click', function (e) {
+                    var target = e && e.target;
+                    if (!target || !target.getAttribute) return;
+                    var page = target.getAttribute('data-page');
+                    if (page !== null && page !== undefined && page !== '') {
+                        goTo(parseInt(page, 10), false);
+                    }
+                });
+            }
+            if (document.addEventListener) {
+                document.addEventListener('visibilitychange', handleVisibility);
+            }
+            if (window.addEventListener) {
+                window.addEventListener('resize', function () {
+                    setTimeout(refresh, 150);
+                });
+            }
+
+            if (root.setAttribute) {
+                root.setAttribute('data-enhanced', 'true');
+                root.setAttribute('data-initialized', 'true');
+            }
+            applyIdenticons();
+            refresh();
+
+            return {
+                refresh: refresh,
+                state: snapshot,
+                goTo: goTo,
+                pause: pauseFor,
+                resume: resumeFor,
+                setMotionPreference: setMotionPreference,
+                handleVisibility: handleVisibility,
+                touchStart: onTouchStart,
+                touchEnd: onTouchEnd
+            };
+        }
+
+        var instance = init();
+
+        function withInstance(fn) {
+            return function () {
+                if (!instance) return null;
+                return fn.apply(instance, arguments);
+            };
+        }
+
+        return {
+            init: function () { return instance; },
+            refresh: withInstance(function () { return this.refresh(); }),
+            state: withInstance(function () { return this.state(); }),
+            goTo: withInstance(function (index) { this.goTo(index, false); }),
+            pause: withInstance(function (reason) { this.pause(reason); }),
+            resume: withInstance(function (reason) { this.resume(reason); }),
+            setMotionPreference: withInstance(function (reduced) { this.setMotionPreference(reduced); }),
+            visibility: withInstance(function () { this.handleVisibility(); }),
+            touchStart: withInstance(function (e) { this.touchStart(e); }),
+            touchEnd: withInstance(function (e) { this.touchEnd(e); }),
+            identicon: identicon,
+            hashName: hashName
+        };
     })();
     </script>
 
