@@ -44,7 +44,7 @@ function trackEvent(eventName, projectId) {
 }
 
 function getProjectId() {
-    var match = window.location.pathname.match(/\/project\/(\d+)/);
+    var match = window.location.pathname.match(/^\/project\/(\d+)\/?$/);
     return match ? parseInt(match[1]) : null;
 }
 
