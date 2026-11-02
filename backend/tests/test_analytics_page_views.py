@@ -73,5 +73,11 @@ def test_page_view_request(location, event_name, project_id):
     if project_id is not None:
         expected_query["project_id"] = [str(project_id)]
     assert parse_qs(url.query) == expected_query
-    assert request["options"] == {"method": "POST", "credentials": "same-origin"}
+    options = request["options"]
+    assert options["method"] == "POST"
+    assert options["credentials"] == "same-origin"
+    # No other fetch options are expected. ``keepalive`` is allowed because a
+    # navigating click sets it so the in-flight request is not cancelled when
+    # the browser unloads the page.
+    assert set(options) - {"method", "credentials", "keepalive"} == set()
     assert result["projectId"] == project_id
