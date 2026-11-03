@@ -11,13 +11,13 @@ var CritiqueUI = (function() {
         if (!container) {
             container = document.createElement('div');
             container.id = 'toast-container';
-            container.setAttribute('aria-live', 'polite');
+            // Each toast owns its live-region semantics; keep the wrapper neutral.
             document.body.appendChild(container);
         }
 
         var toast = document.createElement('div');
         toast.className = 'toast toast-' + type;
-        toast.setAttribute('role', 'status');
+        toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
 
         var icon = document.createElement('span');
         icon.className = 'toast-icon';
