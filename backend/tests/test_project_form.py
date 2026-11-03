@@ -189,6 +189,7 @@ def test_project_form_keeps_every_field_the_api_needs():
 
     url = tag_with_id(form, "url")
     assert 'name="url"' in url and 'type="url"' in url and 'maxlength="500"' in url
+    assert 'autocomplete="url"' in url
     # Option B (#191): URL matches the optional backend field — label tells the truth.
     assert "required" not in url
     assert re.search(
@@ -258,6 +259,7 @@ def test_screenshot_helper_text_is_short_and_never_repeats_itself():
     # The field contract itself is untouched: optional direct image URL.
     image_url = tag_with_id(page, "image_url")
     assert 'type="url"' in image_url and 'maxlength="500"' in image_url
+    assert 'autocomplete="url"' in image_url
     assert "required" not in image_url
 
 
