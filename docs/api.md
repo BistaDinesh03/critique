@@ -93,7 +93,7 @@ else is ignored.
 
 | Method | Path | Notes |
 |---|---|---|
-| GET | `/badge/{project_id}.svg` | SVG image showing the live response count (`1k+` formatting at 1000+). `Cache-Control: no-cache`. `404` for unknown projects. |
+| GET | `/badge/{project_id}.svg` | SVG image showing the live response count (exact below 1,000, then `1.2k` / `12k` / `1.2m` style abbreviations). `Cache-Control: no-cache`. `404` for unknown projects. |
 
 ## Stats — `/api`
 
