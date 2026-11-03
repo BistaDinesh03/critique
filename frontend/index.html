@@ -277,7 +277,7 @@
         .project-title {
             font-size: var(--text-lg);
             font-weight: 700;
-            margin-bottom: var(--space-2);
+            margin: 0 0 var(--space-2);
             color: var(--text-primary);
             overflow-wrap: anywhere;
         }
@@ -1727,7 +1727,7 @@
                     html += screenshot;
                     html += '<div class="project-card-body">';
                     html += '<div class="eyebrow">Need feedback on</div>';
-                    html += '<div class="project-title">' + escapeHtml(project.title) + '</div>';
+                    html += '<h3 class="project-title">' + escapeHtml(project.title) + '</h3>';
                     html += description;
                     html += '<div class="project-question">Question: ' + escapeHtml(question) + '</div>';
                     html += '<div class="project-footer">';
