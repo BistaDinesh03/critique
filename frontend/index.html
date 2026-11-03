@@ -1149,6 +1149,7 @@
     </style>
 </head>
 <body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
     <header class="navbar">
         <a href="/" class="navbar-brand" aria-current="page">
             <img src="/static/logo.svg" alt="Critique" width="32" height="32">
@@ -1166,7 +1167,7 @@
         </nav>
     </header>
 
-    <main class="container-wide" style="max-width: 1100px;">
+    <main id="main-content" tabindex="-1" class="container-wide" style="max-width: 1100px;">
         <!-- Shown on load when the backend redirects here with ?error=email_link
              (expired, already-used, or invalid magic link). It sits at the very
              top of the page, outside the submit form and before the script that
