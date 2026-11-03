@@ -51,7 +51,9 @@ var CritiqueUI = (function() {
     }
 
     // ============ MODAL SYSTEM ============
+    var confirmModalSequence = 0;
     function showConfirmModal(options) {
+        var descriptionId = 'modal-description-' + (++confirmModalSequence);
         var title = options.title || 'Confirm';
         var message = options.message || '';
         var confirmText = options.confirmText || 'Confirm';
@@ -70,6 +72,7 @@ var CritiqueUI = (function() {
         modal.setAttribute('role', 'dialog');
         modal.setAttribute('aria-modal', 'true');
         modal.setAttribute('aria-labelledby', 'modal-title');
+        modal.setAttribute('aria-describedby', descriptionId);
 
         var titleEl = document.createElement('h3');
         titleEl.id = 'modal-title';
@@ -78,6 +81,7 @@ var CritiqueUI = (function() {
 
         var bodyEl = document.createElement('div');
         bodyEl.className = 'modal-body';
+        bodyEl.id = descriptionId;
         bodyEl.textContent = message;
 
         var actionsEl = document.createElement('div');
