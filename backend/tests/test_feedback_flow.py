@@ -572,3 +572,31 @@ def test_sign_in_events_fire_only_on_a_real_return(tmp_path):
     # the session is still anonymous, it lands on the gate again as designed.
     assert len(events(returned, "feedback_submit_attempt")) == 1
     assert events(returned, "feedback_submit_error") == []
+
+
+# ---------------------------------------------------------------------------
+# Client-side validation before submission
+# ---------------------------------------------------------------------------
+
+
+def test_missing_required_selection_shows_validation_message(tmp_path):
+    """Submitting without both ratings never leaves the page or fires an attempt."""
+    fetch = {
+        "/api/projects/1/responses": {"status": 201, "body": {}},
+        "/api/projects/1": {"status": 200, "body": PROJECT},
+    }
+    result = run(
+        tmp_path,
+        "project_detail.html",
+        [{"submitId": "response-form"}, {"evaluate": "document.getElementById('submit-btn').disabled", "as": "btn_disabled"}],
+        fetch=fetch,
+        location="/project/1",
+    )
+
+    assert "Please choose how clear the project is and whether you would use it before submitting." in result["ids"]["message"]
+    # No attempt event and no request were produced.
+    assert events(result, "feedback_submit_attempt") == []
+    posts = [r for r in result["requests"] if r["method"] == "POST" and r["url"].endswith("/responses")]
+    assert posts == []
+    # Button stays enabled so the visitor can fix and retry.
+    assert result["values"]["btn_disabled"] is False

@@ -403,7 +403,7 @@
                     html += '</div></div>';
                     html += '<div class="form-section"><h3>3. What would you change? <span style="font-weight:400;color:var(--text-muted);">(optional)</span></h3><textarea class="form-textarea" id="suggestion" maxlength="2000" placeholder="Your honest feedback..."></textarea></div>';
                     html += '<button type="submit" class="btn btn-primary" id="submit-btn" style="width:100%;">Submit feedback</button>';
-                    html += '<div class="message" id="message"></div></form></div>';
+                    html += '<div class="message" id="message" role="status" aria-live="polite"></div></form></div>';
                 }
                 var details = '';
                 if (p.image_url) { details += '<img class="project-screenshot" src="' + escapeHtml(p.image_url) + '" alt="Screenshot of ' + escapeHtml(p.title) + '" loading="lazy" onerror="this.style.display=\'none\'">'; }
@@ -774,7 +774,17 @@
             const btn = document.getElementById('submit-btn');
             msg.className = 'alert';
             msg.textContent = '';
+            const clarityEl = document.querySelector('input[name="clarity"]:checked');
+            const wouldUseEl = document.querySelector('input[name="would_use"]:checked');
+            if (!clarityEl || !wouldUseEl) {
+                msg.className = 'alert alert-error';
+                msg.setAttribute('role', 'alert');
+                msg.textContent = 'Please choose how clear the project is and whether you would use it before submitting.';
+                btn.disabled = false;
+                return;
+            }
             btn.disabled = true;
+            btn.textContent = 'Submitting\u2026';
             // Set once the outcome is settled, so the finally block does not
             // hand the visitor a live submit button on a form that has been
             // recorded (finished) or is waiting for sign-in (gated).
@@ -783,8 +793,8 @@
 
             const csrfToken = getCsrfToken();
             const payload = {
-                clarity: document.querySelector('input[name="clarity"]:checked').value,
-                would_use: document.querySelector('input[name="would_use"]:checked').value,
+                clarity: clarityEl.value,
+                would_use: wouldUseEl.value,
                 suggestion: document.getElementById('suggestion').value.trim() || null,
             };
 
@@ -815,6 +825,7 @@
                     // project that is also waiting for an answer.
                     finished = true;
                     markFeedbackSubmitted();
+                    btn.textContent = 'Submitted';
                     disableResponseForm();
                     showFeedbackSuccessNextStep(msg);
                 } else if (response.status === 401) {
@@ -846,19 +857,27 @@
                     // starts from an empty form.
                     saveFeedbackDraft();
                     msg.className = 'alert alert-error';
+                    msg.setAttribute('role', 'alert');
                     msg.textContent = 'Session expired. Your answers are saved — refresh and try again.';
                 } else {
                     window.CritiqueAnalytics.trackEvent('feedback_submit_error', projectId);
+                    saveFeedbackDraft();
                     msg.className = 'alert alert-error';
-                    msg.textContent = data.detail || 'Failed to submit.';
+                    msg.setAttribute('role', 'alert');
+                    msg.textContent = data.detail || 'Failed to submit. Your answers are saved — please try again.';
                 }
             } catch (e) {
                 window.CritiqueAnalytics.trackEvent('feedback_submit_error', projectId);
+                saveFeedbackDraft();
                 console.error('Submit error:', e);
                 msg.className = 'alert alert-error';
-                msg.textContent = 'Network error: ' + e.message;
+                msg.setAttribute('role', 'alert');
+                msg.textContent = 'Network error. Your answers are saved — please try again.';
             } finally {
-                if (!finished && !gated) btn.disabled = false;
+                if (!finished && !gated) {
+                    btn.disabled = false;
+                    btn.textContent = 'Submit feedback';
+                }
             }
         }
 
