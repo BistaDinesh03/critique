@@ -4,6 +4,22 @@
 var CritiqueUI = (function() {
     'use strict';
 
+    function readReducedMotion() {
+        try {
+            if (typeof window !== 'undefined' && window.matchMedia) {
+                var mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+                if (mq && typeof mq.matches === 'boolean') return mq.matches;
+            }
+        } catch (e) {
+            // Treat an unusable media query as "motion allowed".
+        }
+        return false;
+    }
+
+    function scrollBehavior() {
+        return readReducedMotion() ? 'auto' : 'smooth';
+    }
+
     // ============ TOAST SYSTEM ============
     function showToast(message, type) {
         type = type || 'success';
@@ -672,6 +688,8 @@ var CritiqueUI = (function() {
     }
 
     return {
+        readReducedMotion: readReducedMotion,
+        scrollBehavior: scrollBehavior,
         showToast: showToast,
         showConfirmModal: showConfirmModal,
         renderAuthChoice: renderAuthChoice,
