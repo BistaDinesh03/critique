@@ -1,4 +1,6 @@
-﻿from app.database import SessionLocal
+﻿import pytest
+
+from app.database import SessionLocal
 from app.models import Project, Question, Response, User
 
 
@@ -191,3 +193,36 @@ def test_anonymous_submit_with_valid_csrf_gets_401_gate(auth_client):
     finally:
         cleanup_database()
 
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("   ", None),
+        (" \n\t ", None),
+        (None, None),
+        ("  Spell out the pricing  ", "Spell out the pricing"),
+        ("Spell out the pricing", "Spell out the pricing"),
+    ],
+)
+def test_suggestion_is_trimmed_or_dropped(auth_client, raw, expected):
+    """
+    Whitespace-only suggestions must not reach the owner's results.
+
+    Stored verbatim they render as an empty blockquote in the
+    written-feedback list and make the response count look larger than
+    the useful feedback.
+    """
+    cleanup_database()
+    create_resp = create_test_project(auth_client)
+    project_id = create_resp.json()["project"]["id"]
+
+    payload = {"clarity": "confusing", "would_use": "no", "suggestion": raw}
+    submit = auth_client.post(f"/api/projects/{project_id}/responses", json=payload)
+    assert submit.status_code == 201
+
+    results = auth_client.get(f"/api/projects/{project_id}/results")
+    assert results.status_code == 200
+    suggestions = [item["suggestion"] for item in results.json()["responses"]]
+    assert suggestions == [expected]
+    cleanup_database()
