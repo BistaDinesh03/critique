@@ -218,6 +218,8 @@ backend/
 frontend/                     HTML pages (vanilla JS, no build step)
 static/                       CSS, JS, logos, favicon
 docs/                         Setup guides and API reference
+scripts/                      Maintainer scripts (review_pr.py, contributor.py)
+.github/                      GitHub Actions CI (workflows/tests.yml)
 render.yaml                   Deployment config
 ```
 
