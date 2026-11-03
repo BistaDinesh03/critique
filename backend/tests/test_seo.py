@@ -1,4 +1,4 @@
-﻿from fastapi.testclient import TestClient
+from fastapi.testclient import TestClient
 import pytest
 
 from app.config import settings
@@ -66,3 +66,9 @@ def test_sitemap_does_not_include_private_pages():
     assert "/my-projects" not in text
     assert "/api/" not in text
     assert "/auth/" not in text
+
+
+def test_homepage_has_canonical_link():
+    response = client.get("/")
+    assert response.status_code == 200
+    assert '<link rel="canonical" href="https://critique.page/">' in response.text
