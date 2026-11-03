@@ -97,7 +97,7 @@ def test_safe_return_path_accepts_percent_encoded_values():
     assert _is_safe_return_path("/discover?q=caf%C3%A9") is True
 
 
-def test_safe_return_path_rejects_control_characters():
+def test_safe_return_path_rejects_trailing_control_characters():
     """A Location header must not receive CR/LF, NUL, or other controls."""
     for path in (
         "/project/1\n",
