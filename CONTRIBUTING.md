@@ -114,6 +114,41 @@ Critique intentionally avoids complexity. Before adding anything, ask:
 
 For a step-by-step example of claiming an issue, working in a fork, running relevant checks, and opening a pull request, see the [first-contributor walkthrough](docs/first-contributors.md).
 
+## Welcome to new contributors
+
+Thanks for your interest in contributing to Critique!
+
+Before starting, please comment on the issue so we can confirm it is still
+available. We'll help you understand the implementation and review your
+contribution.
+
+We appreciate every meaningful contribution, whether it's code, tests,
+documentation, or feedback.
+
+### First-contribution checklist
+
+1. Read [README.md](README.md) and skim [docs/first-contributors.md](docs/first-contributors.md).
+2. Pick an issue from the [Good issues to contribute](README.md#good-issues-to-contribute) list.
+3. Comment on the issue to claim it (maintainers confirm availability).
+4. Fork, branch, implement, and add tests.
+5. Run the relevant test suite and `git diff --check`.
+6. Open a pull request linking the issue, describing what changed and why.
+
+### Maintainer welcome template
+
+When a new contributor opens their first issue or PR, reply with:
+
+> Thanks for your interest in contributing to Critique!
+>
+> Before starting, please comment on the issue so we can confirm it is still
+> available. We'll help you understand the implementation and review your
+> contribution.
+>
+> We appreciate every meaningful contribution, whether it's code, tests,
+> documentation, or feedback.
+
+Do not promise instant reviews or unrealistic response times.
+
 ## Finding Something to Work On
 
 Open issues labeled [`good first issue`](https://github.com/BistaDinesh03/critique/labels/good%20first%20issue)

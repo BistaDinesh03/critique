@@ -401,13 +401,32 @@ product feedback are welcome. A good place to start is an issue labeled
 
 [CONTRIBUTING.md](CONTRIBUTING.md) has the full guidelines, and the [first-contributor walkthrough](docs/first-contributors.md) shows how to take one issue from claiming it to opening a pull request. [SECURITY.md](SECURITY.md) explains how to report vulnerabilities.
 
-**Looking for something to work on?** Start with the curated plan in
-[docs/issue-roadmap.md](docs/issue-roadmap.md) — 50 reviewed issues with the
-problem, scope, acceptance criteria, difficulty and relevant files spelled
-out for each. Issues are also labeled by area (`frontend`, `backend`,
-`tests`, `accessibility`, `security`, `performance`), and questions are
-welcome in [issue #1](https://github.com/BistaDinesh03/critique/issues/1)
+**Looking for something to work on?** Start with the curated shortlist below,
+or the full plan in [docs/issue-roadmap.md](docs/issue-roadmap.md) — reviewed
+issues with the problem, scope, acceptance criteria, difficulty and relevant
+files spelled out for each. Issues are also labeled by area (`frontend`,
+`backend`, `tests`, `accessibility`, `security`, `performance`), and questions
+are welcome in [issue #1](https://github.com/BistaDinesh03/critique/issues/1)
 before you begin.
+
+### Good issues to contribute
+
+These ten issues are selected as the best starting points for new and returning
+contributors. Claim one by commenting on the issue; a maintainer will confirm
+availability.
+
+| # | Issue | Difficulty | Labels |
+|---|-------|------------|--------|
+| [#191](https://github.com/BistaDinesh03/critique/issues/191) | "Project URL" and "Short description" labeled (required) but enforced nowhere | Beginner | `bug`, `frontend`, `good first issue` |
+| [#266](https://github.com/BistaDinesh03/critique/issues/266) | Share copy events recorded even when the clipboard write fails | Beginner | `bug`, `frontend`, `good first issue` |
+| [#279](https://github.com/BistaDinesh03/critique/issues/279) | Suggestion textarea has no `maxlength` while the API caps suggestions at 2000 chars | Beginner | `bug`, `frontend` |
+| [#225](https://github.com/BistaDinesh03/critique/issues/225) | `frontend/index.html` dumps the raw API error body on project submit failure | Beginner | `bug`, `frontend`, `good first issue` |
+| [#192](https://github.com/BistaDinesh03/critique/issues/192) | `GET /auth/email/verify` with a missing `token` returns framework 422 JSON | Beginner | `bug`, `backend`, `good first issue` |
+| [#268](https://github.com/BistaDinesh03/critique/issues/268) | An expired or forged OAuth state returns a raw JSON 400 with no way back | Intermediate | `bug`, `backend` |
+| [#143](https://github.com/BistaDinesh03/critique/issues/143) | Add a scheduled weekly run of the test suite | Beginner | `tests`, `good first issue` |
+| [#276](https://github.com/BistaDinesh03/critique/issues/276) | Toasts auto-dismiss on a fixed timer with no pause/hover/keyboard dismiss (WCAG 2.2.1) | Beginner | `accessibility`, `frontend`, `good first issue` |
+| [#195](https://github.com/BistaDinesh03/critique/issues/195) | README/CONTRIBUTING route newcomers to a stale roadmap | Beginner | `documentation`, `good first issue` |
+| [#248](https://github.com/BistaDinesh03/critique/issues/248) | `_sanitized_env` keeps `HOME`/`APPDATA`/`USERPROFILE`, leaking secrets to PR test code | Advanced | `security` |
 
 Contributors are also encouraged to spend a little time using Critique
 itself — submitting a project or giving feedback — before their first pull
@@ -421,6 +440,19 @@ Critique is open source under the MIT License. The complete implementation
 — backend, frontend, tests, and deployment configuration — lives at
 [github.com/BistaDinesh03/critique](https://github.com/BistaDinesh03/critique).
 Issues and pull requests are welcome.
+
+If Critique is useful to you, consider giving the repository a star. It helps
+more developers discover the project. No pressure — contributions and feedback
+are equally appreciated.
+
+### Contributors
+
+Thanks to everyone who has contributed code, tests, documentation, design, or
+feedback to Critique. First-time and repeat contributors are recognized in
+release notes and the monthly contributor summary (see
+[docs/contributor-tracking.md](docs/contributor-tracking.md)). To be listed,
+open a pull request that gets merged; maintainer edits update the list, not
+automated bots.
 
 ## License
 
