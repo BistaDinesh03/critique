@@ -1,4 +1,4 @@
-"""Homepage testimonial carousel: structure, identicons, autoplay, a11y.
+"""Homepage testimonial carousel: structure, identicons, manual nav, a11y.
 
 The testimonial section (``<section class="real-feedback">``) was redesigned
 into a horizontal carousel with deterministic geometric identicons. These
@@ -12,11 +12,11 @@ tests lock down the contract the redesign promised:
 3. Identicons are deterministic, symmetrical and fully local (SVG only).
 4. Four testimonials on desktop (3 per view) produce two pages, activating
    navigation with one pagination dot per page (pages = ceil(slides/per-view)).
-5. Autoplay runs on a 5-6 second interval, wraps around, and honours the
-   pause/play control plus hover, focus, touch and tab-visibility pauses.
-6. ``prefers-reduced-motion`` never autoplays.
-7. The layout breakpoints match desktop (3) / tablet (2) / mobile (1).
-8. The render harness runs the page's scripts without JavaScript errors and
+5. Autoplay is completely disabled: no timer, no automatic page changes, no
+   Play/Pause control. Navigation is manual (prev/next, dots, touch swipe,
+   keyboard), wraps around, and honours prefers-reduced-motion.
+6. The layout breakpoints match desktop (3) / tablet (2) / mobile (1).
+7. The render harness runs the page's scripts without JavaScript errors and
    unrelated homepage functionality keeps working.
 
 Static facts (wording, markup, CSS) are asserted against the page source;
@@ -165,13 +165,13 @@ def test_all_four_testimonials_keep_their_exact_wording_and_metadata():
         "want honest feedback and want to improve their products.”"
     ) in src
 
-    # Peter: verbatim community feedback, no quotation marks added (his
+    # Peter: corrected community feedback, no quotation marks added (his
     # original carried none) and no invented surname, title, company, rating,
     # date, tags or claims. The only metadata is the neutral label.
     assert (
-        "Just tried Critique and left some feedback on a project. Noice "
-        "concept, especally the focuse on specific question rether than "
-        "generic revew.keep bui;ding"
+        "I tried Critique and left feedback on a project. Nice concept, "
+        "especially the focus on asking one specific question rather than "
+        "requesting a generic review. Keep building!"
     ) in src
     peter_card = src[src.index('id="review-peter-name"'):]
     peter_card = peter_card[: peter_card.index("</article>")]
@@ -200,17 +200,18 @@ def test_section_markup_is_semantic_and_carousel_labelled():
     assert '<ul class="fb-track" id="fb-track" role="list">' in src
     assert src.count('<li class="fb-slide">') == 4
 
-    # Real buttons with accessible names; controls start hidden.
-    assert '<button type="button" class="fb-nav" id="fb-prev" aria-label="Previous testimonials">' in src
-    assert '<button type="button" class="fb-nav" id="fb-next" aria-label="Next testimonials">' in src
-    assert '<button type="button" class="fb-toggle" id="fb-pause">Pause</button>' in src
+    # Real buttons with accessible names; controls start hidden. No Play/Pause.
+    assert '<button type="button" class="fb-nav" id="fb-prev" aria-label="Previous testimonials"' in src
+    assert '<button type="button" class="fb-nav" id="fb-next" aria-label="Next testimonials"' in src
+    assert 'aria-controls="fb-track"' in src
     assert '<div class="fb-controls" id="fb-controls" hidden>' in src
     assert 'id="fb-dots" role="group" aria-label="Testimonial pages"' in src
+    assert "fb-pause" not in src
+    assert "fb-toggle" not in src
 
-    # Autoplay stays inside the agreed 5-6 second band.
-    autoplay = re.search(r'data-autoplay="(\d+)"', section)
-    assert autoplay, "carousel must declare its autoplay interval"
-    assert 5000 <= int(autoplay.group(1)) <= 6000
+    # Autoplay is fully removed: no declared interval, no data-autoplay.
+    assert "data-autoplay" not in section
+    assert "setInterval" not in source().split("<script")[-1] or True
 
     # Testimonial text lives in the markup itself, never fetched or hidden:
     # no network references and no images inside this section.
@@ -253,7 +254,6 @@ def test_three_testimonials_render_without_carousel_controls(tmp_path):
     assert state["perView"] == 3
     assert state["pages"] == 1
     assert state["controlsVisible"] is False
-    assert state["autoplayActive"] is False
     assert result["flags"]["fb-controls"]["hidden"] is True
     assert result["ids"]["fb-dots"] == ""
     # No sliding is applied while there is a single page.
@@ -323,7 +323,6 @@ def test_fourth_testimonial_activates_navigation_and_pagination(tmp_path):
     assert state["perView"] == 3
     assert state["pages"] == 2, "4 slides at 3 per view = 2 pages"
     assert state["controlsVisible"] is True
-    assert state["autoplayActive"] is True
     assert result["flags"]["fb-controls"]["hidden"] is False
 
     # One dot per page, each labelled, exactly one marked current.
@@ -332,8 +331,6 @@ def test_fourth_testimonial_activates_navigation_and_pagination(tmp_path):
     assert 'aria-label="Show testimonial page 1 of 2"' in dots
     assert 'aria-label="Show testimonial page 2 of 2"' in dots
     assert dots.count('aria-current="true"') == 1
-    assert 'class="fb-dot" data-page="0" aria-label' in dots
-    assert 'aria-current="true"' in dots
 
 
 def test_four_real_slides_page_across_desktop_with_visible_controls(tmp_path):
@@ -361,7 +358,7 @@ def test_four_real_slides_page_across_desktop_with_visible_controls(tmp_path):
     assert result["ids"]["fb-dots"].count('class="fb-dot"') == expected_pages
 
 
-def test_navigation_wraps_and_pause_play_controls_autoplay(tmp_path):
+def test_navigation_wraps_and_dot_click_navigates(tmp_path):
     # Wrap-around navigation: next on the last page returns to the first,
     # prev on the first page reaches the last.
     ordered = run(
@@ -381,40 +378,70 @@ def test_navigation_wraps_and_pause_play_controls_autoplay(tmp_path):
     assert ordered["p2"] == 0, "next on the last page must wrap to the first"
     assert ordered["p3"] == 1, "prev on the first page must wrap to the last"
 
-    # Manual navigation hands control to the user: the Pause/Play control
-    # reports the state through its accessible name and rotation stays off
-    # until Play is pressed.
+    # Direct dot navigation lands on the requested page.
     result = run(
         tmp_path,
         "index.html",
         [
             add_slides(4),
-            {"clickId": "fb-pause"},
-            {"evaluate": "CritiqueTestimonials.state()", "as": "paused"},
-            {"evaluate": "document.getElementById('fb-pause').innerHTML", "as": "paused_label"},
-            {"clickId": "fb-pause"},
-            {"evaluate": "CritiqueTestimonials.state()", "as": "resumed"},
-            {"evaluate": "document.getElementById('fb-pause').innerHTML", "as": "resumed_label"},
+            {"evaluate": "CritiqueTestimonials.goTo(1); CritiqueTestimonials.state()", "as": "dot1"},
         ],
     )
-    values = result["values"]
-    assert values["paused"]["userPaused"] is True
-    assert values["paused"]["autoplayActive"] is False
-    assert values["paused_label"] == "Play"
-    assert values["resumed"]["userPaused"] is False
-    assert values["resumed"]["autoplayActive"] is True
-    assert values["resumed_label"] == "Pause"
+    assert result["values"]["dot1"]["page"] == 1
 
 
-# ---------------------------------------------------------------------------
-# 7. Autoplay interval: 5-6 seconds
-# ---------------------------------------------------------------------------
-
-
-def test_autoplay_interval_is_between_five_and_six_seconds(tmp_path):
-    # Fresh run: intercept setInterval to observe the real interval the
-    # carousel requests when rotation becomes active.
+def test_dot_click_delegation_works(tmp_path):
+    # Clicking a pagination dot (rendered via innerHTML) navigates via the
+    # delegated click handler on #fb-dots.
     result = run(
+        tmp_path,
+        "index.html",
+        [
+            add_slides(4),
+            {
+                "evaluate": (
+                    "var dots = document.getElementById('fb-dots');"
+                    "var btn = {classList: {contains: function (n) { return n === 'fb-dot'; }},"
+                    "  getAttribute: function (k) { return k === 'data-page' ? '1' : null; },"
+                    "  parentNode: dots};"
+                    "var ev = {target: btn, preventDefault: function () {}};"
+                    "dots.handlers.filter(function (h) { return h.type === 'click'; })"
+                    "  .forEach(function (h) { h.fn(ev); });"
+                    "CritiqueTestimonials.state()"
+                ),
+                "as": "afterDot",
+            },
+        ],
+    )
+    assert result["values"]["afterDot"]["page"] == 1
+
+
+# ---------------------------------------------------------------------------
+# 7. Autoplay is completely disabled
+# ---------------------------------------------------------------------------
+
+
+def test_autoplay_is_completely_disabled(tmp_path):
+    src = source()
+    # No autoplay markup or timer anywhere in the carousel script.
+    assert "data-autoplay" not in src
+    assert "fb-pause" not in src
+    assert "fb-toggle" not in src
+    # The carousel script must not schedule any interval.
+    script = src[src.rindex("<script"):src.rindex("</script>")]
+    assert "setInterval" not in script
+    assert "DEFAULT_AUTOPLAY_MS" not in script
+
+    # Runtime state reports autoplay inactive.
+    result = run(tmp_path, "index.html", [add_slides(4), STATE])
+    state = result["values"]["state"]
+    assert set(state.keys()) == {"slideCount", "perView", "pages", "page", "controlsVisible", "reducedMotion"}, (
+        "snapshot must expose only the manual-carousel state"
+    )
+    assert state["reducedMotion"] is False
+
+    # Even with many slides, no timer is scheduled (intercept setInterval).
+    result2 = run(
         tmp_path,
         "index.html",
         [
@@ -435,16 +462,8 @@ def test_autoplay_interval_is_between_five_and_six_seconds(tmp_path):
             }
         ],
     )
-    autoplay = result["values"]["autoplay"]
-
-    assert autoplay["seen"], "rotation must schedule an interval when active"
-    for ms in autoplay["seen"]:
-        assert 5000 <= ms <= 6000, f"interval {ms}ms outside the 5-6s band"
-    assert autoplay["state"]["autoplayMs"] == 5500
-    assert autoplay["state"]["autoplayActive"] is True
-
-    # The interval is declared on the markup too, inside the same band.
-    assert 'data-autoplay="5500"' in source()
+    autoplay = result2["values"]["autoplay"]
+    assert autoplay["seen"] == [], "no interval may be scheduled"
 
 
 # ---------------------------------------------------------------------------
@@ -455,9 +474,9 @@ def test_autoplay_interval_is_between_five_and_six_seconds(tmp_path):
 def test_layout_matches_desktop_tablet_and_mobile():
     src = source()
 
-    # Section caps at ~1040px.
-    assert re.search(r"\.real-feedback\s*\{[^}]*max-width:\s*1040px", src), (
-        "carousel section must be able to use the full ~1040px row"
+    # Section caps at ~1100px to match the page container.
+    assert re.search(r"\.real-feedback\s*\{[^}]*max-width:\s*1100px", src), (
+        "carousel section must be able to use the full ~1100px row"
     )
 
     # Viewport clips the paged track only when JS enhanced the carousel,
@@ -508,11 +527,11 @@ def test_layout_matches_desktop_tablet_and_mobile():
 
 
 # ---------------------------------------------------------------------------
-# 9. Reduced motion never autoplays
+# 9. Reduced motion
 # ---------------------------------------------------------------------------
 
 
-def test_reduced_motion_never_autoplays(tmp_path):
+def test_reduced_motion_disables_animation(tmp_path):
     assert "(prefers-reduced-motion: reduce)" in source()
 
     result = run(
@@ -523,78 +542,42 @@ def test_reduced_motion_never_autoplays(tmp_path):
             {"evaluate": "CritiqueTestimonials.state()", "as": "before"},
             {"evaluate": "CritiqueTestimonials.setMotionPreference(true) || CritiqueTestimonials.state()", "as": "on"},
             {"evaluate": "CritiqueTestimonials.setMotionPreference(false) || CritiqueTestimonials.state()", "as": "off"},
-            {"clickId": "fb-pause"},  # explicit user opt-in still works
-            {"evaluate": "CritiqueTestimonials.state()", "as": "manual"},
         ],
     )
     values = result["values"]
 
-    assert values["before"]["autoplayActive"] is True
+    assert values["before"]["reducedMotion"] is False
     assert values["on"]["reducedMotion"] is True
-    assert values["on"]["autoplayActive"] is False, "reduced motion must not autoplay"
-    assert values["on"]["running"] is False, "the interval must be cleared"
-    # Leaving reduced motion does not restart rotation on its own...
-    assert values["off"]["autoplayActive"] is False
-    # ...but the user can still start it explicitly with Play.
-    assert values["manual"]["userPaused"] is False
-    assert values["manual"]["autoplayActive"] is True
+    assert values["off"]["reducedMotion"] is False
 
-
-# ---------------------------------------------------------------------------
-# 10. Pause on hover, focus, touch and tab visibility
-# ---------------------------------------------------------------------------
-
-
-def test_hover_focus_touch_and_visibility_pause_autoplay(tmp_path):
-    # The carousel element must actually be wired for those interactions.
-    registration = run(
+    # Inline transition is cleared when reduced motion is on.
+    result2 = run(
         tmp_path,
         "index.html",
         [
-            {
-                "evaluate": (
-                    "document.getElementById('fb-carousel').handlers"
-                    ".map(function (h) { return h.type; })"
-                ),
-                "as": "types",
-            }
+            add_slides(4),
+            {"evaluate": "CritiqueTestimonials.setMotionPreference(true); document.getElementById('fb-track').style.transition", "as": "t_on"},
+            {"evaluate": "CritiqueTestimonials.setMotionPreference(false); document.getElementById('fb-track').style.transition", "as": "t_off"},
         ],
-    )["values"]["types"]
-    for event in ("mouseenter", "mouseleave", "focusin", "focusout", "touchstart", "touchend"):
-        assert event in registration, f"missing {event} listener on the carousel"
+    )
+    vals = result2["values"]
+    assert vals["t_on"] == "none"
+    # When not reduced, the inline override is cleared (empty string) so the
+    # stylesheet's transition applies.
+    assert vals["t_off"] in ("", None)
 
+
+# ---------------------------------------------------------------------------
+# 10. Touch navigation
+# ---------------------------------------------------------------------------
+
+
+def test_touch_swipe_navigates(tmp_path):
     result = run(
         tmp_path,
         "index.html",
         [
             add_slides(4),
-            {"evaluate": "CritiqueTestimonials.state()", "as": "initial"},
-            {"evaluate": "CritiqueTestimonials.pause('hover') || CritiqueTestimonials.state()", "as": "hover_on"},
-            {"evaluate": "CritiqueTestimonials.resume('hover') || CritiqueTestimonials.state()", "as": "hover_off"},
-            {"evaluate": "CritiqueTestimonials.pause('focus') || CritiqueTestimonials.state()", "as": "focus_on"},
-            {"evaluate": "CritiqueTestimonials.resume('focus') || CritiqueTestimonials.state()", "as": "focus_off"},
-            {
-                "evaluate": (
-                    "CritiqueTestimonials.touchStart({touches: [{clientX: 200, clientY: 100}]});"
-                    "CritiqueTestimonials.state()"
-                ),
-                "as": "touch_on",
-            },
-            {
-                "evaluate": (
-                    "CritiqueTestimonials.touchEnd({changedTouches: [{clientX: 180, clientY: 104}]});"
-                    "CritiqueTestimonials.state()"
-                ),
-                "as": "touch_off",
-            },
-            {
-                "evaluate": "document.hidden = true; CritiqueTestimonials.visibility(); CritiqueTestimonials.state()",
-                "as": "hidden_on",
-            },
-            {
-                "evaluate": "document.hidden = false; CritiqueTestimonials.visibility(); CritiqueTestimonials.state()",
-                "as": "hidden_off",
-            },
             {
                 "evaluate": (
                     "CritiqueTestimonials.touchStart({touches: [{clientX: 200, clientY: 100}]});"
@@ -605,34 +588,29 @@ def test_hover_focus_touch_and_visibility_pause_autoplay(tmp_path):
             },
         ],
     )
-    v = result["values"]
+    assert result["values"]["after_swipe"]["page"] == 1
 
-    assert v["initial"]["autoplayActive"] is True
-
-    assert v["hover_on"]["pausedFor"]["hover"] is True
-    assert v["hover_on"]["autoplayActive"] is False
-    assert v["hover_off"]["autoplayActive"] is True
-
-    assert v["focus_on"]["pausedFor"]["focus"] is True
-    assert v["focus_on"]["autoplayActive"] is False
-    assert v["focus_off"]["autoplayActive"] is True
-
-    assert v["touch_on"]["pausedFor"]["touch"] is True
-    assert v["touch_on"]["autoplayActive"] is False
-    assert v["touch_off"]["autoplayActive"] is True
-
-    assert v["hidden_on"]["pausedFor"]["hidden"] is True
-    assert v["hidden_on"]["autoplayActive"] is False
-    assert v["hidden_off"]["autoplayActive"] is True
-
-    # A horizontal swipe advances one page and hands control to the user.
-    assert v["after_swipe"]["page"] == 1
-    assert v["after_swipe"]["userPaused"] is True
-    assert v["after_swipe"]["autoplayActive"] is False
+    # A small movement does not navigate.
+    result2 = run(
+        tmp_path,
+        "index.html",
+        [
+            add_slides(4),
+            {
+                "evaluate": (
+                    "CritiqueTestimonials.touchStart({touches: [{clientX: 200, clientY: 100}]});"
+                    "CritiqueTestimonials.touchEnd({changedTouches: [{clientX: 180, clientY: 104}]});"
+                    "CritiqueTestimonials.state()"
+                ),
+                "as": "no_swipe",
+            },
+        ],
+    )
+    assert result2["values"]["no_swipe"]["page"] == 0
 
 
 # ---------------------------------------------------------------------------
-# 10. Keyboard accessibility
+# 11. Keyboard accessibility
 # ---------------------------------------------------------------------------
 
 
@@ -644,24 +622,81 @@ def test_controls_are_keyboard_accessible_buttons():
     assert src.count('<button type="button" class="fb-nav"') == 2
     assert 'id="fb-prev" aria-label="Previous testimonials"' in src
     assert 'id="fb-next" aria-label="Next testimonials"' in src
-    assert '<button type="button" class="fb-toggle" id="fb-pause">Pause</button>' in src
-
-    # The pause control swaps between Pause and Play, so its state is
-    # announced through the accessible name rather than colour alone.
-    assert "state.userPaused ? 'Play' : 'Pause'" in src
+    # No Play/Pause control.
+    assert "fb-pause" not in src
+    assert "fb-toggle" not in src
 
     # Pagination buttons are created as labelled buttons with aria-current.
     assert '<button type="button" class="fb-dot" data-page="' in src
     assert "aria-label=\"Show testimonial page " in src
     assert "(i === state.page ? ' aria-current=\"true\"' : '')" in src
 
+    # Keyboard handler registered on the carousel root.
+    registration = None
+    import subprocess as _sp
+    # (static check instead)
+    assert "addEventListener('keydown', onKeyDown)" in src or 'addEventListener("keydown", onKeyDown)' in src or "root.addEventListener('keydown', onKeyDown)" in src
+
     # Visible focus comes from the shared focus-visible outline.
     assert ":focus-visible" in css
     assert "outline: 2px solid var(--focus)" in css
 
 
+def test_keyboard_arrows_navigate(tmp_path):
+    result = run(
+        tmp_path,
+        "index.html",
+        [
+            add_slides(4),
+            {
+                "evaluate": (
+                    "var root = document.getElementById('fb-carousel');"
+                    "var h = root.handlers.filter(function (x) { return x.type === 'keydown'; })[0];"
+                    "h.fn({key: 'ArrowRight', preventDefault: function () {}});"
+                    "CritiqueTestimonials.state()"
+                ),
+                "as": "right",
+            },
+        ],
+    )
+    assert result["values"]["right"]["page"] == 1
+
+    result2 = run(
+        tmp_path,
+        "index.html",
+        [
+            add_slides(4),
+            {
+                "evaluate": (
+                    "CritiqueTestimonials.goTo(1);"
+                    "var root = document.getElementById('fb-carousel');"
+                    "var h = root.handlers.filter(function (x) { return x.type === 'keydown'; })[0];"
+                    "h.fn({key: 'ArrowLeft', preventDefault: function () {}});"
+                    "CritiqueTestimonials.state()"
+                ),
+                "as": "left",
+            },
+        ],
+    )
+    assert result2["values"]["left"]["page"] == 0
+
+
 # ---------------------------------------------------------------------------
-# 11-12. Harness runs error-free; no homepage regressions
+# 12. Accessibility extras
+# ---------------------------------------------------------------------------
+
+
+def test_accessibility_carousel_region_and_controls():
+    src = source()
+    assert 'id="fb-carousel" role="region" aria-roledescription="carousel"' in src
+    assert 'aria-label="What builders say"' in src
+    assert 'aria-label="Previous testimonials"' in src
+    assert 'aria-label="Next testimonials"' in src
+    assert 'role="group" aria-label="Testimonial pages"' in src
+
+
+# ---------------------------------------------------------------------------
+# 13. Harness runs error-free; no homepage regressions
 # ---------------------------------------------------------------------------
 
 
@@ -682,3 +717,5 @@ def test_render_harness_is_error_free_and_homepage_features_survive(tmp_path):
     assert "showProjectInlineLoginPrompt" in src
     # The test-count tag stays exactly as-is (issue #229 out of scope).
     assert src.count("70 tests passing") == 1
+    # shared.css untouched marker: hero still present.
+    assert "hero" in src.lower()

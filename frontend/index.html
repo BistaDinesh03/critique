@@ -570,7 +570,7 @@
 
 
         .real-feedback {
-            max-width: 1040px;
+            max-width: 1100px;
             margin: 0 auto var(--space-8);
         }
 
@@ -595,15 +595,18 @@
         }
 
         .review-card {
+            position: relative;
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 16px;
-            padding: var(--space-5);
+            padding: var(--space-6);
             /* Flex column so the quote/summary absorbs the slack that equal-
                height stretching leaves behind, keeping the metadata row pinned
                to the bottom of every card instead of pooling empty space. */
             display: flex;
             flex-direction: column;
+            min-width: 0;
+            overflow: hidden;
         }
 
         /* ===== Testimonial carousel =====
@@ -617,6 +620,7 @@
 
         .fb-viewport {
             overflow: visible;
+            touch-action: pan-y;
         }
 
         .fb-track {
@@ -646,11 +650,17 @@
 
         .fb-carousel[data-enhanced="true"] .fb-track {
             flex-wrap: nowrap;
-            transition: transform 400ms ease;
+            transition: transform 420ms cubic-bezier(0.22, 0.61, 0.36, 1);
         }
 
         .fb-carousel[data-enhanced="true"] .fb-slide {
             flex: 0 0 calc((100% - var(--fb-gap) * 2) / 3);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .fb-carousel[data-enhanced="true"] .fb-track {
+                transition: none;
+            }
         }
 
         .fb-controls {
@@ -658,63 +668,53 @@
             align-items: center;
             justify-content: center;
             flex-wrap: wrap;
-            gap: var(--space-4);
-            margin-top: var(--space-5);
+            gap: var(--space-3);
+            margin-top: var(--space-6);
         }
 
         .fb-controls[hidden] {
             display: none;
         }
 
-        .fb-nav,
-        .fb-toggle {
+        .fb-nav {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 6px;
-            min-width: 36px;
-            min-height: 36px;
-            padding: 0 var(--space-3);
+            width: 44px;
+            height: 44px;
+            padding: 0;
             background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: var(--radius-lg);
-            color: var(--text-primary);
-            font-family: inherit;
-            font-size: var(--text-sm);
-            font-weight: 600;
-            line-height: 1;
-            cursor: pointer;
-            transition: border-color var(--transition-fast), color var(--transition-fast);
-        }
-
-        .fb-nav {
-            width: 36px;
-            padding: 0;
             border-radius: 50%;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: border-color var(--transition-fast), color var(--transition-fast), background-color var(--transition-fast);
         }
 
         .fb-nav svg {
             display: block;
-            width: 16px;
-            height: 16px;
+            width: 18px;
+            height: 18px;
         }
 
-        .fb-nav:hover,
-        .fb-toggle:hover {
+        .fb-nav:hover {
             border-color: var(--accent);
             color: var(--accent);
+            background: rgba(37, 99, 235, 0.06);
         }
 
         .fb-dots {
             display: inline-flex;
             align-items: center;
-            gap: var(--space-1);
+            gap: 2px;
         }
 
         .fb-dot {
-            position: relative;
-            width: 24px;
-            height: 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
             padding: 0;
             border: 0;
             background: transparent;
@@ -723,19 +723,20 @@
 
         .fb-dot::before {
             content: "";
-            position: absolute;
-            top: 50%;
-            left: 50%;
+            display: block;
             width: 8px;
             height: 8px;
-            border-radius: 50%;
+            border-radius: 999px;
             background: var(--border);
-            transform: translate(-50%, -50%);
-            transition: background-color var(--transition-fast);
+            transition: width 180ms ease, background-color 180ms ease;
         }
 
-        .fb-dot:hover::before,
+        .fb-dot:hover::before {
+            background: var(--text-muted);
+        }
+
         .fb-dot[aria-current="true"]::before {
+            width: 26px;
             background: var(--accent);
         }
 
@@ -743,7 +744,7 @@
             display: flex;
             align-items: flex-start;
             justify-content: space-between;
-            gap: var(--space-4);
+            gap: var(--space-3);
             margin-bottom: var(--space-4);
             flex-wrap: wrap;
         }
@@ -752,18 +753,23 @@
             display: flex;
             align-items: center;
             gap: var(--space-3);
+            min-width: 0;
+        }
+
+        .review-author-text {
+            min-width: 0;
         }
 
         .review-avatar {
-            width: 40px;
-            height: 40px;
+            width: 44px;
+            height: 44px;
             border-radius: 50%;
             background: var(--surface-muted);
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 700;
-            font-size: var(--text-base);
+            font-size: var(--text-sm);
             color: var(--text-primary);
             flex-shrink: 0;
             border: 1px solid var(--border);
@@ -794,29 +800,35 @@
             font-size: var(--text-base);
             font-weight: 700;
             color: var(--text-primary);
+            line-height: 1.3;
+            letter-spacing: -0.01em;
             margin: 0;
         }
 
         .review-role {
             font-size: var(--text-xs);
             color: var(--text-secondary);
-            margin: 2px 0 0;
+            line-height: 1.4;
+            margin: 3px 0 0;
         }
 
         .review-score-block {
             display: flex;
             flex-direction: column;
             align-items: flex-end;
-            gap: 3px;
+            gap: 2px;
             text-align: right;
             margin-left: auto;
+            padding: 6px 10px;
+            background: var(--surface-muted);
+            border-radius: var(--radius-md);
         }
 
         .review-score {
             font-size: var(--text-sm);
-            font-weight: 600;
+            font-weight: 700;
             color: var(--text-primary);
-            line-height: 1;
+            line-height: 1.1;
             white-space: nowrap;
         }
 
@@ -827,29 +839,45 @@
 
         .review-score-label {
             font-size: var(--text-xs);
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
             color: var(--text-secondary);
+        }
+
+        /* The body absorbs the height left over by the tallest card in the
+           row and centres short quotes inside it, so a one-line testimonial
+           reads as a pull quote rather than an empty card. */
+        .review-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: var(--space-1) 0 var(--space-5);
+            min-width: 0;
         }
 
         .review-summary {
             font-size: var(--text-sm);
             color: var(--text-secondary);
-            line-height: 1.6;
-            margin: 0 0 var(--space-3);
-            max-width: 72ch;
+            line-height: 1.7;
+            margin: 0;
+            max-width: 60ch;
         }
 
         .review-quote {
-            margin: 0 0 var(--space-3);
+            margin: 0;
             padding-left: var(--space-4);
-            border-left: 2px solid var(--border);
+            border-left: 3px solid var(--accent);
+            border-radius: 2px;
         }
 
         .review-quote p {
             margin: 0;
-            font-size: var(--text-base);
+            font-size: var(--text-lg);
             color: var(--text-primary);
-            line-height: 1.65;
-            max-width: 65ch;
+            line-height: 1.7;
+            letter-spacing: -0.005em;
+            max-width: 60ch;
         }
 
         .review-meta {
@@ -859,11 +887,10 @@
             flex-wrap: wrap;
             font-size: var(--text-xs);
             color: var(--text-secondary);
-            /* Anchors the metadata row to the card bottom, so a short quote
-               leaves its breathing room above the row instead of pooling
-               empty space beneath it. */
+            line-height: 1.5;
             margin-top: auto;
-            padding-top: var(--space-3);
+            padding-top: var(--space-4);
+            border-top: 1px solid var(--border-light);
         }
 
         .review-meta-dot {
@@ -879,26 +906,50 @@
 
         .review-tag {
             display: inline-block;
-            font-size: var(--text-xs);
-            font-weight: 500;
+            font-size: 0.6875rem;
+            font-weight: 600;
+            letter-spacing: 0.01em;
             color: var(--text-secondary);
-            padding: 2px 8px;
+            padding: 3px 9px;
             background: var(--surface-muted);
-            border-radius: var(--radius-sm);
+            border-radius: 999px;
         }
 
         .review-tag.accent {
-            background: #f0fdf4;
+            background: var(--success-bg);
             color: #166534;
+        }
+
+        @media (max-width: 900px) {
+            .review-card {
+                padding: var(--space-5);
+            }
+
+            .fb-carousel[data-enhanced="true"] .fb-slide {
+                flex: 0 0 calc((100% - var(--fb-gap)) / 2);
+            }
         }
 
         @media (max-width: 600px) {
             .review-card {
-                padding: var(--space-4);
+                padding: var(--space-5);
             }
 
             .review-header {
-                gap: var(--space-3);
+                gap: var(--space-2);
+            }
+
+            .review-body {
+                padding-bottom: var(--space-4);
+            }
+
+            .review-quote p {
+                font-size: var(--text-base);
+            }
+
+            .fb-nav {
+                width: 40px;
+                height: 40px;
             }
 
             .fb-carousel[data-enhanced="true"] .fb-slide {
@@ -1242,7 +1293,7 @@
             <h2 id="real-feedback-title">What builders say</h2>
             <p class="subtitle">Feedback from builders who took a look at Critique.</p>
 
-            <div class="fb-carousel" id="fb-carousel" role="region" aria-roledescription="carousel" aria-label="What builders say" data-autoplay="5500">
+            <div class="fb-carousel" id="fb-carousel" role="region" aria-roledescription="carousel" aria-label="What builders say">
                 <div class="fb-viewport" id="fb-viewport">
                     <ul class="fb-track" id="fb-track" role="list">
                         <li class="fb-slide">
@@ -1250,7 +1301,7 @@
                                 <div class="review-header">
                                     <div class="review-author">
                                         <div class="review-avatar" data-name="Josh Clark" aria-hidden="true">J</div>
-                                        <div>
+                                        <div class="review-author-text">
                                             <h3 class="review-name" id="review-josh-name">Josh Clark</h3>
                                             <p class="review-role">Founder of Disband</p>
                                         </div>
@@ -1261,9 +1312,11 @@
                                     </div>
                                 </div>
 
-                                <p class="review-summary">
-                                    Praised the concept, flagged submission friction, inconsistent icons, UI mismatches, and concerns around analytics and security.
-                                </p>
+                                <div class="review-body">
+                                    <p class="review-summary">
+                                        Praised the concept, flagged submission friction, inconsistent icons, UI mismatches, and concerns around analytics and security.
+                                    </p>
+                                </div>
 
                                 <div class="review-meta">
                                     <span>External review</span>
@@ -1287,15 +1340,17 @@
                                 <div class="review-header">
                                     <div class="review-author">
                                         <div class="review-avatar" data-name="Alex Lovesyuk" aria-hidden="true">A</div>
-                                        <div>
+                                        <div class="review-author-text">
                                             <h3 class="review-name" id="review-alex-name">Alex Lovesyuk</h3>
                                         </div>
                                     </div>
                                 </div>
 
-                                <blockquote class="review-quote">
-                                    <p>“Critique's focus on honest feedback for builders caught my eye.”</p>
-                                </blockquote>
+                                <div class="review-body">
+                                    <blockquote class="review-quote">
+                                        <p>“Critique's focus on honest feedback for builders caught my eye.”</p>
+                                    </blockquote>
+                                </div>
 
                                 <div class="review-meta">
                                     <span>External review</span>
@@ -1312,16 +1367,18 @@
                                 <div class="review-header">
                                     <div class="review-author">
                                         <div class="review-avatar" data-name="Dennis" aria-hidden="true">D</div>
-                                        <div>
+                                        <div class="review-author-text">
                                             <h3 class="review-name" id="review-dennis-name">Dennis</h3>
                                             <p class="review-role">DEV</p>
                                         </div>
                                     </div>
                                 </div>
 
-                                <blockquote class="review-quote">
-                                    <p>“I like the idea behind Critique, especially the focus on helping builders improve their products through real feedback. I appreciate that you took my suggestions seriously and actually implemented improvements based on them. That kind of responsiveness makes a real difference. I'd definitely recommend Critique to other builders who want honest feedback and want to improve their products.”</p>
-                                </blockquote>
+                                <div class="review-body">
+                                    <blockquote class="review-quote">
+                                        <p>“I like the idea behind Critique, especially the focus on helping builders improve their products through real feedback. I appreciate that you took my suggestions seriously and actually implemented improvements based on them. That kind of responsiveness makes a real difference. I'd definitely recommend Critique to other builders who want honest feedback and want to improve their products.”</p>
+                                    </blockquote>
+                                </div>
                             </article>
                         </li>
 
@@ -1330,15 +1387,17 @@
                                 <div class="review-header">
                                     <div class="review-author">
                                         <div class="review-avatar" data-name="Peter" aria-hidden="true">P</div>
-                                        <div>
+                                        <div class="review-author-text">
                                             <h3 class="review-name" id="review-peter-name">Peter</h3>
                                         </div>
                                     </div>
                                 </div>
 
-                                <blockquote class="review-quote">
-                                    <p>Just tried Critique and left some feedback on a project. Noice concept, especally the focuse on specific question rether than generic revew.keep bui;ding</p>
-                                </blockquote>
+                                <div class="review-body">
+                                    <blockquote class="review-quote">
+                                        <p>I tried Critique and left feedback on a project. Nice concept, especially the focus on asking one specific question rather than requesting a generic review. Keep building!</p>
+                                    </blockquote>
+                                </div>
 
                                 <div class="review-meta">
                                     <span>Community feedback</span>
@@ -1349,14 +1408,13 @@
                 </div>
 
                 <div class="fb-controls" id="fb-controls" hidden>
-                    <button type="button" class="fb-nav" id="fb-prev" aria-label="Previous testimonials">
+                    <button type="button" class="fb-nav" id="fb-prev" aria-label="Previous testimonials" aria-controls="fb-track">
                         <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M10 3 5 8l5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     </button>
                     <div class="fb-dots" id="fb-dots" role="group" aria-label="Testimonial pages"></div>
-                    <button type="button" class="fb-nav" id="fb-next" aria-label="Next testimonials">
+                    <button type="button" class="fb-nav" id="fb-next" aria-label="Next testimonials" aria-controls="fb-track">
                         <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     </button>
-                    <button type="button" class="fb-toggle" id="fb-pause">Pause</button>
                 </div>
             </div>
 
@@ -2071,11 +2129,11 @@
     // Homepage testimonials: local deterministic identicons plus a paged
     // carousel. Progressive by design -- with JavaScript disabled the cards
     // wrap in the static grid from the stylesheet and the controls stay
-    // hidden, so every testimonial remains reachable.
+    // hidden, so every testimonial remains reachable. Autoplay is disabled;
+    // navigation is controlled explicitly by the visitor.
     var CritiqueTestimonials = (function () {
         'use strict';
 
-        var DEFAULT_AUTOPLAY_MS = 5500;
         var GAP_FALLBACK_PX = 24; // matches --fb-gap: var(--space-5)
 
         // --- Deterministic identicons -------------------------------------
@@ -2158,32 +2216,24 @@
             var dotsEl = byId('fb-dots');
             var prevBtn = byId('fb-prev');
             var nextBtn = byId('fb-next');
-            var pauseBtn = byId('fb-pause');
             if (!root || !track || !controls) return null;
-
-            // The page may tune the interval, but it stays inside the 5-6s
-            // band the design calls for.
-            var autoplayMs = DEFAULT_AUTOPLAY_MS;
-            if (root.getAttribute) {
-                var declared = parseInt(root.getAttribute('data-autoplay'), 10);
-                if (declared >= 5000 && declared <= 6000) autoplayMs = declared;
-            }
 
             var state = {
                 page: 0,
                 pages: 1,
                 perView: 3,
                 slideCount: 0,
-                autoplayMs: autoplayMs,
-                userPaused: false,
-                reducedMotion: readReducedMotion(),
-                reasons: { hover: false, focus: false, touch: false, hidden: false },
-                running: false,
-                timer: 0
+                reducedMotion: readReducedMotion()
             };
-            // Reduced motion never rotates on its own; Play stays available
-            // as an explicit, user-initiated exception.
-            if (state.reducedMotion) state.userPaused = true;
+
+            function applyMotionPreference() {
+                if (track.style) {
+                    track.style.transition = state.reducedMotion ? 'none' : '';
+                }
+                if (root.setAttribute) {
+                    root.setAttribute('data-reduced-motion', state.reducedMotion ? 'true' : 'false');
+                }
+            }
 
             function slidesOf() {
                 var out = [];
@@ -2208,10 +2258,6 @@
                 return GAP_FALLBACK_PX;
             }
 
-            // Cards per view comes from the rendered layout, so the script
-            // never has to duplicate the stylesheet's breakpoints. When layout
-            // is not measurable (e.g. the render harness) the desktop count is
-            // the safe default.
             function measurePerView() {
                 try {
                     if (viewport && viewport.getBoundingClientRect && slidesOf) {
@@ -2229,28 +2275,6 @@
                     // Layout not measurable: assume three across.
                 }
                 return 3;
-            }
-
-            function autoplayWanted() {
-                if (state.pages <= 1) return false;
-                if (state.userPaused || state.reducedMotion) return false;
-                return !state.reasons.hover && !state.reasons.focus &&
-                    !state.reasons.touch && !state.reasons.hidden;
-            }
-
-            function tick() {
-                goTo(state.page + 1, true);
-            }
-
-            function syncAutoplay() {
-                if (autoplayWanted() && !state.running) {
-                    state.running = true;
-                    state.timer = setInterval(tick, state.autoplayMs);
-                } else if (!autoplayWanted() && state.running) {
-                    state.running = false;
-                    clearInterval(state.timer);
-                    state.timer = 0;
-                }
             }
 
             function renderDots() {
@@ -2271,8 +2295,6 @@
             function applyTransform() {
                 if (!track.style) return;
                 try {
-                    // One page of slides always shifts exactly 100% + gap,
-                    // whichever breakpoint (3/2/1 per view) is active.
                     track.style.transform = state.pages <= 1
                         ? ''
                         : 'translateX(calc(-1 * ' + state.page + ' * (100% + ' + gapPx() + 'px)))';
@@ -2281,43 +2303,18 @@
                 }
             }
 
-            function updatePauseButton() {
-                if (!pauseBtn) return;
-                pauseBtn.innerHTML = state.userPaused ? 'Play' : 'Pause';
-            }
-
-            function goTo(index, automatic) {
+            function goTo(index) {
                 if (state.pages <= 1) return;
-                if (!automatic) {
-                    // Deliberate navigation hands control to the user:
-                    // rotation stays off until Play is pressed again.
-                    state.userPaused = true;
-                    updatePauseButton();
-                }
                 var target = index % state.pages;
                 if (target < 0) target += state.pages;
                 state.page = target;
                 renderDots();
                 applyTransform();
-                syncAutoplay();
-            }
-
-            function pauseFor(reason) {
-                if (!state.reasons.hasOwnProperty(reason)) return;
-                state.reasons[reason] = true;
-                syncAutoplay();
-            }
-
-            function resumeFor(reason) {
-                if (!state.reasons.hasOwnProperty(reason)) return;
-                state.reasons[reason] = false;
-                syncAutoplay();
             }
 
             var touchOrigin = null;
 
             function onTouchStart(e) {
-                pauseFor('touch');
                 var t = e && e.touches && e.touches[0];
                 if (t) touchOrigin = { x: t.clientX, y: t.clientY };
             }
@@ -2328,7 +2325,6 @@
                 if (!t) return;
                 var dx = t.clientX - touchOrigin.x;
                 var dy = t.clientY - touchOrigin.y;
-                // Claim horizontal swipes only, so vertical scrolling is never hijacked.
                 if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy) && e.preventDefault) {
                     e.preventDefault();
                 }
@@ -2340,16 +2336,17 @@
                     var dx = t.clientX - touchOrigin.x;
                     var dy = t.clientY - touchOrigin.y;
                     if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
-                        goTo(state.page + (dx < 0 ? 1 : -1), false);
+                        goTo(state.page + (dx < 0 ? 1 : -1));
                     }
                 }
                 touchOrigin = null;
-                resumeFor('touch');
             }
 
-            function handleVisibility() {
-                state.reasons.hidden = document.hidden === true;
-                syncAutoplay();
+            function onKeyDown(e) {
+                var key = e && e.key;
+                if (key !== 'ArrowLeft' && key !== 'ArrowRight') return;
+                if (e.preventDefault) e.preventDefault();
+                goTo(state.page + (key === 'ArrowRight' ? 1 : -1));
             }
 
             function snapshot() {
@@ -2359,17 +2356,7 @@
                     pages: state.pages,
                     page: state.page,
                     controlsVisible: !controls.hidden,
-                    autoplayActive: autoplayWanted(),
-                    running: state.running,
-                    autoplayMs: state.autoplayMs,
-                    userPaused: state.userPaused,
-                    reducedMotion: state.reducedMotion,
-                    pausedFor: {
-                        hover: state.reasons.hover,
-                        focus: state.reasons.focus,
-                        touch: state.reasons.touch,
-                        hidden: state.reasons.hidden
-                    }
+                    reducedMotion: state.reducedMotion
                 };
             }
 
@@ -2380,20 +2367,35 @@
                 state.pages = Math.max(1, Math.ceil(slideCount / state.perView));
                 if (state.page > state.pages - 1) state.page = state.pages - 1;
                 if (state.page < 0) state.page = 0;
-                // Controls only exist while there is more than one page.
                 controls.hidden = state.pages <= 1;
                 renderDots();
                 applyTransform();
-                updatePauseButton();
-                syncAutoplay();
                 return snapshot();
             }
 
             function setMotionPreference(reduced) {
                 state.reducedMotion = !!reduced;
-                if (state.reducedMotion) state.userPaused = true;
-                updatePauseButton();
-                syncAutoplay();
+                applyMotionPreference();
+            }
+
+            // Keep the inline transition in sync with the OS preference so
+            // reduced-motion users never get a slide animation, even after
+            // the page has loaded.
+            try {
+                if (window.matchMedia) {
+                    var mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+                    if (mq && mq.addEventListener) {
+                        mq.addEventListener('change', function (e) {
+                            setMotionPreference(!!(e && e.matches));
+                        });
+                    } else if (mq && mq.addListener) {
+                        mq.addListener(function (e) {
+                            setMotionPreference(!!(e && e.matches));
+                        });
+                    }
+                }
+            } catch (e) {
+                // Ignore an unusable media query.
             }
 
             function applyIdenticons() {
@@ -2407,51 +2409,37 @@
                 }
             }
 
-            // Pause while the pointer is over the carousel, while keyboard
-            // focus is inside it, during touch interaction, and while the tab
-            // is hidden; each resumes when the interaction ends.
             if (root.addEventListener) {
-                root.addEventListener('mouseenter', function () { pauseFor('hover'); });
-                root.addEventListener('mouseleave', function () { resumeFor('hover'); });
-                root.addEventListener('focusin', function () { pauseFor('focus'); });
-                root.addEventListener('focusout', function (e) {
-                    var next = e && e.relatedTarget;
-                    if (!next || !root.contains || !root.contains(next)) resumeFor('focus');
-                });
                 root.addEventListener('touchstart', onTouchStart, { passive: true });
                 root.addEventListener('touchmove', onTouchMove, { passive: false });
                 root.addEventListener('touchend', onTouchEnd);
                 root.addEventListener('touchcancel', onTouchEnd);
+                root.addEventListener('keydown', onKeyDown);
             }
             if (prevBtn && prevBtn.addEventListener) {
-                prevBtn.addEventListener('click', function () { goTo(state.page - 1, false); });
+                prevBtn.addEventListener('click', function () { goTo(state.page - 1); });
             }
             if (nextBtn && nextBtn.addEventListener) {
-                nextBtn.addEventListener('click', function () { goTo(state.page + 1, false); });
-            }
-            if (pauseBtn && pauseBtn.addEventListener) {
-                pauseBtn.addEventListener('click', function () {
-                    state.userPaused = !state.userPaused;
-                    updatePauseButton();
-                    syncAutoplay();
-                });
+                nextBtn.addEventListener('click', function () { goTo(state.page + 1); });
             }
             if (dotsEl && dotsEl.addEventListener) {
                 dotsEl.addEventListener('click', function (e) {
                     var target = e && e.target;
-                    if (!target || !target.getAttribute) return;
-                    var page = target.getAttribute('data-page');
-                    if (page !== null && page !== undefined && page !== '') {
-                        goTo(parseInt(page, 10), false);
+                    while (target && target !== dotsEl) {
+                        if (target.classList && target.classList.contains && target.classList.contains('fb-dot')) {
+                            var page = target.getAttribute ? target.getAttribute('data-page') : null;
+                            if (page !== null && page !== undefined && page !== '') {
+                                goTo(parseInt(page, 10));
+                            }
+                            break;
+                        }
+                        target = target.parentNode;
                     }
                 });
             }
-            if (document.addEventListener) {
-                document.addEventListener('visibilitychange', handleVisibility);
-            }
             if (window.addEventListener) {
                 window.addEventListener('resize', function () {
-                    setTimeout(refresh, 150);
+                    setTimeout(refresh, 120);
                 });
             }
 
@@ -2460,16 +2448,14 @@
                 root.setAttribute('data-initialized', 'true');
             }
             applyIdenticons();
+            applyMotionPreference();
             refresh();
 
             return {
                 refresh: refresh,
                 state: snapshot,
                 goTo: goTo,
-                pause: pauseFor,
-                resume: resumeFor,
                 setMotionPreference: setMotionPreference,
-                handleVisibility: handleVisibility,
                 touchStart: onTouchStart,
                 touchEnd: onTouchEnd
             };
@@ -2488,11 +2474,8 @@
             init: function () { return instance; },
             refresh: withInstance(function () { return this.refresh(); }),
             state: withInstance(function () { return this.state(); }),
-            goTo: withInstance(function (index) { this.goTo(index, false); }),
-            pause: withInstance(function (reason) { this.pause(reason); }),
-            resume: withInstance(function (reason) { this.resume(reason); }),
+            goTo: withInstance(function (index) { this.goTo(index); }),
             setMotionPreference: withInstance(function (reduced) { this.setMotionPreference(reduced); }),
-            visibility: withInstance(function () { this.handleVisibility(); }),
             touchStart: withInstance(function (e) { this.touchStart(e); }),
             touchEnd: withInstance(function (e) { this.touchEnd(e); }),
             identicon: identicon,

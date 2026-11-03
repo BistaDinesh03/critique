@@ -3,6 +3,21 @@ from pydantic import BaseModel, Field, ConfigDict, field_validator
 from typing import Optional
 
 
+def strip_optional_text(value: Optional[str]) -> Optional[str]:
+    """Trim optional free text and collapse whitespace-only input to None.
+
+    ``max_length`` counts every character, so ``"   "`` is a valid value and
+    would be stored verbatim: it renders as a blank description, or as an
+    empty blockquote in the owner's results. Collapsing it to ``None`` keeps
+    the field optional (and matches what the frontend already sends for an
+    empty textarea) instead of rejecting input the visitor never meant to send.
+    """
+    if value is None:
+        return None
+    trimmed = value.strip()
+    return trimmed or None
+
+
 class ProjectCreate(BaseModel):
     """Schema for creating a new project."""
     title: str = Field(..., min_length=1, max_length=200)
@@ -18,6 +33,12 @@ class ProjectCreate(BaseModel):
         if not v:
             raise ValueError("Title cannot be empty or whitespace")
         return v
+
+    @field_validator("description")
+    @classmethod
+    def validate_description(cls, v: Optional[str]) -> Optional[str]:
+        """Trim descriptions; whitespace-only ones are stored as None."""
+        return strip_optional_text(v)
 
     @field_validator("url", "image_url")
     @classmethod
@@ -101,6 +122,12 @@ class ResponseCreate(BaseModel):
     clarity: str = Field(..., pattern="^(very_clear|mostly_clear|confusing)$")
     would_use: str = Field(..., pattern="^(yes|maybe|no)$")
     suggestion: Optional[str] = Field(None, max_length=2000)
+
+    @field_validator("suggestion")
+    @classmethod
+    def validate_suggestion(cls, v: Optional[str]) -> Optional[str]:
+        """Trim suggestions; whitespace-only ones are stored as None."""
+        return strip_optional_text(v)
 
 
 class ResponseOut(BaseModel):
