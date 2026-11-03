@@ -347,7 +347,7 @@ Critique is designed with security and privacy in mind:
 | **Private written feedback** | Suggestions are returned only to the project owner |
 | **Safe redirect handling** | Login `return_to` values are validated against a local-path allowlist |
 | **Environment-based secrets** | Credentials come from environment variables and are never stored in the repository |
-| **Minimal analytics** | Events validated against a server-side allowlist; no third-party tracking scripts; no raw IP addresses stored (only SHA-256 hashes for duplicate detection) |
+| **Minimal analytics** | Events validated against a server-side allowlist; no third-party tracking scripts; no raw IP addresses stored (only keyed HMAC-SHA-256 digests for duplicate detection, stable while `SECRET_KEY` is unchanged) |
 
 [SECURITY.md](SECURITY.md) lists the full behavior and explains how to
 report a vulnerability.
@@ -399,8 +399,7 @@ product feedback are welcome. A good place to start is an issue labeled
 4. Run the test suite
 5. Open a pull request
 
-[CONTRIBUTING.md](CONTRIBUTING.md) has the full guidelines, and
-[SECURITY.md](SECURITY.md) explains how to report vulnerabilities.
+[CONTRIBUTING.md](CONTRIBUTING.md) has the full guidelines, and the [first-contributor walkthrough](docs/first-contributors.md) shows how to take one issue from claiming it to opening a pull request. [SECURITY.md](SECURITY.md) explains how to report vulnerabilities.
 
 **Looking for something to work on?** Start with the curated plan in
 [docs/issue-roadmap.md](docs/issue-roadmap.md) — 50 reviewed issues with the

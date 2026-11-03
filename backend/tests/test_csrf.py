@@ -1,4 +1,4 @@
-﻿from fastapi.testclient import TestClient
+from fastapi.testclient import TestClient
 from app.main import app
 from app.database import SessionLocal
 from app.models import Project, Question, Response, User
@@ -141,3 +141,52 @@ def test_csrf_token_endpoint_echoes_existing_cookie():
     assert response.json() == {"csrf_token": "existing_token"}
     assert CSRF_COOKIE_NAME not in response.headers.get("set-cookie", "")
     assert client.cookies.get(CSRF_COOKIE_NAME) == "existing_token"
+
+
+
+def test_verify_csrf_rejects_non_ascii_header():
+    """verify_csrf_token returns False for non-ASCII header (no TypeError)."""
+    from app.csrf import verify_csrf_token
+    from unittest.mock import MagicMock
+
+    request = MagicMock()
+    request.cookies.get.return_value = "valid_ascii_token"
+    request.headers.get.return_value = "éinvalid"
+
+    assert verify_csrf_token(request) is False
+
+
+def test_verify_csrf_rejects_non_ascii_cookie():
+    """verify_csrf_token returns False for non-ASCII cookie (no TypeError)."""
+    from app.csrf import verify_csrf_token
+    from unittest.mock import MagicMock
+
+    request = MagicMock()
+    request.cookies.get.return_value = "éinvalid"
+    request.headers.get.return_value = "valid_ascii_token"
+
+    assert verify_csrf_token(request) is False
+
+
+def test_verify_csrf_accepts_matching_ascii():
+    """Existing ASCII behavior is unchanged."""
+    from app.csrf import verify_csrf_token
+    from unittest.mock import MagicMock
+
+    request = MagicMock()
+    request.cookies.get.return_value = "same_token"
+    request.headers.get.return_value = "same_token"
+
+    assert verify_csrf_token(request) is True
+
+
+def test_verify_csrf_rejects_mismatched_ascii():
+    """Mismatched ASCII still returns False."""
+    from app.csrf import verify_csrf_token
+    from unittest.mock import MagicMock
+
+    request = MagicMock()
+    request.cookies.get.return_value = "correct"
+    request.headers.get.return_value = "wrong"
+
+    assert verify_csrf_token(request) is False

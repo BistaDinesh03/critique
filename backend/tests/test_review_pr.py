@@ -536,6 +536,44 @@ def test_unconfigured_branch_protection_fails_the_gate():
     assert gh.merged == []
 
 
+def test_unreadable_branch_protection_is_reported_as_unverified():
+    gh, result = review_of(
+        clean_pr(), protection=review_pr.BranchProtectionUnreadable(403))
+    gate = next(g for g in result.gates if "Branch protection" in g.name)
+    assert gate.ok is False
+    assert "could not verify" in gate.detail
+    assert "HTTP 403" in gate.detail
+    assert "not enabled" not in gate.detail
+    assert "not enabled" not in gate.manual_fix
+    assert gate.manual_fix
+    approvals = next(g for g in result.gates if g.name.startswith("Approvals"))
+    assert "requirements unknown" in approvals.detail
+    assert review_pr.main(["56", "--merge", "--skip-tests"], gh=gh) == 1
+    assert gh.merged == []
+
+
+def test_branch_protection_maps_http_status_to_outcome():
+    class Proc:
+        def __init__(self, returncode, stdout="", stderr=""):
+            self.returncode = returncode
+            self.stdout = stdout
+            self.stderr = stderr
+
+    def client(status):
+        def runner(*_args, **_kwargs):
+            if status == 200:
+                return Proc(0, stdout='{"enforce_admins": {"enabled": true}}')
+            return Proc(1, stderr=f"gh: Forbidden (HTTP {status})")
+        return review_pr.GitHub("owner/repo", runner=runner)
+
+    assert client(404).branch_protection("main") is None
+    unreadable = client(403).branch_protection("main")
+    assert isinstance(unreadable, review_pr.BranchProtectionUnreadable)
+    assert unreadable.status == 403
+    assert client(200).branch_protection("main") == {
+        "enforce_admins": {"enabled": True}}
+
+
 def test_no_ci_configuration_fails_the_gate():
     pr = clean_pr(statusCheckRollup=[])
     gh, result = review_of(pr)
@@ -822,3 +860,67 @@ def test_nothing_is_posted_when_the_authenticated_login_is_unknown():
     assert "could not be determined" in reason
     assert gh.posted_reviews == []
     assert gh.posted_comments == []
+
+
+def test_github_reviews_and_comments_paginate_beyond_single_page():
+    import json
+    import subprocess
+
+    calls = []
+
+    def fake_runner(cmd, **kwargs):
+        calls.append(cmd)
+        endpoint = cmd[-1]
+        if endpoint.endswith("&page=1"):
+            data = [{"id": i, "body": f"item {i}"} for i in range(1, 101)]
+            return subprocess.CompletedProcess(cmd, 0, stdout=json.dumps(data), stderr="")
+        elif endpoint.endswith("&page=2"):
+            data = [{"id": i, "body": f"item {i}"} for i in range(101, 106)]
+            return subprocess.CompletedProcess(cmd, 0, stdout=json.dumps(data), stderr="")
+        return subprocess.CompletedProcess(cmd, 0, stdout="[]", stderr="")
+
+    gh = review_pr.GitHub(repo="test/repo", runner=fake_runner)
+    reviews = gh.reviews(10)
+    assert len(reviews) == 105
+    assert reviews[0]["id"] == 1
+    assert reviews[-1]["id"] == 105
+    assert len(calls) == 2
+    assert "per_page=100&page=1" in calls[0][-1]
+    assert "per_page=100&page=2" in calls[1][-1]
+
+    calls.clear()
+    comments = gh.issue_comments(10)
+    assert len(comments) == 105
+    assert comments[0]["id"] == 1
+    assert comments[-1]["id"] == 105
+    assert len(calls) == 2
+    assert "per_page=100&page=1" in calls[0][-1]
+    assert "per_page=100&page=2" in calls[1][-1]
+
+
+def test_github_paginate_stops_when_under_page_limit():
+    import json
+    import subprocess
+
+    calls = []
+
+    def fake_runner(cmd, **kwargs):
+        calls.append(cmd)
+        data = [{"id": i} for i in range(35)]  # > 30 items, but < 100
+        return subprocess.CompletedProcess(cmd, 0, stdout=json.dumps(data), stderr="")
+
+    gh = review_pr.GitHub(repo="test/repo", runner=fake_runner)
+    reviews = gh.reviews(10)
+    assert len(reviews) == 35
+    assert len(calls) == 1
+
+
+def test_github_paginate_handles_api_errors_gracefully():
+    import subprocess
+
+    def error_runner(cmd, **kwargs):
+        return subprocess.CompletedProcess(cmd, 1, stdout="", stderr="(HTTP 404) Not Found")
+
+    gh = review_pr.GitHub(repo="test/repo", runner=error_runner)
+    assert gh.reviews(10) == []
+    assert gh.issue_comments(10) == []

@@ -1,4 +1,4 @@
-﻿import secrets
+import secrets
 import hmac
 from fastapi import HTTPException, Request
 from app.config import settings
@@ -25,11 +25,18 @@ def set_csrf_cookie(response, token: str):
 
 
 def verify_csrf_token(request: Request) -> bool:
-    """Verify that the CSRF token in header matches the cookie."""
+    """Verify that the CSRF token in header matches the cookie.
+
+    Comparison is constant time; non-ASCII input is rejected before comparing
+    (hmac.compare_digest rejects non-ASCII strings).
+    """
     cookie_token = request.cookies.get(CSRF_COOKIE_NAME)
     header_token = request.headers.get(CSRF_HEADER_NAME)
 
     if not cookie_token or not header_token:
+        return False
+    # hmac.compare_digest raises TypeError on non-ASCII strings (see auth.py).
+    if not cookie_token.isascii() or not header_token.isascii():
         return False
 
     return hmac.compare_digest(cookie_token, header_token)

@@ -112,6 +112,8 @@ Critique intentionally avoids complexity. Before adding anything, ask:
 - Link any related issues
 - Be respectful and patient
 
+For a step-by-step example of claiming an issue, working in a fork, running relevant checks, and opening a pull request, see the [first-contributor walkthrough](docs/first-contributors.md).
+
 ## Finding Something to Work On
 
 Open issues labeled [`good first issue`](https://github.com/BistaDinesh03/critique/labels/good%20first%20issue)

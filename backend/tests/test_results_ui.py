@@ -8,6 +8,7 @@ Requires `node` on PATH; the whole module is skipped when it is missing.
 """
 
 import json
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -18,6 +19,13 @@ BACKEND_DIR = Path(__file__).resolve().parent.parent
 REPO_DIR = BACKEND_DIR.parent
 FRONTEND_DIR = REPO_DIR / "frontend"
 HARNESS = Path(__file__).resolve().parent / "frontend_render_harness.js"
+
+def test_each_frontend_page_has_one_top_level_heading():
+    for page in sorted(FRONTEND_DIR.glob("*.html")):
+        html = page.read_text(encoding="utf-8")
+        headings = re.findall(r"<h1(?:\s|>)", html, flags=re.IGNORECASE)
+        assert len(headings) == 1, f"{page.name} has {len(headings)} <h1> headings"
+
 
 pytestmark = [
     pytest.mark.frontend_render,
@@ -125,7 +133,7 @@ def test_mixed_results_show_header_question_counts_and_bars(tmp_path):
     html = render_results(tmp_path, data)
 
     # Compact header: section title, project name, question, exact total.
-    assert "<h2>Feedback results</h2>" in html
+    assert "<h1>Feedback results</h1>" in html
     assert "3 total responses" in html
     assert "Sample Project" in html
     assert "Would you understand this in 10 seconds?" in html

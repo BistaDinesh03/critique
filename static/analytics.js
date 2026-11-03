@@ -40,11 +40,14 @@ function trackEvent(eventName, projectId) {
     if (projectId && !isNaN(projectId)) {
         url += '&project_id=' + parseInt(projectId);
     }
-    fetch(url, { method: 'POST', credentials: 'same-origin' }).catch(function() {});
+    // keepalive lets the request outlive a click that navigates away (the
+    // GitHub sign-in link), so paired click events are not cancelled
+    // independently by the browser and lost.
+    fetch(url, { method: 'POST', credentials: 'same-origin', keepalive: true }).catch(function() {});
 }
 
 function getProjectId() {
-    var match = window.location.pathname.match(/\/project\/(\d+)/);
+    var match = window.location.pathname.match(/^\/project\/(\d+)\/?$/);
     return match ? parseInt(match[1]) : null;
 }
 

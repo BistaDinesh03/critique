@@ -1,4 +1,4 @@
-﻿from app.database import SessionLocal
+from app.database import SessionLocal
 from app.models import Project, Question, Response, User
 
 
@@ -112,12 +112,66 @@ def test_results_many_responses(auth_client):
     assert response.status_code == 200
     data = response.json()
     assert data["stats"]["total"] == 3
-    assert len(data["responses"]) >= 0  # owner sees 3, public sees 0
+    assert data["is_owner"] is True
+    assert len(data["responses"]) == 3
     cleanup_database()
 
 
 def test_results_nonexistent_project(auth_client):
     response = auth_client.get("/api/projects/99999/results")
     assert response.status_code == 404
+
+
+def test_results_owner_sees_is_owner_true_with_no_active_question(auth_client):
+    create_resp = create_project(auth_client)
+    project_id = create_resp.json()["project"]["id"]
+
+    # Delete the question to simulate project without an active question
+    db = SessionLocal()
+    try:
+        db.query(Question).filter(Question.project_id == project_id).delete()
+        db.commit()
+    finally:
+        db.close()
+
+    response = auth_client.get(f"/api/projects/{project_id}/results")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["is_owner"] is True
+    assert data["question_text"] is None
+    assert data["stats"]["total"] == 0
+    assert data["responses"] == []
+    cleanup_database()
+
+
+def test_results_non_owner_sees_is_owner_false_with_no_active_question():
+    from fastapi.testclient import TestClient
+    from app.main import app
+
+    cleanup_database()
+    db = SessionLocal()
+    try:
+        user = User(github_id=777777, username="owner_user")
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        project = Project(title="No Question Project", description="Test", owner_id=user.id)
+        db.add(project)
+        db.commit()
+        db.refresh(project)
+        project_id = project.id
+    finally:
+        db.close()
+
+    client = TestClient(app)
+    response = client.get(f"/api/projects/{project_id}/results")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["is_owner"] is False
+    assert data["question_text"] is None
+    assert data["stats"]["total"] == 0
+    assert data["responses"] == []
+    cleanup_database()
+
 
 

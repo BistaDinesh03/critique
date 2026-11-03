@@ -11,6 +11,7 @@ Fixtures and style follow ``test_badge.py``: rows are seeded through
 ``SessionLocal`` and deleted again when the test ends.
 """
 import uuid
+from pathlib import Path
 
 from fastapi.testclient import TestClient
 
@@ -197,3 +198,20 @@ class TestOriginComesFromConfiguration:
         assert get_robots().text == EXPECTED_ROBOTS_BODY + (
             f"Sitemap: {PRODUCTION_ORIGIN}/sitemap.xml\n"
         )
+
+
+class TestGoogleVerificationRoute:
+    def test_serves_committed_verification_file(self):
+        client = TestClient(app)
+        res = client.get("/google8ffd0ae5f931d1e6.html")
+        assert res.status_code == 200
+        assert "text/html" in res.headers["content-type"]
+        assert res.text == "google-site-verification: google8ffd0ae5f931d1e6.html"
+
+    def test_returns_404_when_file_is_absent(self, monkeypatch):
+        monkeypatch.setattr(Path, "is_file", lambda self: False)
+        client = TestClient(app)
+        res = client.get("/google8ffd0ae5f931d1e6.html")
+        assert res.status_code == 404
+        assert res.json() == {"detail": "Verification file not found"}
+

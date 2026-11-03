@@ -839,6 +839,7 @@ def build_parser() -> argparse.ArgumentParser:
                           help="only issues carrying this label (repeatable)")
     p_triage.add_argument("--limit", type=int, default=12)
     p_triage.add_argument("--json", action="store_true", dest="as_json")
+    p_triage.add_argument("--repo", default=None, help="OWNER/NAME")
 
     p_assign = sub.add_parser("assign", help="assign an issue to a volunteer")
     p_assign.add_argument("number", type=int, help="issue number")

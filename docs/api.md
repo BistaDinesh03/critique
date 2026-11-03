@@ -21,8 +21,18 @@ by FastAPI from `frontend/`; everything below returns JSON unless noted.
 - **Validation errors** return `422` (FastAPI/Pydantic) or `400` with a
   `detail` field. Unknown server errors return
   `500 {"detail": "Internal server error"}` without stack traces.
+- **404 responses** depend on the request path and `Accept` header. For
+  non-`/api/` paths, an `Accept` header containing `text/html` receives the
+  branded HTML page with status `404`. JSON clients and the default `*/*`
+  receive JSON instead. Every `/api/*` path returns its JSON `{"detail": ...}`
+  error even with `Accept: text/html`, including missing API resources.
+  Other error statuses (`400`, `401`, `403`, `409`, `422`, `429`, `500`)
+  retain their JSON responses for all clients.
 
 ### Rate limits
+
+The limits below are per client IP. Magic-link requests also have a separate
+per-email cooldown described after the table.
 
 | Key | Limit |
 |---|---|
@@ -34,6 +44,13 @@ by FastAPI from `frontend/`; everything below returns JSON unless noted.
 | `response_submit` | 10 requests / 5 min |
 | `analytics` (track) | 60 requests / 60 s |
 
+**Per-email cooldown:** a repeat `/auth/email/start` request for the same
+normalized email address within 60 seconds intentionally returns `{"ok": true}`
+without sending another email. This is separate from the IP-based
+`email_login_start` limit; that limit still applies and can return `429`.
+The cooldown is tracked in process memory, not as a durable delivery limit.
+Reporting send failures is separately tracked in [#81](https://github.com/BistaDinesh03/critique/issues/81).
+
 ## Authentication — `/auth`
 
 | Method | Path | Auth | CSRF | Notes |
@@ -43,7 +60,7 @@ by FastAPI from `frontend/`; everything below returns JSON unless noted.
 | GET | `/auth/logout` | — | — | Clears session and CSRF cookies; redirects to `/`. |
 | GET | `/auth/check` | Required | — | `{"authenticated": true, "username": "..."}` or `401`. |
 | GET | `/auth/csrf-token` | — | — | `{"csrf_token": "..."}`; also sets the `critique_csrf` cookie if absent. |
-| POST | `/auth/email/start` | — | Required | Body `{"email": "...", "return_to"?: "/path"}`. Requests a magic link (15-minute, single-use). Always `{"ok": true}` regardless of whether the address exists or sending succeeded. Rate-limited (`email_login_start`). |
+| POST | `/auth/email/start` | — | Required | Body `{"email": "...", "return_to"?: "/path"}`. Requests a magic link (15-minute, single-use). Always `{"ok": true}` regardless of whether the address exists or sending succeeded. Within the intentional 60-second per-email cooldown, repeat requests return that same success without sending another email. Separately rate-limited per IP (`email_login_start`). |
 | GET | `/auth/email/verify?token=...` | — | — | Consumes the token atomically, sets the session, redirects. Invalid/expired/used tokens redirect to `/?error=email_link`. Rate-limited (`email_login_verify`). |
 
 `return_to` is validated against an allowlist of safe local paths; anything
@@ -63,7 +80,7 @@ else is ignored.
 
 | Method | Path | Auth | CSRF | Rate limit | Notes |
 |---|---|---|---|---|---|
-| POST | `.../responses` | Required | Required | `response_submit` | Body: `clarity` (enum), `would_use` (enum), optional `suggestion` text. Returns `201`. One response per user per question — a second submission returns `409`. The client IP is stored only as a SHA-256 hash. |
+| POST | `.../responses` | Required | Required | `response_submit` | Body: `clarity` (enum), `would_use` (enum), optional `suggestion` text. Returns `201`. One response per user per question — a second submission returns `409`. The client IP is stored only as a keyed HMAC-SHA-256 digest, stable while `SECRET_KEY` remains unchanged; raw IP addresses are not stored. |
 | GET | `.../responses` | Optional | — | — | Owner receives written `suggestion` text; everyone else receives scores only (`id`, `clarity`, `would_use`, `question_id`, `created_at`). `404` if the project does not exist. |
 
 ## Results — `/api/projects/{project_id}/results`
@@ -100,11 +117,22 @@ else is ignored.
 | GET | `/robots.txt` | Allows public crawling; disallows `/my-projects`, `/api/`, `/auth/`, `/health`. |
 | GET | `/sitemap.xml` | Homepage, `/discover`, and every project page (dynamic). |
 
+Every absolute URL in both endpoints (the `Sitemap:` line in `/robots.txt`
+and each `<loc>` in `/sitemap.xml`) is built from `settings.APP_URL`, read per
+request. Surrounding whitespace and any trailing slash are stripped
+(`https://critique.page/` becomes `https://critique.page`); if `APP_URL` is
+unset or blank, the origin falls back to `http://127.0.0.1:8000`. An absolute
+origin is required because crawlers cannot resolve a root-relative `<loc>`,
+and the `Sitemap:` line is specified as an absolute URL. Self-hosted
+deployments should set `APP_URL` to their public origin so crawlers are
+pointed at the right site.
+
 ## Pages and misc
 
 | Method | Path | Notes |
 |---|---|---|
 | GET | `/` `/discover` `/my-projects` `/project/{id}` `/project/{id}/results` | HTML pages. A CSRF cookie is issued with each page response. |
+| GET | `/google8ffd0ae5f931d1e6.html` | Google Search Console site-verification file. |
 | GET | `/health` | `{"status": "ok"}` — uptime probe. |
 | GET | `/docs`, `/redoc` | FastAPI-generated API documentation. |
 | GET | `/static/*` | CSS/JS use `Cache-Control: no-cache` (revalidation); images use `Cache-Control: public, max-age=86400`. |
@@ -118,7 +146,7 @@ else is ignored.
 | 403 | `{"detail": "Invalid or missing CSRF token"}` | Missing/mismatched `X-CSRF-Token`. |
 | 403 | `{"detail": "Not authorized"}` | Signed in but not allowed (e.g., dashboard). |
 | 403 | `{"detail": "You cannot delete this project"}` | Delete attempted by a non-owner. |
-| 404 | `{"detail": "Not Found"}` | Unknown route or resource. |
+| 404 | HTML page or `{"detail": "Not Found"}` (resource-specific `detail` where applicable) | Non-`/api/` paths return branded HTML when `Accept` contains `text/html`; JSON clients and default `*/*` get JSON. `/api/*` always gets JSON, including missing resources (for example `{"detail": "Project not found"}`). |
 | 409 | `{"detail": "You have already responded to this question"}` | Second response to the same question. |
 | 422 | `{"detail": [...]}` | Pydantic validation failure. |
 | 429 | `{"detail": "Too many requests. Please slow down."}` | Rate limit exceeded. |

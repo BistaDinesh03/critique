@@ -1,4 +1,4 @@
-﻿from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from app.database import get_db, in_int64_range
 from app.models import Project, Question, Response, User
@@ -23,6 +23,9 @@ def get_project_results(
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
+    # Server-side authorization: use authenticated session, NOT client headers
+    is_owner = current_user is not None and project.owner_id == current_user.id
+
     question = (
         db.query(Question)
         .filter(Question.project_id == project_id, Question.is_active == True)
@@ -36,7 +39,7 @@ def get_project_results(
             "question_text": None,
             "stats": calculate_stats([]),
             "responses": [],
-            "is_owner": False,
+            "is_owner": is_owner,
         }
 
     responses = (
@@ -47,9 +50,6 @@ def get_project_results(
     )
 
     stats = calculate_stats(responses)
-
-    # Server-side authorization: use authenticated session, NOT client headers
-    is_owner = current_user is not None and project.owner_id == current_user.id
 
     response_out = []
     if is_owner:

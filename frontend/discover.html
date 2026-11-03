@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -12,7 +12,7 @@
             text-align: center;
         }
 
-        .page-title h2 {
+        .page-title h1 {
             font-size: var(--text-2xl);
             font-weight: 700;
             color: var(--text-primary);
@@ -36,6 +36,11 @@
             gap: var(--space-4);
             max-width: 1100px;
             margin: 0 auto;
+        }
+
+        .project-list .empty-state,
+        .project-list .error-state {
+            grid-column: 1 / -1;
         }
 
         @media (max-width: 1099px) {
@@ -210,7 +215,7 @@
 
     <main class="container-wide">
         <div class="page-title">
-            <h2>Discover</h2>
+            <h1>Discover</h1>
             <p>Real projects looking for feedback.</p>
             <p class="subtitle">Each one is a project a builder shared, with a single question waiting for an honest answer.</p>
         </div>
@@ -227,6 +232,7 @@
         let currentPage = 1;
         const pageSize = 9;
         let totalPages = 1;
+        let lastPaginationFocus = null;
 
         // Attribute-safe HTML escaping: &, <, >, " and ' are all escaped so a
         // user-controlled value can never break out of a quoted HTML attribute.
@@ -301,25 +307,44 @@
         }
 
         function showLoading() {
-            document.getElementById('project-list').innerHTML = skeletonCardHtml().repeat(6);
+            const list = document.getElementById('project-list');
+            list.setAttribute('role', 'list');
+            list.setAttribute('aria-label', 'Projects asking for feedback');
+            list.innerHTML = skeletonCardHtml().repeat(6);
             setListBusy(true, 'Loading projects...');
-            document.getElementById('pagination').style.display = 'none';
+            const pagination = document.getElementById('pagination');
+            if (pagination && pagination.style.display !== 'none') {
+                const prev = document.getElementById('prev-btn');
+                const next = document.getElementById('next-btn');
+                if (prev) prev.disabled = true;
+                if (next) next.disabled = true;
+            } else if (pagination) {
+                pagination.style.display = 'none';
+            }
         }
 
         function showEmpty() {
-            document.getElementById('project-list').innerHTML = '<div class="empty-state" role="status"><h3>No projects waiting for feedback yet</h3><p>Be the first maker to ask a question.</p><a href="/" class="btn btn-primary">Submit a project</a></div>';
+            const list = document.getElementById('project-list');
+            list.removeAttribute('role');
+            list.removeAttribute('aria-label');
+            list.innerHTML = '<div class="empty-state" role="status"><h3>No projects waiting for feedback yet</h3><p>Be the first maker to ask a question.</p><a href="/" class="btn btn-primary">Submit a project</a></div>';
             setListBusy(false, '');
             document.getElementById('pagination').style.display = 'none';
         }
 
         function showError() {
-            document.getElementById('project-list').innerHTML = '<div class="error-state" role="alert"><p>Couldn\'t load projects.</p><button type="button" onclick="loadProjects(currentPage)" class="btn btn-secondary" style="margin-top:var(--space-3);">Try again</button></div>';
+            const list = document.getElementById('project-list');
+            list.removeAttribute('role');
+            list.removeAttribute('aria-label');
+            list.innerHTML = '<div class="error-state" role="alert"><p>Couldn\'t load projects.</p><button type="button" onclick="loadProjects(currentPage)" class="btn btn-secondary" style="margin-top:var(--space-3);">Try again</button></div>';
             setListBusy(false, "Couldn't load projects.");
             document.getElementById('pagination').style.display = 'none';
         }
 
         function showProjects(items) {
             const listContainer = document.getElementById('project-list');
+            listContainer.setAttribute('role', 'list');
+            listContainer.setAttribute('aria-label', 'Projects asking for feedback');
             listContainer.innerHTML = '';
             setListBusy(false, '');
             items.forEach(function(project) {
@@ -343,10 +368,24 @@
                 listContainer.appendChild(card);
             });
             if (totalPages > 1) {
+                const prevBtn = document.getElementById('prev-btn');
+                const nextBtn = document.getElementById('next-btn');
                 document.getElementById('pagination').style.display = 'flex';
-                document.getElementById('prev-btn').disabled = currentPage <= 1;
-                document.getElementById('next-btn').disabled = currentPage >= totalPages;
+                prevBtn.disabled = currentPage <= 1;
+                nextBtn.disabled = currentPage >= totalPages;
                 document.getElementById('page-info').textContent = 'Page ' + currentPage + ' of ' + totalPages;
+                if (lastPaginationFocus) {
+                    const targetBtn = lastPaginationFocus === 'next' ? nextBtn : prevBtn;
+                    const altBtn = lastPaginationFocus === 'next' ? prevBtn : nextBtn;
+                    if (targetBtn && !targetBtn.disabled) {
+                        targetBtn.focus();
+                    } else if (altBtn && !altBtn.disabled) {
+                        altBtn.focus();
+                    }
+                    lastPaginationFocus = null;
+                }
+            } else {
+                document.getElementById('pagination').style.display = 'none';
             }
         }
 
@@ -388,7 +427,10 @@ async function loadProjects(page) {
 
         function changePage(delta) {
             const newPage = currentPage + delta;
-            if (newPage >= 1 && newPage <= totalPages) { loadProjects(newPage); }
+            if (newPage >= 1 && newPage <= totalPages) {
+                lastPaginationFocus = delta > 0 ? 'next' : 'prev';
+                loadProjects(newPage);
+            }
         }
 
         loadProjects(1);

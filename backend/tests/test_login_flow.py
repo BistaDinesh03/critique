@@ -1,3 +1,5 @@
+import pytest
+
 from fastapi.testclient import TestClient
 from app.main import app
 from app.auth import _is_safe_return_path
@@ -39,6 +41,20 @@ def test_safe_return_path_rejects_long_input():
     assert _is_safe_return_path("/" + "a" * 600) is False
 
 
+@pytest.mark.parametrize("control", [chr(c) for c in range(32)] + ["\x7f"])
+def test_safe_return_path_rejects_control_characters(control):
+    assert _is_safe_return_path(f"/{control}/evil.com") is False
+
+
+@pytest.mark.parametrize("path", ["/\t/evil.com", "/\n/evil.com", "/\r\n/evil.com"])
+def test_login_route_ignores_control_characters_in_return_to(path):
+    response = client.get(
+        "/auth/login", params={"return_to": path}, follow_redirects=False,
+    )
+    assert response.status_code in (302, 307)
+    assert "critique_return_to" not in response.cookies
+
+
 def test_login_route_ignores_external_return_to():
     """External return_to URLs must not be stored."""
     response = client.get(
@@ -73,6 +89,49 @@ def test_analytics_accepts_new_login_events():
 def test_safe_return_path_accepts_feedback_resume():
     """New feedback resume URL is accepted as safe."""
     assert _is_safe_return_path("/project/5?resume=feedback") is True
+
+
+def test_safe_return_path_accepts_percent_encoded_values():
+    """Encoded characters are safe; only raw control/space characters are not."""
+    assert _is_safe_return_path("/project/5?tab=my%20projects") is True
+    assert _is_safe_return_path("/discover?q=caf%C3%A9") is True
+
+
+def test_safe_return_path_rejects_control_characters():
+    """A Location header must not receive CR/LF, NUL, or other controls."""
+    for path in (
+        "/project/1\n",
+        "/project/1\r",
+        "/project/1\t",
+        "/project/1\x00",
+        "/project/1\r\nLocation: https://evil.com",
+        "/project/1\x1b[31m",
+    ):
+        assert _is_safe_return_path(path) is False, repr(path)
+
+
+def test_safe_return_path_rejects_whitespace():
+    assert _is_safe_return_path("/project/1 2") is False
+    assert _is_safe_return_path("/project/1\u00a0") is False
+
+
+def test_safe_return_path_rejects_backslash_anywhere():
+    assert _is_safe_return_path("/project\\1") is False
+    assert _is_safe_return_path("/discover\\evil.com") is False
+
+
+def test_safe_return_path_rejects_c1_controls_and_line_separators():
+    assert _is_safe_return_path("/project/1\u0085") is False
+    assert _is_safe_return_path("/project/1\u2028") is False
+
+
+def test_login_route_ignores_control_character_return_to():
+    response = client.get(
+        "/auth/login?return_to=%2Fproject%2F1%0D%0ALocation%3A%20https%3A%2F%2Fevil.com",
+        follow_redirects=False,
+    )
+    assert response.status_code in (302, 307)
+    assert "critique_return_to" not in response.cookies
 
 
 def test_dashboard_defines_owner_allowlist():

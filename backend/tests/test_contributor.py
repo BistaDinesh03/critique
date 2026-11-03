@@ -552,6 +552,20 @@ def test_a_failing_issue_list_is_reported_not_swallowed(monkeypatch):
     assert code == 2
 
 
+def test_triage_accepts_repo_flag():
+    parser = contributor.build_parser()
+    args = parser.parse_args(["triage", "--repo", "owner/name"])
+    assert args.repo == "owner/name"
+
+
+def test_triage_honors_explicit_repo_flag():
+    gh = FakeGitHub(issues={38: open_issue()})
+    gh.repo = None
+    code = contributor.main(["triage", "--repo", "owner/custom-repo"], gh=gh)
+    assert code == 0
+    assert gh.repo == "owner/custom-repo"
+
+
 # ---------------------------------------------------------------------------
 # Review: engine findings, issue context, and posting only once
 # ---------------------------------------------------------------------------
