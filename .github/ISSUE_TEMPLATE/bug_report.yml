@@ -1,0 +1,56 @@
+name: Bug Report
+description: File a bug report to help us improve Critique
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill out the information below to help us diagnose and fix the issue.
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is.
+      placeholder: Describe what happened...
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Steps to reproduce the behavior.
+      placeholder: |
+        1. Go to '...'
+        2. Click on '....'
+        3. Scroll down to '....'
+        4. See error
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: A clear and concise description of what you expected to happen.
+      placeholder: What did you expect to happen?
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Provide details about your environment (OS, browser, device, versions).
+      placeholder: |
+        - OS: [e.g. Windows 11, macOS Sequoia, Ubuntu 24.04]
+        - Browser: [e.g. Chrome 130, Firefox 131, Safari 18]
+        - Critique Version/Commit: [e.g. main, v1.0.0]
+    validations:
+      required: false
+  - type: textarea
+    id: logs-screenshots
+    attributes:
+      label: Logs and Screenshots
+      description: If applicable, add error logs, stack traces, console outputs, or screenshots to help explain your problem.
+      placeholder: Paste console logs or drag and drop screenshots here...
+    validations:
+      required: false
