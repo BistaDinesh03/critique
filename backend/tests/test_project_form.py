@@ -189,9 +189,18 @@ def test_project_form_keeps_every_field_the_api_needs():
 
     url = tag_with_id(form, "url")
     assert 'name="url"' in url and 'type="url"' in url and 'maxlength="500"' in url
+    # Option B (#191): URL matches the optional backend field — label tells the truth.
+    assert "required" not in url
+    assert re.search(
+        r'for="url">[^<]*<span class="form-optional-tag">optional</span>', form
+    )
 
     description = tag_with_id(form, "description")
     assert 'name="description"' in description and 'maxlength="5000"' in description
+    assert "required" not in description
+    assert re.search(
+        r'for="description">[^<]*<span class="form-optional-tag">optional</span>', form
+    )
 
     question = tag_with_id(form, "question")
     assert 'name="question"' in question and "required" in question
@@ -202,8 +211,8 @@ def test_project_form_keeps_every_field_the_api_needs():
     # The screenshot stays optional: an unanswered field never blocks a submit.
     assert "required" not in image_url
 
-    assert "(required)" in form
-    assert "form-optional-tag" in form
+    assert "(required)" in form  # title + question still required
+    assert form.count("form-optional-tag") >= 3  # url, description, image_url
 
 
 def test_project_form_gives_the_question_the_only_accent():
