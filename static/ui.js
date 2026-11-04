@@ -1,4 +1,4 @@
-﻿// Critique UI Utilities
+// Critique UI Utilities
 // Shared toast and modal system
 
 var CritiqueUI = (function() {
@@ -70,6 +70,7 @@ var CritiqueUI = (function() {
         modal.setAttribute('role', 'dialog');
         modal.setAttribute('aria-modal', 'true');
         modal.setAttribute('aria-labelledby', 'modal-title');
+        modal.setAttribute('aria-describedby', 'modal-description');
 
         var titleEl = document.createElement('h3');
         titleEl.id = 'modal-title';
@@ -77,6 +78,7 @@ var CritiqueUI = (function() {
         titleEl.textContent = title;
 
         var bodyEl = document.createElement('div');
+        bodyEl.id = 'modal-description';
         bodyEl.className = 'modal-body';
         bodyEl.textContent = message;
 
