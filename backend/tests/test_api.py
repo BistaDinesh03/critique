@@ -1,4 +1,4 @@
-﻿import pytest
+import pytest
 
 from app.database import init_db, SessionLocal
 from app.models import Project, Question, Response, User
@@ -195,4 +195,63 @@ def test_project_description_is_trimmed_or_dropped(auth_client, raw, expected):
     response = auth_client.post("/api/projects/", json=payload)
     assert response.status_code == 201
     assert response.json()["project"]["description"] == expected
+    cleanup_database()
+
+
+@pytest.mark.parametrize(
+    "url,valid",
+    [
+        ("https://example.com", True),
+        ("http://example.com/project", True),
+        ("https://sub.domain.org/path?q=1#hash", True),
+        ("https://", False),
+        ("https:///path", False),
+        ("http://", False),
+        ("ftp://example.com", False),
+        ("javascript:alert(1)", False),
+        ("https://user:pass@example.com", False),
+        ("https:// user@example.com", False),
+    ],
+)
+def test_project_url_validation(auth_client, url, valid):
+    cleanup_database()
+    payload = {
+        "project_data": {
+            "title": "URL test",
+            "url": url,
+        },
+        "question_data": {"text": "Is this clear?"},
+    }
+    response = auth_client.post("/api/projects/", json=payload)
+    if valid:
+        assert response.status_code == 201
+    else:
+        assert response.status_code == 422
+    cleanup_database()
+
+
+@pytest.mark.parametrize(
+    "image_url,valid",
+    [
+        ("https://example.com/screenshot.png", True),
+        ("http://example.com/screenshot.png", False),
+        ("https://", False),
+        ("https:///path.png", False),
+        ("https://user:pass@example.com/pic.png", False),
+    ],
+)
+def test_project_image_url_validation(auth_client, image_url, valid):
+    cleanup_database()
+    payload = {
+        "project_data": {
+            "title": "Image test",
+            "image_url": image_url,
+        },
+        "question_data": {"text": "Is this clear?"},
+    }
+    response = auth_client.post("/api/projects/", json=payload)
+    if valid:
+        assert response.status_code == 201
+    else:
+        assert response.status_code == 422
     cleanup_database()
