@@ -1,4 +1,6 @@
-﻿from fastapi import APIRouter, Depends
+from datetime import datetime, timezone
+
+from fastapi import APIRouter, Depends
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from app.config import settings
@@ -44,14 +46,18 @@ def robots_txt():
 
 @router.get("/sitemap.xml", response_class=Response)
 def sitemap_xml(db: Session = Depends(get_db)):
-    projects = db.query(Project.id).order_by(Project.created_at.desc()).all()
+    # Query Project.id and Project.created_at in a single query (zero extra queries)
+    # to supply accurate <lastmod> dates per sitemap protocol.
+    projects = db.query(Project.id, Project.created_at).order_by(Project.created_at.desc()).all()
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
     urls = []
-    urls.append("  <url>\n    <loc>" + site_url() + "/</loc>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>")
-    urls.append("  <url>\n    <loc>" + site_url() + "/discover</loc>\n    <changefreq>daily</changefreq>\n    <priority>0.9</priority>\n  </url>")
+    urls.append("  <url>\n    <loc>" + site_url() + "/</loc>\n    <lastmod>" + today + "</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>")
+    urls.append("  <url>\n    <loc>" + site_url() + "/discover</loc>\n    <lastmod>" + today + "</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>0.9</priority>\n  </url>")
 
-    for (project_id,) in projects:
-        urls.append("  <url>\n    <loc>" + site_url() + "/project/" + str(project_id) + "</loc>\n    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>")
+    for project_id, created_at in projects:
+        lastmod = created_at.strftime("%Y-%m-%d") if created_at else today
+        urls.append("  <url>\n    <loc>" + site_url() + "/project/" + str(project_id) + "</loc>\n    <lastmod>" + lastmod + "</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>")
 
     body = "\n".join(urls)
     xml = '<?xml version="1.0" encoding="UTF-8"?>\n'

@@ -10,7 +10,9 @@ instance's crawlers to the production site.
 Fixtures and style follow ``test_badge.py``: rows are seeded through
 ``SessionLocal`` and deleted again when the test ends.
 """
+import re
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -168,6 +170,53 @@ class TestSitemapXml:
 
         assert f"<loc>https://staging.example.com/</loc>" in body
         assert "critique.page" not in body
+
+    def test_every_url_carries_well_formed_lastmod(self):
+        """Every <url> block in the sitemap must carry a valid <lastmod> date."""
+        body = get_sitemap().text
+        urls = re.findall(r"<url>(.*?)</url>", body, re.DOTALL)
+        assert len(urls) >= 2  # at least root and discover
+        today_date = datetime.now(timezone.utc).date()
+
+        for url_block in urls:
+            match = re.search(r"<lastmod>(\d{4}-\d{2}-\d{2})</lastmod>", url_block)
+            assert match is not None, f"Missing or malformed <lastmod> in {url_block}"
+            mod_date = datetime.strptime(match.group(1), "%Y-%m-%d").date()
+            assert mod_date <= today_date
+
+    def test_two_projects_on_different_days_yield_distinct_lastmod(self, monkeypatch):
+        """Projects created on distinct days advertise their respective dates in <lastmod>."""
+        monkeypatch.setattr(settings, "APP_URL", PRODUCTION_ORIGIN)
+
+        with SessionLocal() as db:
+            owner = User(github_id=88812345, username="seo-lastmod-owner")
+            db.add(owner)
+            db.flush()
+
+            p1 = Project(
+                title="P1",
+                owner_id=owner.id,
+                created_at=datetime(2026, 1, 15, 10, 0, 0, tzinfo=timezone.utc),
+            )
+            p2 = Project(
+                title="P2",
+                owner_id=owner.id,
+                created_at=datetime(2026, 2, 20, 10, 0, 0, tzinfo=timezone.utc),
+            )
+            db.add_all([p1, p2])
+            db.commit()
+            p1_id, p2_id = p1.id, p2.id
+            owner_id = owner.id
+
+        try:
+            body = get_sitemap().text
+            assert f"<loc>{PRODUCTION_ORIGIN}/project/{p1_id}</loc>\n    <lastmod>2026-01-15</lastmod>" in body
+            assert f"<loc>{PRODUCTION_ORIGIN}/project/{p2_id}</loc>\n    <lastmod>2026-02-20</lastmod>" in body
+        finally:
+            with SessionLocal() as db:
+                db.query(Project).filter(Project.id.in_([p1_id, p2_id])).delete()
+                db.query(User).filter(User.id == owner_id).delete()
+                db.commit()
 
 
 class TestOriginComesFromConfiguration:
