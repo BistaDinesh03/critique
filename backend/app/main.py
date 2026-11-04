@@ -1,4 +1,6 @@
 from contextlib import asynccontextmanager
+import re
+import uuid
 from pathlib import Path
 from typing import Annotated
 
@@ -24,6 +26,28 @@ from app.routes_responses import router as responses_router
 from app.routes_results import router as results_router
 from app.routes_seo import router as seo_router, site_url
 from app.routes_stats import router as stats_router
+
+
+_REQUEST_ID_RE = re.compile(r"^[A-Za-z0-9-]{1,64}$")
+
+
+class RequestIDMiddleware(BaseHTTPMiddleware):
+    """Ensure every response carries a safe X-Request-ID for correlation.
+
+    Incoming IDs are validated against a strict allowlist; anything missing or
+    invalid is replaced with a server-generated UUID4 hex string.
+    """
+
+    async def dispatch(self, request, call_next):
+        incoming = request.headers.get("X-Request-ID")
+        if incoming and _REQUEST_ID_RE.fullmatch(incoming):
+            request_id = incoming
+        else:
+            request_id = uuid.uuid4().hex
+        request.state.request_id = request_id
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = request_id
+        return response
 
 
 class CacheControlMiddleware(BaseHTTPMiddleware):
@@ -66,6 +90,7 @@ app = FastAPI(
 )
 
 app.add_middleware(CacheControlMiddleware)
+app.add_middleware(RequestIDMiddleware)
 
 app.include_router(auth_router)
 app.include_router(projects_router)
