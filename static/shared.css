@@ -1,4 +1,4 @@
-﻿/* ============================================
+/* ============================================
    Critique Design System
    ============================================ */
 
@@ -1868,3 +1868,57 @@ img {
         justify-content: center;
     }
 }
+
+@media print {
+    .navbar,
+    .navbar-toggle,
+    .action-buttons,
+    .no-print,
+    .clarity-filter-bar,
+    .skip-link,
+    #navbar,
+    footer {
+        display: none !important;
+    }
+
+    body {
+        background: #ffffff !important;
+        color: #000000 !important;
+        font-size: 11pt !important;
+    }
+
+    .container,
+    .main-container,
+    .page-container {
+        max-width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+    }
+
+    .card,
+    .summary-card,
+    .question-card,
+    .response-card,
+    .feedback-card {
+        border: 1px solid #d0d7de !important;
+        box-shadow: none !important;
+        break-inside: avoid;
+        page-break-inside: avoid;
+        margin-bottom: 12pt !important;
+        padding: 12pt !important;
+        background: #ffffff !important;
+    }
+
+    .results-header {
+        border-bottom: 2px solid #333333;
+        padding-bottom: 12pt;
+        margin-bottom: 16pt;
+    }
+
+    a {
+        text-decoration: none !important;
+        color: #000000 !important;
+    }
+}
+
