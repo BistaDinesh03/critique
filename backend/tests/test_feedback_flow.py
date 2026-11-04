@@ -572,3 +572,15 @@ def test_sign_in_events_fire_only_on_a_real_return(tmp_path):
     # the session is still anonymous, it lands on the gate again as designed.
     assert len(events(returned, "feedback_submit_attempt")) == 1
     assert events(returned, "feedback_submit_error") == []
+
+
+def test_feedback_form_suggestion_textarea_has_maxlength(tmp_path):
+    """The suggestion textarea caps input at 2000 characters to match the API schema (fixes #279)."""
+    result = run(
+        tmp_path,
+        "project_detail.html",
+        [{"fn": "renderProject", "args": [PROJECT, []]}],
+        read={"byId": "content"},
+    )
+    assert '<textarea class="form-textarea" id="suggestion" maxlength="2000"' in result["html"]
+
