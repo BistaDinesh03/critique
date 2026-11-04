@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -375,7 +375,12 @@
             const p = data.project;
             const q = data.question;
             let html = '';
-            html += '<h1 class="project-title">' + escapeHtml(p.title) + '</h1>';
+            html += '<h1 class="project-title">' + escapeHtml(p.title);
+            if (data.is_owner || (Array.isArray(responses) && responses.length > 0)) {
+                const count = responses && responses.length > 0 ? responses.length : (p.response_count || 0);
+                html += ' <span class="badge response-count-badge" id="owner-response-count">' + count + ' ' + (count === 1 ? 'response' : 'responses') + '</span>';
+            }
+            html += '</h1>';
             // What is being reviewed is stated before anything is asked of the
             // visitor, so the answer is given with the context in view.
             if (p.description) { html += '<p class="project-summary">' + escapeHtml(p.description) + '</p>'; }

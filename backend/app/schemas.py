@@ -1,4 +1,4 @@
-﻿from datetime import datetime
+from datetime import datetime
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 from typing import Optional
 
@@ -62,9 +62,11 @@ class ProjectOut(BaseModel):
     image_url: Optional[str]
     owner_id: int
     created_at: datetime
+    response_count: Optional[int] = 0
 
 
 class ProjectListItem(BaseModel):
+
     """Schema for project in discovery list."""
     model_config = ConfigDict(from_attributes=True)
     id: int
@@ -106,6 +108,8 @@ class ProjectWithQuestion(BaseModel):
     """Schema for returning a project with its active question."""
     project: ProjectOut
     question: Optional[QuestionOut] = None
+    is_owner: Optional[bool] = False
+
 
 
 class PaginatedProjects(BaseModel):

@@ -572,3 +572,49 @@ def test_sign_in_events_fire_only_on_a_real_return(tmp_path):
     # the session is still anonymous, it lands on the gate again as designed.
     assert len(events(returned, "feedback_submit_attempt")) == 1
     assert events(returned, "feedback_submit_error") == []
+
+
+def test_project_detail_shows_response_count_to_owner(tmp_path):
+    """Owner sees response count badge in project header; non-owners do not (fixes #327)."""
+    owner_data = {
+        "project": {
+            "id": 1,
+            "title": "Owner's App",
+            "description": "App description",
+            "response_count": 4,
+            "image_url": None,
+            "url": None,
+        },
+        "question": {
+            "id": 1,
+            "text": "What do you think?",
+            "is_active": True,
+            "project_id": 1,
+        },
+        "is_owner": True,
+    }
+    non_owner_data = {
+        "project": {
+            "id": 2,
+            "title": "Visitor's App",
+            "description": "App description",
+            "response_count": 4,
+            "image_url": None,
+            "url": None,
+        },
+        "question": {
+            "id": 2,
+            "text": "What do you think?",
+            "is_active": True,
+            "project_id": 2,
+        },
+        "is_owner": False,
+    }
+
+    owner_res = run(tmp_path, "project_detail.html", [{"fn": "renderProject", "args": [owner_data, []]}], read={"byId": "content"})
+    assert "owner-response-count" in owner_res["html"]
+    assert "4 responses" in owner_res["html"]
+
+    non_owner_res = run(tmp_path, "project_detail.html", [{"fn": "renderProject", "args": [non_owner_data, []]}], read={"byId": "content"})
+    assert "owner-response-count" not in non_owner_res["html"]
+
