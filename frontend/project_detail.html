@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -7,17 +7,48 @@
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link rel="stylesheet" href="/static/shared.css">
     <style>
-        .back-link {
-            display: inline-block;
-            color: var(--text-muted);
-            font-size: var(--text-sm);
+        .breadcrumb-nav {
             margin-bottom: var(--space-4);
+        }
+
+        .breadcrumb-list {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: var(--space-2);
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            font-size: var(--text-sm);
+        }
+
+        .breadcrumb-item {
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .breadcrumb-link {
+            color: var(--text-muted);
             text-decoration: none;
         }
 
-        .back-link:hover {
+        .breadcrumb-link:hover {
             color: var(--accent);
             text-decoration: none;
+        }
+
+        .breadcrumb-separator {
+            color: var(--border-color, #444);
+            user-select: none;
+        }
+
+        .breadcrumb-item.active {
+            color: var(--text-primary);
+            font-weight: 500;
+            max-width: 280px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         .project-screenshot { width: 100%; border-radius: var(--radius-lg); margin-bottom: var(--space-4); object-fit: cover; max-height: 300px; }
@@ -274,7 +305,15 @@
     </header>
 
     <main class="container">
-        <a href="/discover" class="back-link">Back to discover</a>
+        <nav class="breadcrumb-nav" aria-label="Breadcrumb">
+            <ol class="breadcrumb-list">
+                <li class="breadcrumb-item"><a href="/" class="breadcrumb-link">Home</a></li>
+                <li class="breadcrumb-separator" aria-hidden="true">/</li>
+                <li class="breadcrumb-item"><a href="/discover" class="breadcrumb-link">Discover</a></li>
+                <li class="breadcrumb-separator" aria-hidden="true">/</li>
+                <li class="breadcrumb-item active" aria-current="page"><span id="breadcrumb-title">Project</span></li>
+            </ol>
+        </nav>
         <div id="content" aria-busy="true">
             <div role="status">
                 <p class="sr-only">Loading project...</p>
@@ -374,6 +413,10 @@
             const content = document.getElementById('content');
             const p = data.project;
             const q = data.question;
+            const breadcrumbTitle = document.getElementById('breadcrumb-title');
+            if (breadcrumbTitle && p.title) {
+                breadcrumbTitle.textContent = p.title;
+            }
             let html = '';
             html += '<h1 class="project-title">' + escapeHtml(p.title) + '</h1>';
             // What is being reviewed is stated before anything is asked of the
