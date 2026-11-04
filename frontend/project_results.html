@@ -468,8 +468,9 @@
         }
 
         function renderActions() {
-            return '<div class="action-buttons">' +
+            return '<div class="action-buttons no-print">' +
                 '<a href="/project/' + escapeHtml(projectId) + '" class="btn btn-primary">Get more feedback</a>' +
+                '<button type="button" class="btn btn-secondary" id="print-results-btn" aria-label="Print or save results as PDF">Print / Save PDF</button>' +
                 '<a href="/discover" class="btn btn-secondary">Discover projects</a>' +
                 '</div>';
         }
@@ -563,6 +564,12 @@
                 content.innerHTML = '<div class="error-state"><p>Something went wrong. Please try again.</p></div>';
             }
         }
+
+        document.addEventListener('click', function(e) {
+            if (e.target && e.target.id === 'print-results-btn') {
+                window.print();
+            }
+        });
 
         loadResults();
 

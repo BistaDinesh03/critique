@@ -445,3 +445,22 @@ def test_api_failure_renders_the_friendly_error_state(tmp_path):
     assert "bar-track" not in html
     for artifact in ("NaN", "Infinity", "undefined", "[object Object]"):
         assert artifact not in html
+
+
+def test_results_page_includes_print_button_and_print_styles(tmp_path):
+    """Verify that results page renders a print button and static/shared.css defines print media styles."""
+    clarity, would_use = mixed_stats()
+    data = results_data(2, clarity, would_use, owner=True)
+    html = render_results(tmp_path, data)
+
+    assert 'id="print-results-btn"' in html
+    assert "Print / Save PDF" in html
+
+    page_src = (FRONTEND_DIR / "project_results.html").read_text(encoding="utf-8")
+    assert "window.print()" in page_src
+    assert "'print-results-btn'" in page_src
+
+    shared_css = (REPO_DIR / "static" / "shared.css").read_text(encoding="utf-8")
+    assert "@media print" in shared_css
+    assert "page-break-inside: avoid;" in shared_css or "break-inside: avoid;" in shared_css
+    assert "no-print" in shared_css
