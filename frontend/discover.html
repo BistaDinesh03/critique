@@ -387,6 +387,14 @@
             } else {
                 document.getElementById('pagination').style.display = 'none';
             }
+
+            try {
+                const savedScroll = sessionStorage.getItem('critique_discover_scroll');
+                if (savedScroll !== null) {
+                    sessionStorage.removeItem('critique_discover_scroll');
+                    window.scrollTo({ top: parseInt(savedScroll, 10), behavior: 'instant' });
+                }
+            } catch (e) {}
         }
 
         async function fetchWithRetry(url, options, maxRetries) {
@@ -433,7 +441,24 @@ async function loadProjects(page) {
             }
         }
 
-        loadProjects(1);
+        document.getElementById('project-list').addEventListener('click', function(e) {
+            const link = e.target.closest('a[href^="/project/"]');
+            if (link) {
+                try {
+                    sessionStorage.setItem('critique_discover_scroll', window.scrollY.toString());
+                    sessionStorage.setItem('critique_discover_page', currentPage.toString());
+                } catch (err) {}
+            }
+        });
+
+        let initialPage = 1;
+        try {
+            const p = parseInt(sessionStorage.getItem('critique_discover_page') || '1', 10);
+            if (p > 0) initialPage = p;
+            sessionStorage.removeItem('critique_discover_page');
+        } catch (err) {}
+
+        loadProjects(initialPage);
     
         async function checkAuth() {
             try {
