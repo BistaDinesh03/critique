@@ -1,4 +1,4 @@
-﻿import httpx
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.responses import RedirectResponse, JSONResponse
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
@@ -332,34 +332,41 @@ async def github_callback(
     if error or not code:
         return _oauth_cancelled_response(remaining)
 
-    async with httpx.AsyncClient() as client:
-        token_response = await client.post(
-            "https://github.com/login/oauth/access_token",
-            json={
-                "client_id": settings.GITHUB_CLIENT_ID,
-                "client_secret": settings.GITHUB_CLIENT_SECRET,
-                "code": code,
-                "redirect_uri": settings.GITHUB_REDIRECT_URI,
-            },
-            headers={"Accept": "application/json"},
+    def _auth_failed():
+        failure = JSONResponse(
+            status_code=400, content={"detail": "GitHub authentication failed"}
         )
-        token_data = token_response.json()
-        access_token = token_data.get("access_token")
+        _set_pending_states_cookie(failure, remaining)
+        return failure
 
-        if not access_token:
-            # Same status and body as the previous HTTPException, but it also
-            # persists consumption of the accepted state.
-            failure = JSONResponse(
-                status_code=400, content={"detail": "GitHub authentication failed"}
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            token_response = await client.post(
+                "https://github.com/login/oauth/access_token",
+                json={
+                    "client_id": settings.GITHUB_CLIENT_ID,
+                    "client_secret": settings.GITHUB_CLIENT_SECRET,
+                    "code": code,
+                    "redirect_uri": settings.GITHUB_REDIRECT_URI,
+                },
+                headers={"Accept": "application/json"},
             )
-            _set_pending_states_cookie(failure, remaining)
-            return failure
+            token_data = token_response.json()
+            if not isinstance(token_data, dict):
+                return _auth_failed()
+            access_token = token_data.get("access_token")
+            if not access_token:
+                return _auth_failed()
 
-        user_response = await client.get(
-            "https://api.github.com/user",
-            headers={"Authorization": f"Bearer {access_token}"},
-        )
-        github_user = user_response.json()
+            user_response = await client.get(
+                "https://api.github.com/user",
+                headers={"Authorization": f"Bearer {access_token}"},
+            )
+            github_user = user_response.json()
+            if not isinstance(github_user, dict) or "id" not in github_user:
+                return _auth_failed()
+    except (httpx.RequestError, ValueError, KeyError):
+        return _auth_failed()
 
     user = db.query(User).filter(User.github_id == github_user["id"]).first()
     if not user:
