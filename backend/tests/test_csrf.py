@@ -190,3 +190,14 @@ def test_verify_csrf_rejects_mismatched_ascii():
     request.headers.get.return_value = "wrong"
 
     assert verify_csrf_token(request) is False
+
+
+def test_analytics_track_is_exempt_from_csrf():
+    """POST /api/analytics/track is exempt from CSRF double-submit cookies for beaconing.
+
+    It is protected by IP rate-limiting and a strict server-side event allowlist instead.
+    """
+    client = TestClient(app)
+    response = client.post("/api/analytics/track?event_name=page_view")
+    assert response.status_code == 200
+    assert response.json() == {"ok": True}

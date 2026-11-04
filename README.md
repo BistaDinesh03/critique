@@ -271,7 +271,7 @@ never commit real credentials.
 
 | Variable | Purpose | Default / notes |
 |---|---|---|
-| `APP_ENV` | `development` or `production` | `development` |
+| `APP_ENV` | Environment identifier | `development`. Feeds `settings.is_production`, which currently has no active runtime callers outside enforcing non-empty `SECRET_KEY` on startup; reserved for future production-only behavior (such as HSTS in [#45](https://github.com/BistaDinesh03/critique/issues/45)). |
 | `APP_URL` | Public base URL | `http://127.0.0.1:8000` |
 | `SECRET_KEY` | Signs session tokens and OAuth state | Required in production (the app refuses to start without it); outside production, an unset value uses a random per-process key, so sessions do not survive a restart. Generate: `python -c "import secrets; print(secrets.token_hex(32))"` |
 | `DATABASE_URL` | Database connection string | `sqlite:///./critique.db`; use PostgreSQL in production |
@@ -417,11 +417,13 @@ one issue from claiming it to opening a pull request.
 [SECURITY.md](SECURITY.md) explains how to report vulnerabilities.
 
 **Looking for something to work on?** Start with the curated shortlist below,
-or the full plan in [docs/issue-roadmap.md](docs/issue-roadmap.md) — reviewed
-issues with the problem, scope, acceptance criteria, difficulty and relevant
-files spelled out for each. Issues are also labeled by area (`frontend`,
-`backend`, `tests`, `accessibility`, `security`, `performance`), and questions
-are welcome in [issue #1](https://github.com/BistaDinesh03/critique/issues/1)
+or the roadmap in [docs/issue-roadmap.md](docs/issue-roadmap.md) — a curated
+starting point with problem statements, scope, acceptance criteria, difficulty,
+and relevant files spelled out for each. (As a prepared roadmap, row statuses
+may lag behind the [live issue tracker](https://github.com/BistaDinesh03/critique/issues),
+so always check tracker availability before starting). Issues are also labeled by
+area (`frontend`, `backend`, `tests`, `accessibility`, `security`, `performance`),
+and questions are welcome in [issue #1](https://github.com/BistaDinesh03/critique/issues/1)
 before you begin.
 
 ### Good issues to contribute
