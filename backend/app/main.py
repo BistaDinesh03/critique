@@ -46,9 +46,15 @@ class CacheControlMiddleware(BaseHTTPMiddleware):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Initialize database on startup."""
+    """Initialize database on startup and gracefully clean up on shutdown."""
     init_db()
     yield
+    # Graceful shutdown: release database pool connections
+    try:
+        from app.database import engine
+        engine.dispose()
+    except Exception:
+        pass
 
 
 app = FastAPI(
