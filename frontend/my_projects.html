@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -203,6 +203,9 @@
         </div>
     </main>
 
+    <script src="/static/ui.js"></script>
+    <script src="/static/analytics.js"></script>
+    <script src="/static/share.js"></script>
     <script>
         // Attribute-safe HTML escaping: &, <, >, " and ' are all escaped so a
         // user-controlled value can never break out of a quoted HTML attribute.
@@ -246,16 +249,22 @@
         function showLoginRequired(container) {
             if (container.dataset.promptShown !== 'true') {
                 container.dataset.promptShown = 'true';
-                window.CritiqueAnalytics.trackEvent('login_prompt_shown', null);
+                if (window.CritiqueAnalytics && window.CritiqueAnalytics.trackEvent) {
+                    window.CritiqueAnalytics.trackEvent('login_prompt_shown', null);
+                }
             }
-            CritiqueUI.renderAuthChoice(container, {
-                title: 'Sign in required',
-                message: 'Sign in to see and manage your projects.',
-                returnTo: '/my-projects',
-                context: null,
-                notes: ['No password required.'],
-                emailSentHint: 'Click the link in the email to finish signing in.'
-            });
+            if (typeof CritiqueUI !== 'undefined' && CritiqueUI.renderAuthChoice) {
+                CritiqueUI.renderAuthChoice(container, {
+                    title: 'Sign in required',
+                    message: 'Sign in to see and manage your projects.',
+                    returnTo: '/my-projects',
+                    context: null,
+                    notes: ['No password required.'],
+                    emailSentHint: 'Click the link in the email to finish signing in.'
+                });
+            } else {
+                container.innerHTML = '<div class="login-prompt"><h2>Sign in required</h2><p>Sign in to see and manage your projects.</p><a href="/auth/login?return_to=/my-projects" class="btn btn-primary">Sign in with GitHub</a></div>';
+            }
         }
 
         async function loadProjects() {
@@ -383,9 +392,6 @@
         checkAuth();
         loadProjects();
     </script>
-    <script src="/static/ui.js"></script>
-    <script src="/static/analytics.js"></script>
-    <script src="/static/share.js"></script>
     <script>trackPageView();</script>
 
     <footer class="site-footer">
