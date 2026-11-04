@@ -1,4 +1,4 @@
-﻿/* ============================================
+/* ============================================
    Critique Design System
    ============================================ */
 
@@ -110,6 +110,25 @@ img {
     outline: 2px solid var(--focus);
     outline-offset: 2px;
     border-radius: 2px;
+}
+
+.skip-link {
+    position: absolute;
+    top: -9999px;
+    left: var(--space-4);
+    background: var(--surface);
+    color: var(--accent);
+    padding: var(--space-2) var(--space-4);
+    border: 2px solid var(--accent);
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    z-index: 10000;
+    text-decoration: none;
+}
+
+.skip-link:focus-visible,
+.skip-link:focus {
+    top: var(--space-4);
 }
 
 /* ============================================
