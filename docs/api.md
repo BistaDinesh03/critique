@@ -76,6 +76,34 @@ else is ignored.
 | GET | `/api/projects/{project_id}` | — | — | — | One project with its active question; `404` if not found. |
 | DELETE | `/api/projects/{project_id}` | Required | Required | `project_delete` | Owner-only. `204` on success; `404` if the project does not exist; `403` if you are signed in but not the owner. |
 
+### Paginated Projects Response Body (`GET /api/projects/`)
+
+```json
+{
+  "items": [
+    {
+      "id": 1,
+      "title": "Akiya Scout",
+      "description": "Find abandoned homes in Japan.",
+      "url": "https://akiyascout.com",
+      "image_url": "https://akiyascout.com/preview.png",
+      "question_text": "Is the map easy to understand?",
+      "response_count": 3
+    }
+  ],
+  "total": 10,
+  "page": 1,
+  "page_size": 10,
+  "total_pages": 5
+}
+```
+
+- `items`: Array of project objects returned for the current page.
+- `total`: Number of items returned on the current page (`len(items)`). Note: this field is page-scoped; clients calculating global counts should use `total_pages * page_size` or query individual pages.
+- `page`: Current page number (1-based index).
+- `page_size`: Configured page size limit for the query.
+- `total_pages`: Total number of pages available for the full ranked set.
+
 ## Feedback — `/api/projects/{project_id}/responses`
 
 | Method | Path | Auth | CSRF | Rate limit | Notes |
