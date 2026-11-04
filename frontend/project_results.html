@@ -560,7 +560,7 @@
                 countResponses(data);
                 renderPage(data);
             } catch (error) {
-                content.innerHTML = '<div class="error-state"><p>Something went wrong. Please try again.</p></div>';
+                content.innerHTML = '<div class="error-state" role="alert"><p>Something went wrong. Please try again.</p><button type="button" class="btn btn-secondary" onclick="loadResults()" style="margin-top:var(--space-3);">Try again</button></div>';
             }
         }
 
