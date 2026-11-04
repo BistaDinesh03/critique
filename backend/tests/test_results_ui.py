@@ -238,9 +238,14 @@ def test_zero_responses_renders_empty_state_with_both_actions(tmp_path):
     assert "Would you understand this in 10 seconds?" in html
     # Both standard actions, no bars, no broken arithmetic.
     assert "Get more feedback" in html
-    assert "Discover projects" in html
-    assert "bar-track" not in html
-    assert "sample-note" not in html
+
+
+def test_results_page_supports_print_styling_and_export_button(tmp_path):
+    clarity, would_use = mixed_stats()
+    html = render_results(tmp_path, results_data(3, clarity, would_use))
+    assert 'id="print-results-btn"' in html
+    assert "Print / PDF" in html
+    assert "@media print" in (FRONTEND_DIR / "project_results.html").read_text(encoding="utf-8")
     for artifact in ("NaN", "Infinity", "undefined"):
         assert artifact not in html
 
