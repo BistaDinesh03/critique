@@ -1911,7 +1911,17 @@
                     // the page, so keep the project first.
                     saveProjectDraft();
                     msg.className = 'alert alert-error';
-                    msg.textContent = 'Session expired. Your project is saved — refresh and try again.';
+                    msg.innerHTML = '<span>Session expired. Your project is saved — refresh and try again.</span> ';
+                    var retryBtn = document.createElement('button');
+                    retryBtn.type = 'button';
+                    retryBtn.className = 'btn btn-secondary';
+                    retryBtn.style.marginLeft = 'var(--space-2)';
+                    retryBtn.textContent = 'Refresh and retry';
+                    retryBtn.addEventListener('click', function() {
+                        saveProjectDraft();
+                        window.location.reload();
+                    });
+                    msg.appendChild(retryBtn);
                 } else {
                     msg.className = 'alert alert-error';
                     msg.textContent = 'Error: ' + JSON.stringify(data);
