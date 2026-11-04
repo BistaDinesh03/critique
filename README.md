@@ -302,7 +302,8 @@ python -m pytest tests/ -q
 The suite passes cleanly. It covers API behavior, CSRF, rate limiting,
 ownership checks, privacy rules, ranking, XSS, analytics validation,
 authentication flows, SEO endpoints, and frontend rendering through a
-Node-based DOM harness (skipped when Node.js is unavailable).
+Node-based DOM harness (skipped when Node.js is unavailable). See
+[docs/troubleshooting.md](docs/troubleshooting.md) for local troubleshooting tips.
 
 ## API
 

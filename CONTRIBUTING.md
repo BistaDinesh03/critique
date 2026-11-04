@@ -1,4 +1,4 @@
-﻿# Contributing to Critique
+# Contributing to Critique
 
 Thanks for your interest in contributing! Critique is meant to be simple and
 maintainable.
@@ -31,7 +31,8 @@ uvicorn app.main:app --reload
 
 Open http://127.0.0.1:8000. Authentication providers are optional for local
 browsing — see [docs/github-oauth-setup.md](docs/github-oauth-setup.md) if
-your change needs signed-in flows.
+your change needs signed-in flows. For common local setup issues and solutions,
+see [docs/troubleshooting.md](docs/troubleshooting.md).
 
 ### Run the tests
 
