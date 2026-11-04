@@ -2,6 +2,24 @@
    Critique Design System
    ============================================ */
 
+.skip-link {
+    position: fixed;
+    top: var(--space-3);
+    left: var(--space-3);
+    z-index: 2000;
+    transform: translateY(-200%);
+    padding: var(--space-2) var(--space-4);
+    background: var(--surface);
+    color: var(--text-primary);
+    border-radius: var(--radius-sm);
+}
+
+.skip-link:focus {
+    transform: translateY(0);
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+}
+
 :root {
     /* Colors */
     --background: #fafafa;
