@@ -1,4 +1,4 @@
-﻿// Critique UI Utilities
+// Critique UI Utilities
 // Shared toast and modal system
 
 var CritiqueUI = (function() {
@@ -399,12 +399,20 @@ var CritiqueUI = (function() {
                     })
                 });
                 if (response.ok) {
-                    trackAuthEvent('email_verification_sent', context);
-                    // Count the attempt on the same rule as GitHub: GitHub
-                    // fires login_started when the visitor is handed to the
-                    // provider, so email fires it when the provider confirms
-                    // the sign-in link was accepted. Failed sends emit neither.
-                    trackAuthEvent('login_started', context);
+                    var data = null;
+                    try {
+                        data = await response.json();
+                    } catch (e) {
+                        data = null;
+                    }
+                    if (data && data.sent === true) {
+                        trackAuthEvent('email_verification_sent', context);
+                        // Count the attempt on the same rule as GitHub: GitHub
+                        // fires login_started when the visitor is handed to the
+                        // provider, so email fires it when the provider confirms
+                        // the sign-in link was accepted. Failed sends emit neither.
+                        trackAuthEvent('login_started', context);
+                    }
                     // Success is only shown after the backend confirmed the
                     // request; the endpoint always answers generically, so this
                     // never reveals whether an account exists.
@@ -547,6 +555,15 @@ var CritiqueUI = (function() {
                     })
                 });
                 if (response.ok) {
+                    var resData = null;
+                    try {
+                        resData = await response.json();
+                    } catch (e) {
+                        resData = null;
+                    }
+                    if (resData && resData.sent === true) {
+                        trackAuthEvent('email_verification_sent', context);
+                    }
                     lastSentAt = Date.now();
                     status.textContent = 'A new sign-in link is on its way. Check your inbox.';
                     paintCooldown();
