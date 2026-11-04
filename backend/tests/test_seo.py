@@ -1,4 +1,4 @@
-﻿from fastapi.testclient import TestClient
+from fastapi.testclient import TestClient
 import pytest
 
 from app.config import settings
@@ -66,3 +66,21 @@ def test_sitemap_does_not_include_private_pages():
     assert "/my-projects" not in text
     assert "/api/" not in text
     assert "/auth/" not in text
+
+
+def test_feed_xml_returns_200():
+    response = client.get("/feed.xml")
+    assert response.status_code == 200
+    assert "application/rss+xml" in response.headers["content-type"]
+
+
+def test_feed_xml_is_valid_rss():
+    import xml.etree.ElementTree as ET
+    response = client.get("/feed.xml")
+    root = ET.fromstring(response.text)
+    assert root.tag == "rss"
+    assert root.attrib.get("version") == "2.0"
+    channel = root.find("channel")
+    assert channel is not None
+    assert channel.find("title") is not None
+    assert channel.find("link") is not None
