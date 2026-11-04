@@ -572,3 +572,22 @@ def test_sign_in_events_fire_only_on_a_real_return(tmp_path):
     # the session is still anonymous, it lands on the gate again as designed.
     assert len(events(returned, "feedback_submit_attempt")) == 1
     assert events(returned, "feedback_submit_error") == []
+
+
+def test_feedback_form_has_progress_indicator(tmp_path):
+    """The feedback form displays an accessible progress indicator (fixes #329)."""
+    fetch = {
+        "/api/projects/1": {"status": 200, "body": PROJECT},
+    }
+    result = run(
+        tmp_path,
+        "project_detail.html",
+        [{"fn": "renderProject", "args": [PROJECT, []]}],
+        fetch=fetch,
+        location="/project/1",
+        read={"byId": "content"},
+    )
+    assert 'role="progressbar"' in result["html"]
+    assert 'aria-label="Feedback progress"' in result["html"]
+    assert 'aria-valuenow="0"' in result["html"]
+    assert "Step 0 of 3 completed" in result["html"]
