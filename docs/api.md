@@ -99,7 +99,7 @@ else is ignored.
 
 | Method | Path | Notes |
 |---|---|---|
-| GET | `/api/stats` | Public aggregate site statistics. |
+| GET | `/api/stats` | Public aggregate site statistics (`total_builders`, `total_projects`, `total_questions`, `total_responses`, and recent builders). |
 
 ## Analytics — `/api/analytics`
 
