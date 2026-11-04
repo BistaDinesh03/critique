@@ -361,6 +361,18 @@ def test_verify_expired_token_rejected(client):
         _cleanup_tokens_by_email(email)
 
 
+@pytest.mark.parametrize("verify_path", [
+    "/auth/email/verify",
+    "/auth/email/verify?token=",
+    "/auth/email/verify?token=this_is_not_a_valid_token",
+])
+def test_verify_missing_empty_or_invalid_token_redirects(client, verify_path):
+    """Missing or empty token returns the designed friendly redirect instead of 422 JSON."""
+    r = client.get(verify_path)
+    assert r.status_code in (302, 303, 307)
+    assert "error=email_link" in r.headers["location"]
+
+
 def test_verify_invalid_token_rejected(client):
     r = client.get("/auth/email/verify?token=this_is_not_a_valid_token")
     assert r.status_code in (302, 303, 307)

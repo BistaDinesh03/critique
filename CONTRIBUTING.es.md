@@ -105,6 +105,35 @@ Critique evita la complejidad a propósito. Antes de añadir algo, pregúntate:
 - Enlaza cualquier issue relacionado
 - Sé respetuoso y paciente
 
+## Bienvenidos nuevos contribuyentes
+
+¡Gracias por tu interés en contribuir a Critique!
+
+Antes de comenzar, deja un comentario en el issue para que podamos confirmar que sigue disponible. Te ayudaremos a comprender la implementación y revisaremos tu contribución.
+
+Agradecemos cada contribución significativa, ya sea código, pruebas, documentación o comentarios.
+
+### Lista de verificación para la primera contribución
+
+1. Lee [README.es.md](README.es.md) y echa un vistazo a [docs/first-contributors.md](docs/first-contributors.md).
+2. Elige un issue de la lista [Buenos issues para contribuir](README.es.md#good-issues-to-contribute).
+3. Comenta en el issue para reclamarlo (el mantenimiento confirmará la disponibilidad).
+4. Haz fork, crea una rama, implementa los cambios y añade pruebas.
+5. Ejecuta la suite de pruebas correspondiente y `git diff --check`.
+6. Abre una solicitud de incorporación vinculando el issue, describiendo qué cambió y por qué.
+
+### Plantilla de bienvenida para mantenedores
+
+Cuando un nuevo contribuyente abra su primer issue o PR, responde con:
+
+> ¡Gracias por tu interés en contribuir a Critique!
+>
+> Antes de comenzar, deja un comentario en el issue para que podamos confirmar que sigue disponible. Te ayudaremos a comprender la implementación y revisaremos tu contribución.
+>
+> Agradecemos cada contribución significativa, ya sea código, pruebas, documentación o comentarios.
+
+No prometas revisiones instantáneas ni tiempos de respuesta poco realistas.
+
 ## Encuentra algo en lo que trabajar
 
 Los issues abiertos con la etiqueta
@@ -159,6 +188,37 @@ No hay costo para participar, nunca se pide ningún pago, y no se necesita infor
 personal más allá de una cuenta de GitHub. Nada en GitHub puede verificar que hayas
 usado el sitio, y no te pediremos que lo demuestres — ese paso existe para ayudarte,
 no para vigilarte.
+
+## Para mantenedores: revisar una solicitud de incorporación
+
+Las revisiones se ejecutan con un solo comando desde un clon local del repositorio:
+
+```bash
+python scripts/review_pr.py 123                      # revisar y generar informe únicamente
+python scripts/review_pr.py 123 --request-changes    # también publicar la revisión
+python scripts/review_pr.py 123 --merge              # fusionar solo si se superan todas las puertas
+```
+
+El comportamiento predeterminado no es destructivo: lee la solicitud de incorporación, analiza las diferencias, ejecuta la suite de pruebas en un clon desechable con un entorno limpio y muestra un informe. Nunca envía código a la rama del contribuyente, nunca modifica un fork y nunca fusiona sin `--merge`. Esta opción no omite las comprobaciones fallidas: una solicitud con una comprobación fallida, un bloqueo no resuelto o una aprobación faltante es rechazada, y el informe indica qué puerta falló y por qué.
+
+Cada informe finaliza con `READY`, `CHANGES_REQUESTED` o `BLOCKED`, seguido de las puertas de fusión como lista de verificación. La integración continua y la protección de la rama principal (`main`) están activas en el repositorio: cada solicitud ejecuta la comprobación obligatoria `test` a través de GitHub Actions, y `main` requiere comprobaciones superadas, alineación estricta con la rama principal, 1 aprobación y resolución de conversaciones. `--merge` hace cumplir estas puertas y rechaza la fusión si no se satisfacen todos los requisitos.
+
+Uso completo, significado de cada comprobación y limitaciones:
+[docs/pull-request-review.md](docs/pull-request-review.md).
+
+El flujo de trabajo complementario —encontrar trabajo no reclamado, asignar un issue a quien lo haya solicitado, verificar issues vinculados y cerrar y agradecer tras la confirmación de la fusión— está gestionado por `scripts/contributor.py`:
+
+```
+python scripts/contributor.py triage                    # ¿en qué se puede trabajar?
+python scripts/contributor.py assign 30 --user USERNAME # solo si lo solicitaron
+python scripts/contributor.py review 57                 # solo lectura, añade contexto del issue
+python scripts/contributor.py finalize 57 --merge       # fusionar, cerrar y agradecer
+```
+
+Uso completo:
+[docs/contributor-workflow.md](docs/contributor-workflow.md).
+
+Para la lista de verificación de revisión específica del proyecto, consulta la [Maintainer Pull Request Review Checklist](docs/maintainer-guide.md).
 
 ## Comunicación
 

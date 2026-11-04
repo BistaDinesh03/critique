@@ -519,7 +519,7 @@ def email_start(
 
 @router.get("/email/verify")
 def email_verify(
-    token: str,
+    token: Optional[str] = None,
     db: Session = Depends(get_db),
     _: None = Depends(rate_limit("email_login_verify")),
 ):
