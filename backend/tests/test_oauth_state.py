@@ -10,6 +10,7 @@ Design notes:
 """
 
 import uuid
+from http.cookies import SimpleCookie
 from urllib.parse import parse_qs, quote, urlparse
 
 import pytest
@@ -186,6 +187,25 @@ def test_callback_with_correct_state_succeeds(client, github):
     assert check.json()["authenticated"] is True
 
 
+@pytest.mark.parametrize("secure", [False, True])
+def test_github_callback_session_cookie_attributes(monkeypatch, github, secure):
+    monkeypatch.setattr(auth_module.settings, "SESSION_COOKIE_SECURE", secure)
+    client = TestClient(app, base_url="https://testserver", follow_redirects=False)
+    _, state, _ = start_login(client)
+    response = callback(client, state=state)
+    assert response.status_code in (302, 307)
+
+    cookie = SimpleCookie()
+    for header in response.headers.get_list("set-cookie"):
+        cookie.load(header)
+    assert auth_module.SESSION_COOKIE_NAME in cookie
+    session_cookie = cookie[auth_module.SESSION_COOKIE_NAME]
+    assert session_cookie["httponly"]
+    assert session_cookie["samesite"] == "lax"
+    assert bool(session_cookie["secure"]) is secure
+    assert session_cookie["path"] == "/"
+
+
 def test_state_cookie_is_httponly_and_same_site_lax(client, github):
     response = client.get("/auth/login", follow_redirects=False)
     set_cookie = ";".join(
@@ -250,7 +270,8 @@ def test_unsigned_attacker_supplied_state_cookie_is_rejected(client, github):
     because a cookie carrying it is present (cookie-tossing defense)."""
     _, state, _ = start_login(client)
     # Attacker overwrites the cookie with the raw state, unsigned.
-    client.cookies.set(OAUTH_STATE_COOKIE_NAME, state)
+    del client.cookies[OAUTH_STATE_COOKIE_NAME]
+    client.cookies[OAUTH_STATE_COOKIE_NAME] = state
 
     response = callback(client, state=state)
     assert response.status_code == 400

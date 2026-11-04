@@ -10,6 +10,7 @@ Design notes:
 import hashlib
 import uuid
 from datetime import datetime, timedelta, timezone
+from http.cookies import SimpleCookie
 
 import pytest
 from fastapi.testclient import TestClient
@@ -426,6 +427,28 @@ def test_verify_drops_unsafe_return_to_at_insert(client, return_to):
         r = client.get(f"/auth/email/verify?token={raw}")
         assert r.status_code in (302, 303, 307)
         assert r.headers["location"] == "/"
+    finally:
+        _cleanup_tokens_by_email(email)
+        _cleanup_user_by_email(email)
+
+
+@pytest.mark.parametrize("secure", [False, True])
+def test_email_verify_session_cookie_attributes(client, monkeypatch, secure):
+    monkeypatch.setattr(settings, "SESSION_COOKIE_SECURE", secure)
+    email = _unique_email()
+    raw = _insert_token(email)
+    try:
+        r = client.get(f"/auth/email/verify?token={raw}")
+        assert r.status_code in (302, 303, 307)
+        cookie = SimpleCookie()
+        for header in r.headers.get_list("set-cookie"):
+            cookie.load(header)
+        assert auth_module.SESSION_COOKIE_NAME in cookie
+        session_cookie = cookie[auth_module.SESSION_COOKIE_NAME]
+        assert session_cookie["httponly"]
+        assert session_cookie["samesite"] == "lax"
+        assert bool(session_cookie["secure"]) is secure
+        assert session_cookie["path"] == "/"
     finally:
         _cleanup_tokens_by_email(email)
         _cleanup_user_by_email(email)
