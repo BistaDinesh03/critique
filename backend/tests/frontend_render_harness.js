@@ -47,6 +47,21 @@ function serializeText(value) {
     .replace(/>/g, '&gt;');
 }
 
+function serializeNode(node) {
+  if (!node || !node.tagName) return serializeText(node && node.nodeValue || '');
+
+  const attributes = Object.keys(node.attributes || {})
+    .filter((name) => name !== 'class' && name !== 'id')
+    .map((name) => ` ${name}="${String(node.attributes[name]).replace(/&/g, '&amp;').replace(/"/g, '&quot;')}"`)
+    .join('');
+  const id = node.id ? ` id="${String(node.id).replace(/&/g, '&amp;').replace(/"/g, '&quot;')}"` : '';
+  const className = node.className
+    ? ` class="${String(node.className).replace(/&/g, '&amp;').replace(/"/g, '&quot;')}"`
+    : '';
+  const tagName = node.tagName.toLowerCase();
+  return `<${tagName}${id}${className}${attributes}>${node.innerHTML}</${tagName}>`;
+}
+
 function detachChildren(el) {
   (el.children || []).forEach((child) => {
     if (child) child.parentNode = null;
@@ -208,7 +223,8 @@ function makeElement(tagName, created) {
       configurable: true,
       enumerable: true,
       get() {
-        return state.html !== null ? state.html : serializeText(state.text);
+        const content = state.html !== null ? state.html : serializeText(state.text);
+        return content + el.children.map(serializeNode).join('');
       },
       set(value) {
         state.html = value === null || value === undefined ? '' : String(value);
