@@ -101,6 +101,35 @@ Critique 刻意避免复杂性。在添加任何东西之前，先问自己：
 - 关联相关 issue
 - 保持尊重与耐心
 
+## 欢迎新贡献者
+
+感谢你对为 Critique 做出贡献的兴趣！
+
+在开始之前，请在 issue 下发表评论，以便我们确认该任务仍然可用。我们将帮助你理解实现并审查你的贡献。
+
+无论是代码、测试、文档还是反馈，我们都由衷感谢每一份有意义的贡献。
+
+### 首次贡献检查清单
+
+1. 阅读 [README.zh-CN.md](README.zh-CN.md) 并浏览 [docs/first-contributors.md](docs/first-contributors.md)。
+2. 从 [适合贡献的 issue](README.zh-CN.md#good-issues-to-contribute) 列表中挑选一个任务。
+3. 在 issue 下评论认领（维护者将确认是否可用）。
+4. Fork 仓库、新建分支、实现功能并添加测试。
+5. 运行相关测试套件和 `git diff --check`。
+6. 提交 Pull Request，关联对应 issue 并说明修改内容及原因。
+
+### 维护者欢迎回复模板
+
+当新贡献者提交第一个 issue 或 PR 时，请回复：
+
+> 感谢你对为 Critique 做出贡献的兴趣！
+>
+> 在开始之前，请在 issue 下发表评论，以便我们确认该任务仍然可用。我们将帮助你理解实现并审查你的贡献。
+>
+> 无论是代码、测试、文档还是反馈，我们都由衷感谢每一份有意义的贡献。
+
+请勿承诺即时审查或不切实际的响应时间。
+
 ## 找点事情做
 
 带有 [`good first issue`](https://github.com/BistaDinesh03/critique/labels/good%20first%20issue)
@@ -143,6 +172,37 @@ Critique 是一个由构建者提出一个专注问题、其他人来回答的�
 参与没有费用，从不要求付费，除 GitHub 账号外也不需要任何个人信息。GitHub 上
 没有任何东西能验证你是否用过该网站，我们也不会要求你证明 —— 这一步是为了帮助你，
 而不是审查你。
+
+## 维护者指引：评审 Pull Request
+
+在本地克隆的仓库中，只需一条命令即可运行评审：
+
+```bash
+python scripts/review_pr.py 123                      # 仅评审与报告
+python scripts/review_pr.py 123 --request-changes    # 同时发布评审意见
+python scripts/review_pr.py 123 --merge              # 仅在所有关卡通过后合并
+```
+
+默认行为是非破坏性的：它读取 pull request、分析 diff、在剥离环境变量的临时克隆中运行测试套件，并输出报告。它绝不会向贡献者的分支推送代码，绝不修改 fork，并且没有 `--merge` 参数时绝不执行合并。该参数不会强行绕过未通过的检查 —— 存在失败检查、未解决阻塞项或缺少批准的 PR 都会被拒绝，并在报告中指明原因。
+
+每份报告以 `READY`、`CHANGES_REQUESTED` 或 `BLOCKED` 结尾，随后以检查清单形式列出合并关卡。持续集成与默认分支（`main`）保护已在仓库中配置生效：每个 PR 均通过 GitHub Actions 运行必需的 `test` 检查，且 `main` 分支要求通过状态检查、保持分支最新、至少 1 个批准以及解决所有会话讨论。`--merge` 严格执行这些关卡，在任何要求未满足时均拒绝合并。
+
+完整用法、各检查含义及局限性请参阅：
+[docs/pull-request-review.md](docs/pull-request-review.md)。
+
+周边工作流程 —— 寻找未认领的任务、将 issue 分配给提出申请的用户、检查 PR 关联的 issue，并在确认合并后关闭 issue 并致谢 —— 均由 `scripts/contributor.py` 处理：
+
+```
+python scripts/contributor.py triage                    # 查看可处理的任务
+python scripts/contributor.py assign 30 --user USERNAME # 仅在用户申请后分配
+python scripts/contributor.py review 57                 # 只读，补充 issue 背景
+python scripts/contributor.py finalize 57 --merge       # 合并、关闭并致谢
+```
+
+完整工作流程说明请参阅：
+[docs/contributor-workflow.md](docs/contributor-workflow.md)。
+
+有关特定于本项目的评审检查清单，请参阅 [Maintainer Pull Request Review Checklist](docs/maintainer-guide.md)。
 
 ## 沟通
 
