@@ -250,6 +250,7 @@ def test_unsigned_attacker_supplied_state_cookie_is_rejected(client, github):
     because a cookie carrying it is present (cookie-tossing defense)."""
     _, state, _ = start_login(client)
     # Attacker overwrites the cookie with the raw state, unsigned.
+    client.cookies.clear()
     client.cookies.set(OAUTH_STATE_COOKIE_NAME, state)
 
     response = callback(client, state=state)
