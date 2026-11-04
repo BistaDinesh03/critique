@@ -1,4 +1,4 @@
-﻿import os
+import os
 import shutil
 from pathlib import Path
 
@@ -8,6 +8,7 @@ from pathlib import Path
 _BACKEND_DIR = Path(__file__).resolve().parent.parent
 _TEST_DB_PATH = _BACKEND_DIR / "critique_test.db"
 os.environ["DATABASE_URL"] = "sqlite:///" + _TEST_DB_PATH.as_posix()
+os.environ.setdefault("GITHUB_CLIENT_ID", "ci-test-client-id")
 
 import pytest
 import uuid
