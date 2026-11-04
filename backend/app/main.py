@@ -4,7 +4,7 @@ from typing import Annotated
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.exception_handlers import http_exception_handler
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -186,6 +186,16 @@ def google_verification():
     if not file_path.is_file():
         raise HTTPException(status_code=404, detail="Verification file not found")
     return HTMLResponse(content=file_path.read_text(encoding="utf-8"))
+
+
+@app.get("/.well-known/security.txt", response_class=PlainTextResponse)
+def security_txt():
+    """Serve RFC 9116 security.txt contact and disclosure policy."""
+    static_dir = Path(__file__).resolve().parent.parent.parent / "static"
+    file_path = static_dir / ".well-known" / "security.txt"
+    if not file_path.is_file():
+        raise HTTPException(status_code=404, detail="security.txt not found")
+    return PlainTextResponse(content=file_path.read_text(encoding="utf-8"), media_type="text/plain")
 
 
 @app.get("/health")
