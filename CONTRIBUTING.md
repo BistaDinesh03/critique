@@ -1,4 +1,4 @@
-﻿# Contributing to Critique
+# Contributing to Critique
 
 Thanks for your interest in contributing! Critique is meant to be simple and
 maintainable.
@@ -253,6 +253,10 @@ before the merge is confirmed, or send a second message. Full usage:
 [docs/contributor-workflow.md](docs/contributor-workflow.md).
 
 For the project-specific review checklist, see the [Maintainer Pull Request Review Checklist](docs/maintainer-guide.md).
+
+## Code of Conduct
+
+This project and everyone participating in it is governed by the [Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code.
 
 ## Communication
 

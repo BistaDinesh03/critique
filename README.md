@@ -439,7 +439,7 @@ Contributors are also encouraged to spend a little time using Critique
 itself — submitting a project or giving feedback — before their first pull
 request. [CONTRIBUTING.md](CONTRIBUTING.md) explains the guideline and its
 exceptions; it is a way to understand the product, not a barrier to
-contributing.
+contributing. Participation is governed by the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Open source
 
