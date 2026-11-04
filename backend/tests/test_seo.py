@@ -1,4 +1,4 @@
-﻿from fastapi.testclient import TestClient
+from fastapi.testclient import TestClient
 import pytest
 
 from app.config import settings
@@ -66,3 +66,16 @@ def test_sitemap_does_not_include_private_pages():
     assert "/my-projects" not in text
     assert "/api/" not in text
     assert "/auth/" not in text
+
+
+def test_project_detail_has_open_graph_meta_tags():
+    from pathlib import Path
+    path = Path(__file__).resolve().parent.parent.parent / "frontend" / "project_detail.html"
+    content = path.read_text(encoding="utf-8")
+    assert '<meta property="og:type" content="article">' in content
+    assert '<meta property="og:title" id="og-title" content="Project — Critique">' in content
+    assert '<meta property="og:description" id="og-desc"' in content
+    assert '<meta property="og:image" id="og-image"' in content
+    assert '<meta property="og:site_name" content="Critique">' in content
+    assert "ogTitle.content = p.title + ' — Critique'" in content
+
