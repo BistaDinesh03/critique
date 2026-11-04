@@ -271,7 +271,7 @@ never commit real credentials.
 
 | Variable | Purpose | Default / notes |
 |---|---|---|
-| `APP_ENV` | `development` or `production` | `development` |
+| `APP_ENV` | Environment identifier | `development`. Feeds `settings.is_production`, which currently has no active runtime callers outside enforcing non-empty `SECRET_KEY` on startup; reserved for future production-only behavior (such as HSTS in [#45](https://github.com/BistaDinesh03/critique/issues/45)). |
 | `APP_URL` | Public base URL | `http://127.0.0.1:8000` |
 | `SECRET_KEY` | Signs session tokens and OAuth state | Required in production (the app refuses to start without it); outside production, an unset value uses a random per-process key, so sessions do not survive a restart. Generate: `python -c "import secrets; print(secrets.token_hex(32))"` |
 | `DATABASE_URL` | Database connection string | `sqlite:///./critique.db`; use PostgreSQL in production |
