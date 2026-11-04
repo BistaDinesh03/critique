@@ -1,4 +1,4 @@
-﻿import httpx
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.responses import RedirectResponse, JSONResponse
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
@@ -519,7 +519,7 @@ def email_start(
 
 @router.get("/email/verify")
 def email_verify(
-    token: str,
+    token: Optional[str] = None,
     db: Session = Depends(get_db),
     _: None = Depends(rate_limit("email_login_verify")),
 ):
@@ -555,10 +555,11 @@ def email_verify(
     # Find or create the user.
     user = db.query(User).filter(User.email == normalized_email).first()
     if not user:
-        # Synthetic username derived from SHA-256 of normalized email.
+        # Synthetic username derived from HMAC-SHA256 of normalized email keyed with SECRET_KEY.
         # "email_" prefix cannot collide with GitHub logins (GitHub usernames
-        # may only contain alphanumerics and hyphens).
-        synthetic = "email_" + hashlib.sha256(normalized_email.encode("utf-8")).hexdigest()[:16]
+        # may only contain alphanumerics and hyphens). Keyed to prevent account-existence oracles (fixes #199).
+        secret = (settings.SECRET_KEY or "fallback_secret").encode("utf-8")
+        synthetic = "email_" + hmac.new(secret, normalized_email.encode("utf-8"), hashlib.sha256).hexdigest()[:16]
         user = User(
             email=normalized_email,
             username=synthetic,
