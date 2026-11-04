@@ -1,4 +1,4 @@
-﻿// Track page view
+// Track page view
 function trackPageView() {
     var page = window.location.pathname;
     var projectId = getProjectId();
@@ -24,6 +24,7 @@ function trackEvent(eventName, projectId) {
         'feedback_resume',
         'feedback_submit_attempt',
         'feedback_submit_error',
+        'feedback_already_responded',
         'auth_method_selected_github',
         'auth_method_selected_email',
         'email_verification_sent',
