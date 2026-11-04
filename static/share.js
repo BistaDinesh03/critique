@@ -130,8 +130,9 @@ var CritiqueShare = (function() {
             if (!canNativeShare(payload)) {
                 // No sheet will take this: copy the link, exactly as the
                 // Copy link action does, and confirm it the same way.
-                copyText(data.url, 'Link copied');
-                track('share_copy_link', projectId);
+                copyText(data.url, 'Link copied').then(function(success) {
+                    if (success) track('share_copy_link', projectId);
+                });
                 return;
             }
 
@@ -199,8 +200,9 @@ var CritiqueShare = (function() {
         button.title = hint;
         withIcon(button, iconName);
         button.addEventListener('click', function() {
-            copyText(getText(), confirmation);
-            track(eventName, projectId);
+            copyText(getText(), confirmation).then(function(success) {
+                if (success) track(eventName, projectId);
+            });
         });
         return button;
     }
