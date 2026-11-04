@@ -17,7 +17,7 @@ def _resolve_secret_key(app_env: str) -> str:
     production we fall back to a random per-process key so local runs still
     work, with a warning that sessions will not survive a restart.
     """
-    key = os.getenv("SECRET_KEY", "")
+    key = os.getenv("SECRET_KEY", "").strip()
     if key:
         return key
     if app_env.lower() == "production":
