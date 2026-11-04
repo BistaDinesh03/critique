@@ -87,7 +87,7 @@ else is ignored.
 
 | Method | Path | Auth | Notes |
 |---|---|---|---|
-| GET | `.../results` | Optional | `{project_id, project_title, question_text, stats, responses, is_owner}`. `stats` (clarity/would-use aggregates) is public; `responses` (including written suggestions) is populated only for the owner — determined server-side from the session. `404` for unknown projects. |
+| GET | `.../results` | Optional | `{project_id, project_title, question_text, stats, responses, is_owner, discover_impressions, views_count}`. `stats` (clarity/would-use aggregates) is public; `responses` (including written suggestions) as well as `discover_impressions` and `views_count` reach metrics are populated only for the owner — determined server-side from the session. `404` for unknown projects. |
 
 ## Badge — `/badge`
 
