@@ -250,6 +250,7 @@ def test_unsigned_attacker_supplied_state_cookie_is_rejected(client, github):
     because a cookie carrying it is present (cookie-tossing defense)."""
     _, state, _ = start_login(client)
     # Attacker overwrites the cookie with the raw state, unsigned.
+    client.cookies.clear()
     client.cookies.set(OAUTH_STATE_COOKIE_NAME, state)
 
     response = callback(client, state=state)
@@ -559,3 +560,102 @@ def test_email_login_works_while_an_oauth_state_is_pending(client, github):
     assert client.get("/auth/check", follow_redirects=False).status_code == 200
     # The pending OAuth state was left alone by the email flow.
     assert client.cookies.get(OAUTH_STATE_COOKIE_NAME) not in (None, "", '""')
+
+
+# ---------------------------------------------------------------------------
+# 9. Profile sync and username collision handling (Issue #218)
+# ---------------------------------------------------------------------------
+
+
+def test_github_callback_refreshes_username_and_avatar_on_rename(client, github):
+    """When a GitHub user changes username/avatar, next login updates their existing row."""
+    github_id = 900_123_456
+    github.github_id = github_id
+    github.login = "handle_alpha"
+
+    # First login creates row
+    _, state1, _ = start_login(client)
+    res1 = callback(client, state=state1)
+    assert res1.status_code in (302, 307)
+
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.github_id == github_id).first()
+        assert user is not None
+        assert user.username == "handle_alpha"
+        user_id = user.id
+    finally:
+        db.close()
+
+    # User renames on GitHub
+    github.login = "handle_bravo"
+    client2 = TestClient(app, follow_redirects=False)
+    _, state2, _ = start_login(client2)
+    res2 = callback(client2, state=state2)
+    assert res2.status_code in (302, 307)
+
+    db = SessionLocal()
+    try:
+        users = db.query(User).filter(User.github_id == github_id).all()
+        assert len(users) == 1
+        assert users[0].id == user_id
+        assert users[0].username == "handle_bravo"
+    finally:
+        db.close()
+
+
+def test_github_callback_recycled_username_collision_fails_gracefully(client, github):
+    """When GitHub frees an old login and another person signs up with it, handle gracefully."""
+    db = SessionLocal()
+    try:
+        existing = User(github_id=900_999_001, username="recycled_hero")
+        db.add(existing)
+        db.commit()
+    finally:
+        db.close()
+
+    # Different person with different github_id tries to log in with "recycled_hero"
+    github.github_id = 900_999_002
+    github.login = "recycled_hero"
+
+    _, state, _ = start_login(client)
+    res = callback(client, state=state)
+
+    # Must fail gracefully with 400 (not 500 IntegrityError)
+    assert res.status_code == 400
+    assert res.json() == {"detail": "GitHub authentication failed"}
+    assert "critique_session" not in res.cookies
+
+
+def test_github_callback_rename_to_existing_username_preserves_old_handle(client, github):
+    """If user tries to rename to a handle that is already taken by another user, collision is avoided."""
+    db = SessionLocal()
+    try:
+        other_user = User(github_id=900_888_001, username="taken_handle")
+        db.add(other_user)
+        db.commit()
+    finally:
+        db.close()
+
+    user_github_id = 900_888_002
+    github.github_id = user_github_id
+    github.login = "original_handle"
+
+    _, state1, _ = start_login(client)
+    res1 = callback(client, state=state1)
+    assert res1.status_code in (302, 307)
+
+    # Renamed to "taken_handle" on GitHub
+    github.login = "taken_handle"
+    client2 = TestClient(app, follow_redirects=False)
+    _, state2, _ = start_login(client2)
+    res2 = callback(client2, state=state2)
+    assert res2.status_code in (302, 307)
+
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.github_id == user_github_id).first()
+        assert user is not None
+        assert user.username == "original_handle"
+    finally:
+        db.close()
