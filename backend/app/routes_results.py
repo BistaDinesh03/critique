@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from app.database import get_db, in_int64_range
-from app.models import Project, Question, Response, User
+from app.models import Project, Question, Response, User, ProjectView
 from app.schemas import ResponseOwnerOut
 from app.stats import calculate_stats
 from app.auth import get_current_user_optional
@@ -25,6 +26,16 @@ def get_project_results(
 
     # Server-side authorization: use authenticated session, NOT client headers
     is_owner = current_user is not None and project.owner_id == current_user.id
+    discover_impressions = None
+    views_count = None
+    if is_owner:
+        discover_impressions = project.discover_impressions or 0
+        views_count = (
+            db.query(func.count(ProjectView.id))
+            .filter(ProjectView.project_id == project_id)
+            .scalar()
+            or 0
+        )
 
     question = (
         db.query(Question)
@@ -40,6 +51,8 @@ def get_project_results(
             "stats": calculate_stats([]),
             "responses": [],
             "is_owner": is_owner,
+            "discover_impressions": discover_impressions,
+            "views_count": views_count,
         }
 
     responses = (
@@ -72,4 +85,6 @@ def get_project_results(
         "stats": stats,
         "responses": response_out,
         "is_owner": is_owner,
+        "discover_impressions": discover_impressions,
+        "views_count": views_count,
     }

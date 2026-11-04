@@ -174,4 +174,49 @@ def test_results_non_owner_sees_is_owner_false_with_no_active_question():
     cleanup_database()
 
 
+def test_results_owner_receives_reach_metrics_and_non_owner_does_not(auth_client):
+    from fastapi.testclient import TestClient
+    from app.main import app
+    from app.models import ProjectView
+
+    create_resp = create_project(auth_client)
+    project_id = create_resp.json()["project"]["id"]
+
+    db = SessionLocal()
+    try:
+        proj = db.query(Project).filter(Project.id == project_id).first()
+        proj.discover_impressions = 42
+        # Add 2 views
+        v1 = ProjectView(project_id=project_id, user_id=proj.owner_id)
+        v2 = ProjectView(project_id=project_id, user_id=proj.owner_id)
+        db.add_all([v1, v2])
+        db.commit()
+    finally:
+        db.close()
+
+    # Owner response includes reach metrics
+    owner_resp = auth_client.get(f"/api/projects/{project_id}/results")
+    assert owner_resp.status_code == 200
+    owner_data = owner_resp.json()
+    assert owner_data["is_owner"] is True
+    assert owner_data["discover_impressions"] == 42
+    assert owner_data["views_count"] == 2
+
+    # Anonymous / visitor response does not expose reach metrics (None)
+    from app.auth import get_current_user_optional
+    mock_opt = app.dependency_overrides.pop(get_current_user_optional, None)
+    try:
+        anon_client = TestClient(app)
+        anon_resp = anon_client.get(f"/api/projects/{project_id}/results")
+        assert anon_resp.status_code == 200
+        anon_data = anon_resp.json()
+        assert anon_data["is_owner"] is False
+        assert anon_data["discover_impressions"] is None
+        assert anon_data["views_count"] is None
+    finally:
+        if mock_opt:
+            app.dependency_overrides[get_current_user_optional] = mock_opt
+    cleanup_database()
+
+
 
