@@ -296,6 +296,15 @@ out of the repository.
 
 ```bash
 cd backend
+# Any non-empty value works for the OAuth-state contract test
+GITHUB_CLIENT_ID=ci-test-client-id python -m pytest tests/ -q
+```
+
+On Windows (PowerShell):
+
+```powershell
+cd backend
+$env:GITHUB_CLIENT_ID = "ci-test-client-id"
 python -m pytest tests/ -q
 ```
 
