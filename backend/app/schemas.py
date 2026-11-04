@@ -50,14 +50,14 @@ class ProjectCreate(BaseModel):
         v = v.strip()
         if not v:
             return None
-        if any(ch.isspace() or ord(ch) < 32 or ord(ch) == 127 for ch in v):
-            raise ValueError("URL cannot contain whitespace or control characters")
         try:
             parsed = urlsplit(v)
         except Exception:
             raise ValueError("Invalid URL")
         if parsed.scheme not in ("http", "https") or not parsed.netloc:
             raise ValueError("URL must have http or https scheme and a valid host")
+        if any(ch.isspace() or ord(ch) < 32 or ord(ch) == 127 for ch in parsed.netloc):
+            raise ValueError("URL host cannot contain whitespace or control characters")
         if parsed.username or parsed.password:
             raise ValueError("URL cannot contain embedded credentials")
         return v
@@ -71,14 +71,14 @@ class ProjectCreate(BaseModel):
         v = v.strip()
         if not v:
             return None
-        if any(ch.isspace() or ord(ch) < 32 or ord(ch) == 127 for ch in v):
-            raise ValueError("Image URL cannot contain whitespace or control characters")
         try:
             parsed = urlsplit(v)
         except Exception:
             raise ValueError("Invalid image URL")
         if parsed.scheme != "https" or not parsed.netloc:
             raise ValueError("Image URL must use https scheme and have a valid host")
+        if any(ch.isspace() or ord(ch) < 32 or ord(ch) == 127 for ch in parsed.netloc):
+            raise ValueError("Image URL host cannot contain whitespace or control characters")
         if parsed.username or parsed.password:
             raise ValueError("Image URL cannot contain embedded credentials")
         return v
