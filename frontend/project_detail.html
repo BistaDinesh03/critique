@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -326,8 +326,14 @@
         function clarityLabel(v) { return {'very_clear':'Very clear','mostly_clear':'Mostly clear','confusing':'Confusing'}[v] || v; }
         function wouldUseLabel(v) { return {'yes':'Yes','maybe':'Maybe','no':'No'}[v] || v; }
 
+        var currentUserId = null;
+
         function getCurrentUserId() {
-            return localStorage.getItem('user_id') || '';
+            return currentUserId || '';
+        }
+
+        function setCurrentUserId(uid) {
+            currentUserId = uid ? String(uid) : null;
         }
 
         async function loadProject() {
@@ -440,7 +446,8 @@
 
         // ===== Feedback form state persistence =====
         function feedbackStorageKey() {
-            return 'critique_feedback_' + projectId;
+            var uid = getCurrentUserId();
+            return uid ? ('critique_feedback_' + uid + '_' + projectId) : ('critique_feedback_' + projectId);
         }
 
         function saveFeedbackDraft() {
@@ -459,7 +466,11 @@
 
         function restoreFeedbackDraft() {
             try {
-                var raw = sessionStorage.getItem(feedbackStorageKey());
+                var key = feedbackStorageKey();
+                var raw = sessionStorage.getItem(key);
+                if (!raw && getCurrentUserId()) {
+                    raw = sessionStorage.getItem('critique_feedback_' + projectId);
+                }
                 if (!raw) return false;
                 var draft = JSON.parse(raw);
                 if (!draft || typeof draft !== 'object') return false;
@@ -536,7 +547,8 @@
         // not offer the form again (the server would only answer 409), and the
         // next step stays reachable instead of vanishing with a page refresh.
         function feedbackSubmittedKey() {
-            return 'critique_responded_' + projectId;
+            var uid = getCurrentUserId();
+            return uid ? ('critique_responded_' + uid + '_' + projectId) : ('critique_responded_' + projectId);
         }
 
         function markFeedbackSubmitted() {
@@ -547,7 +559,13 @@
 
         function feedbackAlreadySubmitted() {
             try {
-                return sessionStorage.getItem(feedbackSubmittedKey()) === '1';
+                var key = feedbackSubmittedKey();
+                var val = sessionStorage.getItem(key);
+                if (val === '1') return true;
+                if (!getCurrentUserId() && sessionStorage.getItem('critique_responded_' + projectId) === '1') {
+                    return true;
+                }
+                return false;
             } catch (e) {
                 return false;
             }
@@ -868,13 +886,21 @@
             try {
                 const response = await fetch('/auth/check', { credentials: 'same-origin' });
                 if (response.status === 200) {
+                    const data = await response.json();
+                    if (data && data.id) {
+                        setCurrentUserId(data.id);
+                    } else if (data && data.username) {
+                        setCurrentUserId(data.username);
+                    }
                     document.getElementById('login-btn').style.display = 'none';
                     document.getElementById('logout-btn').style.display = 'inline';
                 } else {
+                    setCurrentUserId(null);
                     document.getElementById('login-btn').style.display = 'inline';
                     document.getElementById('logout-btn').style.display = 'none';
                 }
             } catch (e) {
+                setCurrentUserId(null);
                 document.getElementById('login-btn').style.display = 'inline';
                 document.getElementById('logout-btn').style.display = 'none';
             }

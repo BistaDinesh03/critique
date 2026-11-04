@@ -58,7 +58,7 @@ Reporting send failures is separately tracked in [#81](https://github.com/BistaD
 | GET | `/auth/login` | — | — | Starts GitHub OAuth; rate-limited (`auth`). Redirects to GitHub. |
 | GET | `/auth/callback` | — | — | OAuth callback; validates state; rate-limited. Redirects on success/failure. |
 | GET | `/auth/logout` | — | — | Clears session and CSRF cookies; redirects to `/`. |
-| GET | `/auth/check` | Required | — | `{"authenticated": true, "username": "..."}` or `401`. |
+| GET | `/auth/check` | Required | — | `{"authenticated": true, "username": "...", "id": <int>}` or `401`. |
 | GET | `/auth/csrf-token` | — | — | `{"csrf_token": "..."}`; also sets the `critique_csrf` cookie if absent. |
 | POST | `/auth/email/start` | — | Required | Body `{"email": "...", "return_to"?: "/path"}`. Requests a magic link (15-minute, single-use). Always `{"ok": true}` regardless of whether the address exists or sending succeeded. Within the intentional 60-second per-email cooldown, repeat requests return that same success without sending another email. Separately rate-limited per IP (`email_login_start`). |
 | GET | `/auth/email/verify?token=...` | — | — | Consumes the token atomically, sets the session, redirects. Invalid/expired/used tokens redirect to `/?error=email_link`. Rate-limited (`email_login_verify`). |

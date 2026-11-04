@@ -1,4 +1,4 @@
-﻿import httpx
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.responses import RedirectResponse, JSONResponse
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
@@ -410,7 +410,7 @@ def logout():
 @router.get("/check")
 def check_auth(user: User = Depends(get_current_user)):
     """Check if the current user is authenticated."""
-    return {"authenticated": True, "username": user.username}
+    return {"authenticated": True, "username": user.username, "id": user.id}
 
 
 @router.get("/csrf-token")
