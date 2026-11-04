@@ -304,6 +304,10 @@ ownership checks, privacy rules, ranking, XSS, analytics validation,
 authentication flows, SEO endpoints, and frontend rendering through a
 Node-based DOM harness (skipped when Node.js is unavailable).
 
+## Architecture
+
+See [docs/architecture.md](docs/architecture.md) for a comprehensive overview of Critique's system components, data model, and security architecture.
+
 ## API
 
 The JSON API is documented in [docs/api.md](docs/api.md). Major categories:
