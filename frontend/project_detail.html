@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -391,6 +391,7 @@
                     // Three short, numbered steps: the form reads as a task
                     // with an end rather than an open-ended questionnaire.
                     html += '<div class="response-form-card"><form id="response-form">';
+                    html += '<div class="feedback-progress-indicator" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="3" aria-label="Feedback progress"><div class="progress-track" style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-bottom:var(--space-2);"><div class="progress-fill" id="progress-fill" style="width:0%;height:100%;background:var(--accent);transition:width 0.2s ease;"></div></div><div class="progress-label" id="progress-label" style="font-size:var(--text-xs);color:var(--text-secondary);margin-bottom:var(--space-4);">Step 0 of 3 completed</div></div>';
                     html += '<div class="form-section"><h3>1. How clear is it?</h3><div class="radio-cards">';
                     html += '<label class="radio-card"><input type="radio" id="c1" name="clarity" value="very_clear" required onclick="trackFeedbackStart()"><span class="radio-card-label"><span class="radio-card-title">Very clear</span><span class="radio-card-desc">I understood the project quickly.</span></span></label>';
                     html += '<label class="radio-card"><input type="radio" id="c2" name="clarity" value="mostly_clear" onclick="trackFeedbackStart()"><span class="radio-card-label"><span class="radio-card-title">Mostly clear</span><span class="radio-card-desc">I understood it, but needed some explanation.</span></span></label>';
@@ -422,7 +423,11 @@
             }
             content.innerHTML = html;
             const form = document.getElementById('response-form');
-            if (form) form.addEventListener('submit', handleSubmit);
+            if (form) {
+                form.addEventListener('submit', handleSubmit);
+                form.addEventListener('input', updateFeedbackProgress);
+                form.addEventListener('change', updateFeedbackProgress);
+            }
             if (form && !feedbackFormViewedTracked) { feedbackFormViewedTracked = true; window.CritiqueAnalytics.trackEvent('feedback_form_viewed', projectId); }
             if (feedbackAlreadySubmitted()) {
                 showFeedbackSuccessNextStep(document.getElementById('feedback-thanks'));
@@ -430,6 +435,24 @@
             // Restore any saved feedback draft from before OAuth
             maybeRestoreAfterLogin();
             maybeResumeToFeedback();
+        }
+
+        function updateFeedbackProgress() {
+            var indicator = document.querySelector('.feedback-progress-indicator');
+            var fill = document.getElementById('progress-fill');
+            var label = document.getElementById('progress-label');
+            if (!indicator || !fill || !label) return;
+            var clarity = document.querySelector('input[name="clarity"]:checked');
+            var wouldUse = document.querySelector('input[name="would_use"]:checked');
+            var suggestion = document.getElementById('suggestion');
+            var completed = 0;
+            if (clarity) completed++;
+            if (wouldUse) completed++;
+            if (suggestion && suggestion.value && suggestion.value.trim().length > 0) completed++;
+            var pct = Math.round((completed / 3) * 100);
+            indicator.setAttribute('aria-valuenow', String(completed));
+            fill.style.width = pct + '%';
+            label.textContent = 'Step ' + completed + ' of 3 completed';
         }
 
         function trackFeedbackStart() {
@@ -475,6 +498,7 @@
                     var s = document.getElementById('suggestion');
                     if (s) s.value = draft.suggestion;
                 }
+                updateFeedbackProgress();
                 return true;
             } catch (e) {
                 return false;
