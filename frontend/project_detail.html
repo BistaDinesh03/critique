@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -148,13 +148,18 @@
 
         .form-section {
             margin-bottom: var(--space-5);
+            border: 0;
+            padding: 0;
+            min-inline-size: min-content;
         }
 
-        .form-section h3 {
+        .form-section h3,
+        .form-section legend {
             font-size: var(--text-base);
             font-weight: 600;
             margin-bottom: var(--space-3);
             color: var(--text-primary);
+            padding: 0;
         }
 
         .radio-group {
@@ -391,16 +396,16 @@
                     // Three short, numbered steps: the form reads as a task
                     // with an end rather than an open-ended questionnaire.
                     html += '<div class="response-form-card"><form id="response-form">';
-                    html += '<div class="form-section"><h3>1. How clear is it?</h3><div class="radio-cards">';
+                    html += '<fieldset class="form-section"><legend>1. How clear is it?</legend><div class="radio-cards">';
                     html += '<label class="radio-card"><input type="radio" id="c1" name="clarity" value="very_clear" required onclick="trackFeedbackStart()"><span class="radio-card-label"><span class="radio-card-title">Very clear</span><span class="radio-card-desc">I understood the project quickly.</span></span></label>';
                     html += '<label class="radio-card"><input type="radio" id="c2" name="clarity" value="mostly_clear" onclick="trackFeedbackStart()"><span class="radio-card-label"><span class="radio-card-title">Mostly clear</span><span class="radio-card-desc">I understood it, but needed some explanation.</span></span></label>';
                     html += '<label class="radio-card"><input type="radio" id="c3" name="clarity" value="confusing" onclick="trackFeedbackStart()"><span class="radio-card-label"><span class="radio-card-title">Confusing</span><span class="radio-card-desc">I was not sure what it does.</span></span></label>';
-                    html += '</div></div>';
-                    html += '<div class="form-section"><h3>2. Would you use it?</h3><div class="radio-cards">';
+                    html += '</div></fieldset>';
+                    html += '<fieldset class="form-section"><legend>2. Would you use it?</legend><div class="radio-cards">';
                     html += '<label class="radio-card"><input type="radio" id="u1" name="would_use" value="yes" required><span class="radio-card-label"><span class="radio-card-title">Yes</span><span class="radio-card-desc">I would use this.</span></span></label>';
                     html += '<label class="radio-card"><input type="radio" id="u2" name="would_use" value="maybe"><span class="radio-card-label"><span class="radio-card-title">Maybe</span><span class="radio-card-desc">I might use this in some cases.</span></span></label>';
                     html += '<label class="radio-card"><input type="radio" id="u3" name="would_use" value="no"><span class="radio-card-label"><span class="radio-card-title">No</span><span class="radio-card-desc">I would not use this.</span></span></label>';
-                    html += '</div></div>';
+                    html += '</div></fieldset>';
                     html += '<div class="form-section"><h3>3. What would you change? <span style="font-weight:400;color:var(--text-muted);">(optional)</span></h3><textarea class="form-textarea" id="suggestion" maxlength="2000" placeholder="Your honest feedback..."></textarea></div>';
                     html += '<button type="submit" class="btn btn-primary" id="submit-btn" style="width:100%;">Submit feedback</button>';
                     html += '<div class="message" id="message"></div></form></div>';
