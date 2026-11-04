@@ -429,3 +429,36 @@ def test_verify_drops_unsafe_return_to_at_insert(client, return_to):
     finally:
         _cleanup_tokens_by_email(email)
         _cleanup_user_by_email(email)
+
+
+def test_verify_failure_before_commit_preserves_token(client, monkeypatch):
+    """If an error occurs before the atomic commit finishes, the token is not consumed."""
+    email = _unique_email()
+    raw = _insert_token(email)
+    try:
+        def fail_session(*args, **kwargs):
+            raise RuntimeError("Simulated failure before session establishment")
+
+        monkeypatch.setattr("app.auth.create_session_token", fail_session)
+        with pytest.raises(RuntimeError, match="Simulated failure"):
+            client.get(f"/auth/email/verify?token={raw}")
+
+        # Invariant: token's used_at was rolled back and is STILL NULL
+        db = SessionLocal()
+        try:
+            tok = db.query(EmailLoginToken).filter(EmailLoginToken.email == email).first()
+            assert tok is not None
+            assert tok.used_at is None
+        finally:
+            db.close()
+
+        # Retrying with the same token now succeeds cleanly
+        monkeypatch.undo()
+        r = client.get(f"/auth/email/verify?token={raw}")
+        assert r.status_code in (302, 303, 307)
+        set_cookie = "; ".join(r.headers.get_list("set-cookie"))
+        assert "critique_session" in set_cookie
+    finally:
+        _cleanup_tokens_by_email(email)
+        _cleanup_user_by_email(email)
+

@@ -1,8 +1,9 @@
-﻿import httpx
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.responses import RedirectResponse, JSONResponse
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from app.config import settings
 from app.database import get_db
 from app.models import User
@@ -550,38 +551,43 @@ def email_verify(
         return RedirectResponse("/?error=email_link")
 
     token_id, normalized_email, stored_return_to = result
-    db.commit()
 
-    # Find or create the user.
-    user = db.query(User).filter(User.email == normalized_email).first()
-    if not user:
-        # Synthetic username derived from SHA-256 of normalized email.
-        # "email_" prefix cannot collide with GitHub logins (GitHub usernames
-        # may only contain alphanumerics and hyphens).
-        synthetic = "email_" + hashlib.sha256(normalized_email.encode("utf-8")).hexdigest()[:16]
-        user = User(
-            email=normalized_email,
-            username=synthetic,
-        )
-        db.add(user)
-        try:
-            db.commit()
-        except Exception:
-            # Race: another verification created the user. Reload.
-            db.rollback()
-            user = db.query(User).filter(User.email == normalized_email).first()
-            if not user:
-                return RedirectResponse("/?error=email_link")
-        else:
-            db.refresh(user)
+    # Find or create the user within the same atomic transaction so token consumption
+    # commits simultaneously with user creation and session establishment.
+    try:
+        user = db.query(User).filter(User.email == normalized_email).first()
+        if not user:
+            # Synthetic username derived from SHA-256 of normalized email.
+            # "email_" prefix cannot collide with GitHub logins (GitHub usernames
+            # may only contain alphanumerics and hyphens).
+            synthetic = "email_" + hashlib.sha256(normalized_email.encode("utf-8")).hexdigest()[:16]
+            user = User(
+                email=normalized_email,
+                username=synthetic,
+            )
+            db.add(user)
+            try:
+                with db.begin_nested():
+                    db.flush()
+            except IntegrityError:
+                # Race: another concurrent verification created the user. Reload existing user.
+                user = db.query(User).filter(User.email == normalized_email).first()
+                if not user:
+                    db.rollback()
+                    return RedirectResponse("/?error=email_link")
 
-    # Determine redirect target from stored return_to, re-validated.
-    redirect_target = "/"
-    if stored_return_to and _is_safe_return_path(stored_return_to):
-        redirect_target = stored_return_to
+        # Determine redirect target from stored return_to, re-validated.
+        redirect_target = "/"
+        if stored_return_to and _is_safe_return_path(stored_return_to):
+            redirect_target = stored_return_to
 
-    session_token = create_session_token(user.id)
-    csrf_token = generate_csrf_token()
+        session_token = create_session_token(user.id)
+        csrf_token = generate_csrf_token()
+
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
 
     response = RedirectResponse(redirect_target)
     response.set_cookie(
