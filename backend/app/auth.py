@@ -274,6 +274,15 @@ def github_login(
 # consent screen. There is no flash-message system, so the callback reports the
 # outcome through the query string and the homepage turns it into a banner.
 AUTH_CANCELLED_INDICATOR = "/?auth=cancelled"
+AUTH_EXPIRED_INDICATOR = "/?auth=expired"
+
+
+def _oauth_expired_response() -> RedirectResponse:
+    """Friendly outcome for an expired, invalid, or replayed OAuth state."""
+    response = RedirectResponse(AUTH_EXPIRED_INDICATOR, status_code=302)
+    response.delete_cookie(RETURN_TO_COOKIE_NAME)
+    response.delete_cookie(OAUTH_STATE_COOKIE_NAME)
+    return response
 
 
 def _oauth_cancelled_response(remaining: list) -> RedirectResponse:
@@ -318,6 +327,9 @@ async def github_callback(
     # forged, or replayed states are rejected outright.
     pending = _load_pending_states(request.cookies.get(OAUTH_STATE_COOKIE_NAME))
     if not _state_is_valid(pending, state):
+        accept = request.headers.get("accept", "")
+        if "text/html" in accept:
+            return _oauth_expired_response()
         raise HTTPException(status_code=400, detail="Invalid or missing OAuth state")
 
     # Single-use: this state is dropped from the browser's pending list on the
