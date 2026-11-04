@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Annotated
+import uuid
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.exception_handlers import http_exception_handler
@@ -24,6 +25,16 @@ from app.routes_responses import router as responses_router
 from app.routes_results import router as results_router
 from app.routes_seo import router as seo_router
 from app.routes_stats import router as stats_router
+
+
+class RequestIDMiddleware(BaseHTTPMiddleware):
+    """Ensure every request has an X-Request-ID for distributed tracing."""
+    async def dispatch(self, request, call_next):
+        request_id = request.headers.get("X-Request-ID") or uuid.uuid4().hex
+        request.state.request_id = request_id
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = request_id
+        return response
 
 
 class CacheControlMiddleware(BaseHTTPMiddleware):
@@ -59,6 +70,7 @@ app = FastAPI(
 )
 
 app.add_middleware(CacheControlMiddleware)
+app.add_middleware(RequestIDMiddleware)
 
 app.include_router(auth_router)
 app.include_router(projects_router)
