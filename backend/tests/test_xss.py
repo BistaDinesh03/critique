@@ -1,4 +1,4 @@
-﻿from fastapi.testclient import TestClient
+from fastapi.testclient import TestClient
 from app.main import app
 from app.database import SessionLocal
 from app.models import Project, Question, Response, User
@@ -68,13 +68,25 @@ def test_xss_in_suggestion(auth_client):
     }
     response = auth_client.post(f"/api/projects/{project_id}/responses", json=response_payload)
     assert response.status_code == 201
+
+    # Verify stored in database and retrieved accurately
+    with SessionLocal() as db:
+        r = db.query(Response).filter(Response.suggestion == xss_payload).first()
+        assert r is not None
+        assert r.suggestion == xss_payload
+
+    get_resp = auth_client.get(f"/api/projects/{project_id}/results")
+    assert get_resp.status_code == 200
+    resps = get_resp.json()["responses"]
+    assert len(resps) == 1
+    assert resps[0]["suggestion"] == xss_payload
     
     # The suggestion should be stored as-is but escaped on render
     cleanup_database()
 
 
 def test_invalid_url_rejected(auth_client):
-    """Test that invalid URL is rejected."""
+    """Test that invalid URL is rejected and not persisted."""
     reset_rate_limits()
     cleanup_database()
     
@@ -89,12 +101,14 @@ def test_invalid_url_rejected(auth_client):
     }
     response = auth_client.post("/api/projects/", json=payload)
     assert response.status_code == 422
+    with SessionLocal() as db:
+        assert db.query(Project).filter(Project.title == "Invalid URL Test").count() == 0
     
     cleanup_database()
 
 
 def test_long_suggestion_rejected(auth_client):
-    """Test that overly long suggestion is rejected."""
+    """Test that overly long suggestion is rejected and not persisted."""
     reset_rate_limits()
     cleanup_database()
     
@@ -114,12 +128,14 @@ def test_long_suggestion_rejected(auth_client):
     }
     response = auth_client.post(f"/api/projects/{project_id}/responses", json=response_payload)
     assert response.status_code == 422
+    with SessionLocal() as db:
+        assert db.query(Response).count() == 0
     
     cleanup_database()
 
 
 def test_long_title_rejected(auth_client):
-    """Test that overly long title is rejected."""
+    """Test that overly long title is rejected and not persisted."""
     reset_rate_limits()
     cleanup_database()
     
@@ -130,5 +146,7 @@ def test_long_title_rejected(auth_client):
     }
     response = auth_client.post("/api/projects/", json=payload)
     assert response.status_code == 422
+    with SessionLocal() as db:
+        assert db.query(Project).count() == 0
     
     cleanup_database()
