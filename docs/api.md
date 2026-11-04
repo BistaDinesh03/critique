@@ -151,3 +151,116 @@ pointed at the right site.
 | 422 | `{"detail": [...]}` | Pydantic validation failure. |
 | 429 | `{"detail": "Too many requests. Please slow down."}` | Rate limit exceeded. |
 | 500 | `{"detail": "Internal server error"}` | Unhandled error; never leaks stack traces. |
+
+## Usage Examples
+
+### 1. cURL Examples
+
+#### Browse the Discover Feed (Public)
+```bash
+# Fetch the first page of ranked projects (JSON)
+curl -s -H "Accept: application/json" "http://127.0.0.1:8000/api/projects/?page=1&page_size=10"
+```
+
+#### Fetch Project Details
+```bash
+# Retrieve a project and its active question
+curl -s -H "Accept: application/json" "http://127.0.0.1:8000/api/projects/1"
+```
+
+#### Fetch Project Results & Feedback Stats
+```bash
+# Public aggregate feedback statistics
+curl -s -H "Accept: application/json" "http://127.0.0.1:8000/api/projects/1/results"
+```
+
+#### Check Global Application Stats
+```bash
+# Site-wide project and response counters
+curl -s -H "Accept: application/json" "http://127.0.0.1:8000/api/stats"
+```
+
+#### Authenticated Feedback Submission
+State-changing endpoints (`POST`, `DELETE`) require an active session cookie and matching `X-CSRF-Token` header:
+```bash
+# 1. Fetch CSRF token and store session cookies
+curl -s -c cookies.txt "http://127.0.0.1:8000/auth/csrf-token"
+
+# 2. Extract CSRF token value from cookies
+CSRF_TOKEN=$(grep critique_csrf cookies.txt | awk '{print $7}')
+
+# 3. Submit feedback with session cookies and CSRF header
+curl -s -b cookies.txt -X POST "http://127.0.0.1:8000/api/projects/1/responses" \
+  -H "Content-Type: application/json" \
+  -H "X-CSRF-Token: $CSRF_TOKEN" \
+  -d '{
+    "clarity": "very_clear",
+    "would_use": "yes",
+    "suggestion": "Great landing page! Would love to see an interactive demo video."
+  }'
+```
+
+---
+
+### 2. Python Examples
+
+#### Public Client with `urllib` / Standard Library
+```python
+import json
+import urllib.request
+
+BASE_URL = "http://127.0.0.1:8000"
+
+def get_discover_feed(page=1, page_size=10):
+    url = f"{BASE_URL}/api/projects/?page={page}&page_size={page_size}"
+    req = urllib.request.Request(url, headers={"Accept": "application/json"})
+    with urllib.request.urlopen(req) as resp:
+        return json.loads(resp.read().decode())
+
+def get_project_stats(project_id):
+    url = f"{BASE_URL}/api/projects/{project_id}/results"
+    req = urllib.request.Request(url, headers={"Accept": "application/json"})
+    with urllib.request.urlopen(req) as resp:
+        return json.loads(resp.read().decode())
+
+if __name__ == "__main__":
+    feed = get_discover_feed()
+    print(f"Discovered {len(feed)} projects.")
+    if feed:
+        first_id = feed[0]["id"]
+        stats = get_project_stats(first_id)
+        print(f"Stats for project {first_id}:", stats.get("stats"))
+```
+
+#### Client using `requests` (with Session & CSRF)
+```python
+import requests
+
+BASE_URL = "http://127.0.0.1:8000"
+session = requests.Session()
+
+# 1. Initialize session and obtain CSRF cookie
+csrf_resp = session.get(f"{BASE_URL}/auth/csrf-token")
+csrf_token = csrf_resp.json().get("csrf_token")
+session.headers.update({
+    "X-CSRF-Token": csrf_token,
+    "Accept": "application/json",
+})
+
+# 2. Query discover feed
+projects = session.get(f"{BASE_URL}/api/projects/").json()
+print("First project:", projects[0]["title"] if projects else "No projects")
+
+# 3. Submit feedback (when authenticated)
+def submit_feedback(project_id, clarity, would_use, suggestion=""):
+    payload = {
+        "clarity": clarity,
+        "would_use": would_use,
+        "suggestion": suggestion,
+    }
+    response = session.post(
+        f"{BASE_URL}/api/projects/{project_id}/responses",
+        json=payload,
+    )
+    return response.status_code, response.json()
+```
