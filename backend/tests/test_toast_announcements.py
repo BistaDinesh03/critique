@@ -19,7 +19,14 @@ true
 """}
 READ = {'evaluate': "document.getElementById('toast-container').getAttribute('aria-live')", 'as': 'containerLive'}
 
-@pytest.mark.parametrize('status,role,message', [(500, 'alert', 'Could not delete. Try again.'), (204, 'status', 'Project deleted')])
+@pytest.mark.parametrize('status,role,message', [
+    (500, 'alert', "Couldn't reach the server. Try again."),
+    (401, 'alert', 'Session expired. Please sign in again.'),
+    (403, 'alert', 'You can only delete your own projects.'),
+    (404, 'status', 'This project was already deleted.'),
+    (429, 'alert', 'Too many delete requests. Please wait a minute, then try again.'),
+    (204, 'status', 'Project deleted'),
+])
 def test_delete_toast_announcement(tmp_path, status, role, message):
     result = run(tmp_path, 'my_projects.html', [SETUP, {'fn': 'deleteProject', 'args': [7, None]}, {'evaluate': 'new Promise(function(resolve){ setTimeout(resolve, 0); })'}, READ], fetch={'/api/projects/7': {'status': status}, '/api/projects/my/list': {'json': []}})
     toasts = [item for item in result['createdMeta'] if item.get('className', '').startswith('toast toast-')]

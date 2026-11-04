@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -368,13 +368,30 @@
                             success();
                             CritiqueUI.showToast('Project deleted', 'success');
                             loadProjects();
+                        } else if (response.status === 401) {
+                            success();
+                            CritiqueUI.showToast('Session expired. Please sign in again.', 'error');
+                            var content = document.getElementById('my-projects-content');
+                            if (content) {
+                                showLoginRequired(content);
+                            }
+                        } else if (response.status === 403) {
+                            success();
+                            CritiqueUI.showToast('You can only delete your own projects.', 'error');
+                        } else if (response.status === 404) {
+                            success();
+                            CritiqueUI.showToast('This project was already deleted.', 'info');
+                            loadProjects();
+                        } else if (response.status === 429) {
+                            fail();
+                            CritiqueUI.showToast('Too many delete requests. Please wait a minute, then try again.', 'error');
                         } else {
                             fail();
-                            CritiqueUI.showToast('Could not delete. Try again.', 'error');
+                            CritiqueUI.showToast("Couldn't reach the server. Try again.", 'error');
                         }
                     }).catch(function() {
                         fail();
-                        CritiqueUI.showToast('Connection problem', 'error');
+                        CritiqueUI.showToast("Couldn't reach the server. Try again.", 'error');
                     });
                 }
             });
