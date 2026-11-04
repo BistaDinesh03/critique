@@ -1180,6 +1180,11 @@
         <div id="auth-cancelled-banner" class="alert alert-warning" role="status"
              style="display: none; max-width: 72ch; margin-left: auto; margin-right: auto;"></div>
 
+        <!-- Shown on load when the backend redirects here with ?auth=expired
+             (the GitHub OAuth state expired or was invalid). -->
+        <div id="auth-expired-banner" class="alert alert-warning" role="status"
+             style="display: none; max-width: 72ch; margin-left: auto; margin-right: auto;"></div>
+
         <section class="hero">
             <h1>Stop getting "Looks good."</h1>
             <p class="subheadline">Ask one question. Get real answers.</p>
@@ -1683,9 +1688,30 @@
             window.history.replaceState(null, '', window.location.pathname + cleaned + window.location.hash);
         }
 
+        const AUTH_EXPIRED = /[?&]auth=expired(?=&|$)/;
+
+        function showAuthExpiredBanner() {
+            const search = window.location.search || '';
+            if (!AUTH_EXPIRED.test(search)) return;
+
+            const banner = document.getElementById('auth-expired-banner');
+            if (!banner) return;
+
+            banner.style.display = 'block';
+            banner.textContent = "Your sign-in attempt timed out or was interrupted. " +
+                "Please try signing in again.";
+
+            const cleaned = search
+                .replace(AUTH_EXPIRED, '')
+                .replace(/^&/, '?')
+                .replace(/\?$/, '');
+            window.history.replaceState(null, '', window.location.pathname + cleaned + window.location.hash);
+        }
+
         // Run auth check immediately on script load
         checkAuth();
         showAuthCancelledBanner();
+        showAuthExpiredBanner();
         showAuthErrorBanner();
 
         async function loadHomepageProjects() {
