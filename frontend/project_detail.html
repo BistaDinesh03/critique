@@ -274,7 +274,15 @@
     </header>
 
     <main class="container">
-        <a href="/discover" class="back-link">Back to discover</a>
+        <nav aria-label="Breadcrumb" class="breadcrumb-nav">
+            <ol class="breadcrumbs">
+                <li><a href="/">Home</a></li>
+                <li aria-hidden="true" class="breadcrumb-separator">/</li>
+                <li><a href="/discover">Discover</a></li>
+                <li aria-hidden="true" class="breadcrumb-separator">/</li>
+                <li aria-current="page"><span id="breadcrumb-current">Project</span></li>
+            </ol>
+        </nav>
         <div id="content" aria-busy="true">
             <div role="status">
                 <p class="sr-only">Loading project...</p>
@@ -374,6 +382,10 @@
             const content = document.getElementById('content');
             const p = data.project;
             const q = data.question;
+            const bcCurrent = document.getElementById('breadcrumb-current');
+            if (bcCurrent && p && p.title) {
+                bcCurrent.textContent = p.title;
+            }
             let html = '';
             html += '<h1 class="project-title">' + escapeHtml(p.title) + '</h1>';
             // What is being reviewed is stated before anything is asked of the
