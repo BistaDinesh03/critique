@@ -433,3 +433,36 @@ def test_feedback_form_is_lightweight_on_mobile():
     # Same reduction against the roomier desktop rules.
     assert "padding: var(--space-6)" in first_rule_body(source, ".response-form-card")
     assert "padding: var(--space-5)" in first_rule_body(source, ".question-block")
+
+
+def test_project_submit_error_surfaces_human_detail_not_raw_json(tmp_path):
+    """Verify that submit failure displays string detail or human sentence, never JSON.stringify."""
+    # 1. Rate-limited failure (429 string detail)
+    result_429 = run(
+        tmp_path,
+        "index.html",
+        FILL_PROJECT,
+        fetch={
+            HOMEPAGE_URL: {"status": 200, "body": {"total": 0, "items": []}},
+            SUBMIT_URL: {"status": 429, "body": {"detail": "Too many requests. Please slow down."}},
+        },
+    )
+    msg_429 = result_429["ids"]["message"]
+    assert msg_429 == "Too many requests. Please slow down."
+    assert "JSON.stringify" not in msg_429
+    assert '{"detail"' not in msg_429
+
+    # 2. Validation failure (422 array detail falls back to friendly sentence)
+    result_422 = run(
+        tmp_path,
+        "index.html",
+        FILL_PROJECT,
+        fetch={
+            HOMEPAGE_URL: {"status": 200, "body": {"total": 0, "items": []}},
+            SUBMIT_URL: {"status": 422, "body": {"detail": [{"loc": ["body", "title"]}]}},
+        },
+    )
+    msg_422 = result_422["ids"]["message"]
+    assert msg_422 == "Failed to submit project. Please try again."
+    assert "loc" not in msg_422
+    assert "JSON.stringify" not in msg_422
