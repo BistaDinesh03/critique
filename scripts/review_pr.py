@@ -1049,6 +1049,7 @@ def _sanitized_env() -> Dict[str, str]:
     ]
     env = {k: os.environ[k] for k in keep if os.environ.get(k)}
     env["PYTHONIOENCODING"] = "utf-8"
+    env["GITHUB_CLIENT_ID"] = os.environ.get("GITHUB_CLIENT_ID") or "ci-test-client-id"
     for name in ("GITHUB_TOKEN", "GH_TOKEN", "GIT_ASKPASS", "AWS_ACCESS_KEY_ID",
                  "AWS_SECRET_ACCESS_KEY"):
         env.pop(name, None)
