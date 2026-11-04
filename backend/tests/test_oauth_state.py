@@ -12,6 +12,7 @@ Design notes:
 import uuid
 from urllib.parse import parse_qs, quote, urlparse
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
 
@@ -49,10 +50,14 @@ def client():
 
 
 class _FakeResponse:
-    def __init__(self, payload):
+    def __init__(self, payload, json_error=False):
         self._payload = payload
+        self._json_error = json_error
 
     def json(self):
+        if self._json_error:
+            import json
+            raise json.JSONDecodeError("Expecting value", "<html>502 Bad Gateway</html>", 0)
         return self._payload
 
 
@@ -65,13 +70,18 @@ class GithubStub:
         self.login = login
         self.token_calls = []
         self.user_calls = []
+        self.post_exc = None
+        self.get_exc = None
+        self.token_json_error = False
+        self.user_payload = None
+        self.client_kwargs = {}
 
     def install(self, monkeypatch):
         outer = self
 
         class FakeAsyncClient:
             def __init__(self, *args, **kwargs):
-                pass
+                outer.client_kwargs = kwargs
 
             async def __aenter__(self):
                 return self
@@ -81,12 +91,20 @@ class GithubStub:
 
             async def post(self, url, **kwargs):
                 outer.token_calls.append({"url": url, "json": kwargs.get("json")})
+                if outer.post_exc:
+                    raise outer.post_exc
+                if outer.token_json_error:
+                    return _FakeResponse(None, json_error=True)
                 if outer.access_token is None:
                     return _FakeResponse({"error": "bad_verification_code"})
                 return _FakeResponse({"access_token": outer.access_token})
 
             async def get(self, url, **kwargs):
                 outer.user_calls.append({"url": url, "headers": kwargs.get("headers")})
+                if outer.get_exc:
+                    raise outer.get_exc
+                if outer.user_payload is not None:
+                    return _FakeResponse(outer.user_payload)
                 return _FakeResponse(
                     {
                         "id": outer.github_id,
@@ -250,6 +268,7 @@ def test_unsigned_attacker_supplied_state_cookie_is_rejected(client, github):
     because a cookie carrying it is present (cookie-tossing defense)."""
     _, state, _ = start_login(client)
     # Attacker overwrites the cookie with the raw state, unsigned.
+    client.cookies.clear()
     client.cookies.set(OAUTH_STATE_COOKIE_NAME, state)
 
     response = callback(client, state=state)
@@ -559,3 +578,45 @@ def test_email_login_works_while_an_oauth_state_is_pending(client, github):
     assert client.get("/auth/check", follow_redirects=False).status_code == 200
     # The pending OAuth state was left alone by the email flow.
     assert client.cookies.get(OAUTH_STATE_COOKIE_NAME) not in (None, "", '""')
+
+
+# ---------------------------------------------------------------------------
+# 9. GitHub API misbehavior and failure handling (Issue #197)
+# ---------------------------------------------------------------------------
+
+
+def test_github_callback_handles_non_json_token_response(client, github):
+    """HTML 502 or non-JSON from token endpoint takes the handled 400 failure path."""
+    github.token_json_error = True
+    _, state, _ = start_login(client)
+
+    response = callback(client, state=state)
+    assert response.status_code == 400
+    assert response.json() == {"detail": "GitHub authentication failed"}
+    assert "critique_session" not in response.cookies
+    assert client.get("/auth/check", follow_redirects=False).status_code == 401
+    assert github.client_kwargs.get("timeout") == 10.0
+
+
+def test_github_callback_handles_user_payload_without_id(client, github):
+    """GitHub /user error payload without id (e.g. rate limited) takes the handled 400 path."""
+    github.user_payload = {"message": "API rate limit exceeded"}
+    _, state, _ = start_login(client)
+
+    response = callback(client, state=state)
+    assert response.status_code == 400
+    assert response.json() == {"detail": "GitHub authentication failed"}
+    assert "critique_session" not in response.cookies
+    assert client.get("/auth/check", follow_redirects=False).status_code == 401
+
+
+def test_github_callback_handles_transport_network_exception(client, github):
+    """Network failure or timeout during GitHub API exchange returns handled 400."""
+    github.post_exc = httpx.ConnectTimeout("Connection timed out")
+    _, state, _ = start_login(client)
+
+    response = callback(client, state=state)
+    assert response.status_code == 400
+    assert response.json() == {"detail": "GitHub authentication failed"}
+    assert "critique_session" not in response.cookies
+    assert client.get("/auth/check", follow_redirects=False).status_code == 401

@@ -344,34 +344,41 @@ async def github_callback(
     if error or not code:
         return _oauth_cancelled_response(remaining)
 
-    async with httpx.AsyncClient() as client:
-        token_response = await client.post(
-            "https://github.com/login/oauth/access_token",
-            json={
-                "client_id": settings.GITHUB_CLIENT_ID,
-                "client_secret": settings.GITHUB_CLIENT_SECRET,
-                "code": code,
-                "redirect_uri": settings.GITHUB_REDIRECT_URI,
-            },
-            headers={"Accept": "application/json"},
+    def _auth_failed():
+        failure = JSONResponse(
+            status_code=400, content={"detail": "GitHub authentication failed"}
         )
-        token_data = token_response.json()
-        access_token = token_data.get("access_token")
+        _set_pending_states_cookie(failure, remaining)
+        return failure
 
-        if not access_token:
-            # Same status and body as the previous HTTPException, but it also
-            # persists consumption of the accepted state.
-            failure = JSONResponse(
-                status_code=400, content={"detail": "GitHub authentication failed"}
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            token_response = await client.post(
+                "https://github.com/login/oauth/access_token",
+                json={
+                    "client_id": settings.GITHUB_CLIENT_ID,
+                    "client_secret": settings.GITHUB_CLIENT_SECRET,
+                    "code": code,
+                    "redirect_uri": settings.GITHUB_REDIRECT_URI,
+                },
+                headers={"Accept": "application/json"},
             )
-            _set_pending_states_cookie(failure, remaining)
-            return failure
+            token_data = token_response.json()
+            if not isinstance(token_data, dict):
+                return _auth_failed()
+            access_token = token_data.get("access_token")
+            if not access_token:
+                return _auth_failed()
 
-        user_response = await client.get(
-            "https://api.github.com/user",
-            headers={"Authorization": f"Bearer {access_token}"},
-        )
-        github_user = user_response.json()
+            user_response = await client.get(
+                "https://api.github.com/user",
+                headers={"Authorization": f"Bearer {access_token}"},
+            )
+            github_user = user_response.json()
+            if not isinstance(github_user, dict) or "id" not in github_user:
+                return _auth_failed()
+    except (httpx.RequestError, ValueError, KeyError):
+        return _auth_failed()
 
     user = db.query(User).filter(User.github_id == github_user["id"]).first()
     if not user:
@@ -531,7 +538,7 @@ def email_start(
 
 @router.get("/email/verify")
 def email_verify(
-    token: str,
+    token: Optional[str] = None,
     db: Session = Depends(get_db),
     _: None = Depends(rate_limit("email_login_verify")),
 ):
@@ -567,10 +574,11 @@ def email_verify(
     # Find or create the user.
     user = db.query(User).filter(User.email == normalized_email).first()
     if not user:
-        # Synthetic username derived from SHA-256 of normalized email.
+        # Synthetic username derived from HMAC-SHA256 of normalized email keyed with SECRET_KEY.
         # "email_" prefix cannot collide with GitHub logins (GitHub usernames
-        # may only contain alphanumerics and hyphens).
-        synthetic = "email_" + hashlib.sha256(normalized_email.encode("utf-8")).hexdigest()[:16]
+        # may only contain alphanumerics and hyphens). Keyed to prevent account-existence oracles (fixes #199).
+        secret = (settings.SECRET_KEY or "fallback_secret").encode("utf-8")
+        synthetic = "email_" + hmac.new(secret, normalized_email.encode("utf-8"), hashlib.sha256).hexdigest()[:16]
         user = User(
             email=normalized_email,
             username=synthetic,
