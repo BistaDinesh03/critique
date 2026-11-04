@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -333,13 +333,20 @@
         async function loadProject() {
             const content = document.getElementById('content');
             try {
-                const [projectRes, responsesRes] = await Promise.all([
-                    fetch('/api/projects/' + projectId),
-                    fetch('/api/projects/' + projectId + '/responses')
-                ]);
+                const projectRes = await fetch('/api/projects/' + projectId);
                 if (!projectRes.ok) throw new Error('Project not found');
                 const projectData = await projectRes.json();
-                const responses = responsesRes.ok ? await responsesRes.json() : [];
+
+                let responses = [];
+                try {
+                    const responsesRes = await fetch('/api/projects/' + projectId + '/responses');
+                    if (responsesRes.ok) {
+                        responses = await responsesRes.json();
+                    }
+                } catch (err) {
+                    console.warn('Could not load responses:', err);
+                }
+
                 renderProject(projectData, responses);
             } catch (e) {
                 // The placeholder is never the end state: a real message plus a
