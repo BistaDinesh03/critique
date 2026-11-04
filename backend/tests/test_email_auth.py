@@ -429,3 +429,17 @@ def test_verify_drops_unsafe_return_to_at_insert(client, return_to):
     finally:
         _cleanup_tokens_by_email(email)
         _cleanup_user_by_email(email)
+
+
+def test_verify_rate_limit(client):
+    """Magic-link verification is rate limited to protect against brute-force token guessing."""
+    from app.rate_limit import reset_rate_limits
+    reset_rate_limits()
+    ip_headers = {"CF-Connecting-IP": "198.51.100.99"}
+    for _ in range(10):
+        r = client.get("/auth/email/verify?token=guess", headers=ip_headers)
+        assert r.status_code in (302, 303, 307)
+    r = client.get("/auth/email/verify?token=guess", headers=ip_headers)
+    assert r.status_code == 429
+    assert "Too many requests" in r.json()["detail"]
+    reset_rate_limits()

@@ -1,4 +1,4 @@
-﻿import pytest
+import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from app.main import app
@@ -275,3 +275,17 @@ def test_invalid_cf_header_falls_back_to_peer():
         app.dependency_overrides.clear()
     reset_rate_limits()
     cleanup_database()
+
+
+def test_email_login_verify_rate_limited():
+    """Verify endpoint is rate limited to 10 requests per minute to prevent token brute force."""
+    reset_rate_limits()
+    client = TestClient(app)
+    ip_headers = {"CF-Connecting-IP": "198.51.100.42"}
+    for _ in range(10):
+        r = client.get("/auth/email/verify?token=guess_token_attempt", headers=ip_headers, follow_redirects=False)
+        assert r.status_code in (302, 303, 307)
+    r = client.get("/auth/email/verify?token=guess_token_attempt", headers=ip_headers, follow_redirects=False)
+    assert r.status_code == 429
+    assert "Too many requests" in r.json()["detail"]
+    reset_rate_limits()
