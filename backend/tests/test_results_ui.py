@@ -445,3 +445,36 @@ def test_api_failure_renders_the_friendly_error_state(tmp_path):
     assert "bar-track" not in html
     for artifact in ("NaN", "Infinity", "undefined", "[object Object]"):
         assert artifact not in html
+
+
+def test_clarity_filtering_on_results_page(tmp_path):
+    """Owners can filter feedback responses by clarity rating without page reload (fixes #330)."""
+    data = results_data(
+        total=3,
+        clarity={"very_clear": 33.3, "mostly_clear": 33.3, "confusing": 33.3},
+        would_use={"yes": 100.0, "maybe": 0.0, "no": 0.0},
+        owner=True,
+        responses=[
+            {"clarity": "very_clear", "would_use": "yes", "suggestion": "Clear feedback"},
+            {"clarity": "mostly_clear", "would_use": "yes", "suggestion": "Mostly feedback"},
+            {"clarity": "confusing", "would_use": "yes", "suggestion": "Confusing feedback"},
+        ],
+    )
+    html = render_results(tmp_path, data)
+    assert 'class="filter-bar"' in html
+    assert 'aria-label="Filter feedback by clarity"' in html
+    assert "All (3)" in html
+    assert "Very clear (1)" in html
+    assert "Mostly clear (1)" in html
+    assert "Confusing (1)" in html
+    assert 'data-filter="all"' in html
+    assert 'data-filter="very_clear"' in html
+    assert 'data-filter="mostly_clear"' in html
+    assert 'data-filter="confusing"' in html
+    assert 'onclick="filterResponses(\'all\', this)"' in html
+    assert 'onclick="filterResponses(\'very_clear\', this)"' in html
+    assert 'onclick="filterResponses(\'mostly_clear\', this)"' in html
+    assert 'onclick="filterResponses(\'confusing\', this)"' in html
+    assert 'data-clarity="very_clear"' in html
+    assert 'data-clarity="mostly_clear"' in html
+    assert 'data-clarity="confusing"' in html
