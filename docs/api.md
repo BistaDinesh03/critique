@@ -12,10 +12,7 @@ by FastAPI from `frontend/`; everything below returns JSON unless noted.
 - **Authentication** is cookie-based: a session cookie is set when you sign
   in. Endpoints marked *Optional* work signed-out with reduced data; endpoints
   marked *Required* return `401` without a session.
-- **CSRF:** every state-changing request (`POST`, `DELETE`) must include the
-  header `X-CSRF-Token` whose value matches the `critique_csrf` cookie (set
-  with `httponly=False` so JavaScript can read it). Missing or mismatched
-  tokens return `403 {"detail": "Invalid or missing CSRF token"}`.
+- **CSRF:** state-changing mutation requests (`POST /api/projects/`, `DELETE /api/projects/{id}`, `POST .../responses`, `POST /auth/email/start`) must include the header `X-CSRF-Token` whose value matches the `critique_csrf` cookie (set with `httponly=False` so JavaScript can read it). Missing or mismatched tokens return `403 {"detail": "Invalid or missing CSRF token"}`. Lightweight analytics telemetry (`POST /api/analytics/track`) is exempt from CSRF tokens to support browser beacons and unauthenticated event tracking; it is guarded by IP rate limiting (`analytics`) and an allowlist of valid event names.
 - **Rate limiting** is per client IP and endpoint; exceeding a limit returns
   `429 {"detail": "Too many requests. Please slow down."}`.
 - **Validation errors** return `422` (FastAPI/Pydantic) or `400` with a
