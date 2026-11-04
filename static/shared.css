@@ -1,4 +1,4 @@
-﻿/* ============================================
+/* ============================================
    Critique Design System
    ============================================ */
 
@@ -911,6 +911,27 @@ img {
     color: var(--text-primary);
 }
 
+.toast-dismiss {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: var(--text-base);
+    line-height: 1;
+    padding: var(--space-1);
+    margin-left: auto;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.toast-dismiss:hover,
+.toast-dismiss:focus-visible {
+    color: var(--text-primary);
+    background: var(--surface-muted);
+}
+
 /* ============================================
    Modal System
    ============================================ */
@@ -1363,6 +1384,27 @@ img {
 
 .toast-text {
     color: var(--text-primary);
+}
+
+.toast-dismiss {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: var(--text-base);
+    line-height: 1;
+    padding: var(--space-1);
+    margin-left: auto;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.toast-dismiss:hover,
+.toast-dismiss:focus-visible {
+    color: var(--text-primary);
+    background: var(--surface-muted);
 }
 
 /* ============================================
