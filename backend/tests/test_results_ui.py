@@ -441,7 +441,10 @@ def test_api_failure_renders_the_friendly_error_state(tmp_path):
     )
     html = result["html"]
     assert 'class="error-state"' in html
+    assert 'role="alert"' in html
     assert "Something went wrong. Please try again." in html
+    assert "Try again" in html
+    assert "loadResults" in html
     assert "bar-track" not in html
     for artifact in ("NaN", "Infinity", "undefined", "[object Object]"):
         assert artifact not in html
