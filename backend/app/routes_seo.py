@@ -1,4 +1,5 @@
-﻿from fastapi import APIRouter, Depends
+import html
+from fastapi import APIRouter, Depends
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from app.config import settings
@@ -59,3 +60,47 @@ def sitemap_xml(db: Session = Depends(get_db)):
     xml += body + "\n"
     xml += "</urlset>\n"
     return Response(content=xml, media_type="application/xml")
+
+
+@router.get("/feed.xml", response_class=Response)
+def rss_feed(db: Session = Depends(get_db)):
+    projects = (
+        db.query(Project)
+        .order_by(Project.created_at.desc())
+        .limit(50)
+        .all()
+    )
+
+    origin = site_url()
+    items = []
+    for p in projects:
+        title = html.escape(p.title)
+        link = f"{origin}/project/{p.id}"
+        desc = html.escape(p.description or "")
+        pub_date = p.created_at.strftime("%a, %d %b %Y %H:%M:%S GMT") if p.created_at else ""
+        items.append(
+            f"    <item>\n"
+            f"      <title>{title}</title>\n"
+            f"      <link>{link}</link>\n"
+            f"      <guid isPermaLink=\"true\">{link}</guid>\n"
+            f"      <description>{desc}</description>\n"
+            f"      <pubDate>{pub_date}</pubDate>\n"
+            f"    </item>"
+        )
+
+    items_xml = "\n".join(items)
+    if items_xml:
+        items_xml = "\n" + items_xml
+
+    xml = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<rss version="2.0">\n'
+        '  <channel>\n'
+        f'    <title>{html.escape(settings.APP_NAME)}</title>\n'
+        f'    <link>{origin}/discover</link>\n'
+        f'    <description>New projects waiting for feedback on {html.escape(settings.APP_NAME)}</description>\n'
+        f'    <language>en</language>{items_xml}\n'
+        '  </channel>\n'
+        '</rss>\n'
+    )
+    return Response(content=xml, media_type="application/rss+xml")
