@@ -1,4 +1,4 @@
-﻿# Contributing to Critique
+# Contributing to Critique
 
 Thanks for your interest in contributing! Critique is meant to be simple and
 maintainable.
@@ -37,6 +37,14 @@ your change needs signed-in flows.
 
 ```bash
 cd backend
+GITHUB_CLIENT_ID=ci-test-client-id python -m pytest tests/ -q
+```
+
+On Windows (PowerShell):
+
+```powershell
+cd backend
+$env:GITHUB_CLIENT_ID = "ci-test-client-id"
 python -m pytest tests/ -q
 ```
 
