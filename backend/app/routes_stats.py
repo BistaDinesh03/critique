@@ -1,11 +1,24 @@
-﻿from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from urllib.parse import urlparse
+import time
 from app.database import get_db
 from app.models import User, Project
 
 router = APIRouter(prefix="/api", tags=["stats"])
+
+_stats_cache = {
+    "data": None,
+    "expires_at": 0.0,
+}
+STATS_CACHE_TTL = 60.0  # seconds
+
+
+def clear_stats_cache():
+    """Reset stats cache for tests or updates."""
+    _stats_cache["data"] = None
+    _stats_cache["expires_at"] = 0.0
 
 
 def _safe_avatar_url(url):
@@ -36,6 +49,10 @@ def _safe_avatar_url(url):
 @router.get("/stats")
 def get_stats(db: Session = Depends(get_db)):
     """Return real platform stats for social proof."""
+    now = time.time()
+    if _stats_cache["data"] is not None and now < _stats_cache["expires_at"]:
+        return _stats_cache["data"]
+
     total_builders = db.query(func.count(User.id)).scalar()
     total_projects = db.query(func.count(Project.id)).scalar()
 
@@ -53,8 +70,11 @@ def get_stats(db: Session = Depends(get_db)):
         for u in users
     ]
 
-    return {
+    data = {
         "total_builders": total_builders,
         "total_projects": total_projects,
         "builders": builders,
     }
+    _stats_cache["data"] = data
+    _stats_cache["expires_at"] = now + STATS_CACHE_TTL
+    return data
