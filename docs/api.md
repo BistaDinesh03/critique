@@ -12,10 +12,7 @@ by FastAPI from `frontend/`; everything below returns JSON unless noted.
 - **Authentication** is cookie-based: a session cookie is set when you sign
   in. Endpoints marked *Optional* work signed-out with reduced data; endpoints
   marked *Required* return `401` without a session.
-- **CSRF:** every state-changing request (`POST`, `DELETE`) must include the
-  header `X-CSRF-Token` whose value matches the `critique_csrf` cookie (set
-  with `httponly=False` so JavaScript can read it). Missing or mismatched
-  tokens return `403 {"detail": "Invalid or missing CSRF token"}`.
+- **CSRF:** state-changing mutation requests (`POST /api/projects/`, `DELETE /api/projects/{id}`, `POST .../responses`, `POST /auth/email/start`) must include the header `X-CSRF-Token` whose value matches the `critique_csrf` cookie (set with `httponly=False` so JavaScript can read it). Missing or mismatched tokens return `403 {"detail": "Invalid or missing CSRF token"}`. Lightweight analytics telemetry (`POST /api/analytics/track`) is exempt from CSRF tokens to support browser beacons and unauthenticated event tracking; it is guarded by IP rate limiting (`analytics`) and an allowlist of valid event names.
 - **Rate limiting** is per client IP and endpoint; exceeding a limit returns
   `429 {"detail": "Too many requests. Please slow down."}`.
 - **Validation errors** return `422` (FastAPI/Pydantic) or `400` with a
@@ -56,12 +53,12 @@ Reporting send failures is separately tracked in [#81](https://github.com/BistaD
 | Method | Path | Auth | CSRF | Notes |
 |---|---|---|---|---|
 | GET | `/auth/login` | — | — | Starts GitHub OAuth; rate-limited (`auth`). Redirects to GitHub. |
-| GET | `/auth/callback` | — | — | OAuth callback; validates state; rate-limited. Redirects on success/failure. |
+| GET | `/auth/callback` | — | — | OAuth callback; validates single-use state; rate-limited (`auth`). With a valid state and `code`, sets the session and redirects to `return_to` or `/`. When GitHub reports cancellation via `error` (such as `error=access_denied`) or when `code` is omitted, consumes the state, clears `critique_return_to`, and redirects to `/?auth=cancelled` (where the homepage displays a neutral banner). A missing, expired, forged, or replayed state returns `400 {"detail": "Invalid or missing OAuth state"}`. |
 | GET | `/auth/logout` | — | — | Clears session and CSRF cookies; redirects to `/`. |
 | GET | `/auth/check` | Required | — | `{"authenticated": true, "username": "...", "id": <int>}` or `401`. |
 | GET | `/auth/csrf-token` | — | — | `{"csrf_token": "..."}`; also sets the `critique_csrf` cookie if absent. |
 | POST | `/auth/email/start` | — | Required | Body `{"email": "...", "return_to"?: "/path"}`. Requests a magic link (15-minute, single-use). Always `{"ok": true}` regardless of whether the address exists or sending succeeded. Within the intentional 60-second per-email cooldown, repeat requests return that same success without sending another email. Separately rate-limited per IP (`email_login_start`). |
-| GET | `/auth/email/verify?token=...` | — | — | Consumes the token atomically, sets the session, redirects. Invalid/expired/used tokens redirect to `/?error=email_link`. Rate-limited (`email_login_verify`). |
+| GET | `/auth/email/verify?token=...` | — | — | Consumes the token atomically, sets the session, redirects. Missing, empty, invalid, expired, or used tokens redirect to `/?error=email_link`. Rate-limited (`email_login_verify`). |
 
 `return_to` is validated against an allowlist of safe local paths; anything
 else is ignored.
@@ -76,6 +73,28 @@ else is ignored.
 | GET | `/api/projects/{project_id}` | — | — | — | One project with its active question; `404` if not found. |
 | DELETE | `/api/projects/{project_id}` | Required | Required | `project_delete` | Owner-only. `204` on success; `404` if the project does not exist; `403` if you are signed in but not the owner. |
 
+#### Paginated Project Feed Response
+
+`GET /api/projects/` returns a JSON envelope:
+
+```json
+{
+  "items": [...],
+  "total": 42,
+  "page": 1,
+  "page_size": 10,
+  "total_pages": 5
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `items` | array | List of project objects for the current page, deterministically ranked. |
+| `total` | integer | Global count: total number of matching visible projects across all pages. |
+| `page` | integer | Current 1-based page number. |
+| `page_size` | integer | Maximum number of items per page. |
+| `total_pages` | integer | Total available pages (`ceil(total / page_size)`). |
+
 ## Feedback — `/api/projects/{project_id}/responses`
 
 | Method | Path | Auth | CSRF | Rate limit | Notes |
@@ -88,6 +107,7 @@ else is ignored.
 | Method | Path | Auth | Notes |
 |---|---|---|---|
 | GET | `.../results` | Optional | `{project_id, project_title, question_text, stats, responses, is_owner}`. `stats` (clarity/would-use aggregates) is public; `responses` (including written suggestions) is populated only for the owner — determined server-side from the session. `404` for unknown projects. |
+| GET | `.../results.csv` | Required (Owner) | Returns feedback as `text/csv; charset=utf-8` attachment (`Content-Disposition: attachment; filename="project-{id}-feedback.csv"`). Columns: `created_at,clarity,would_use,suggestion`. Cells starting with formula triggers (`=`, `+`, `-`, `@`, `\t`, `\r`) are escaped with a leading single quote to neutralize spreadsheet injection. `401` for anonymous, `403` for non-owners, `404` for unknown projects. |
 
 ## Badge — `/badge`
 
@@ -99,7 +119,7 @@ else is ignored.
 
 | Method | Path | Notes |
 |---|---|---|
-| GET | `/api/stats` | Public aggregate site statistics. |
+| GET | `/api/stats` | Public aggregate site statistics (`total_builders`, `total_projects`, `total_questions`, `total_responses`, and recent builders). |
 
 ## Analytics — `/api/analytics`
 
@@ -131,7 +151,7 @@ pointed at the right site.
 
 | Method | Path | Notes |
 |---|---|---|
-| GET | `/` `/discover` `/my-projects` `/project/{id}` `/project/{id}/results` | HTML pages. A CSRF cookie is issued with each page response. |
+| GET | `/` `/discover` `/my-projects` `/project/{id}` `/project/{id}/results` | HTML pages. A CSRF cookie is issued with each page response. `/?auth=cancelled` renders a neutral notice banner and cleans up the URL query flag. |
 | GET | `/google8ffd0ae5f931d1e6.html` | Google Search Console site-verification file. |
 | GET | `/health` | `{"status": "ok"}` — uptime probe. |
 | GET | `/docs`, `/redoc` | FastAPI-generated API documentation. |
@@ -142,6 +162,7 @@ pointed at the right site.
 | Status | Shape | When |
 |---|---|---|
 | 400 | `{"detail": "Invalid event name"}` | Analytics allowlist rejection. |
+| 400 | `{"detail": "Invalid or missing OAuth state"}` | Missing, expired, forged, or replayed state in `GET /auth/callback`. |
 | 401 | `{"detail": "Not authenticated"}` | Auth required, no session. |
 | 403 | `{"detail": "Invalid or missing CSRF token"}` | Missing/mismatched `X-CSRF-Token`. |
 | 403 | `{"detail": "Not authorized"}` | Signed in but not allowed (e.g., dashboard). |

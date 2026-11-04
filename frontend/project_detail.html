@@ -274,7 +274,15 @@
     </header>
 
     <main class="container">
-        <a href="/discover" class="back-link">Back to discover</a>
+        <nav aria-label="Breadcrumb" class="breadcrumb-nav">
+            <ol class="breadcrumbs">
+                <li><a href="/">Home</a></li>
+                <li aria-hidden="true" class="breadcrumb-separator">/</li>
+                <li><a href="/discover">Discover</a></li>
+                <li aria-hidden="true" class="breadcrumb-separator">/</li>
+                <li aria-current="page"><span id="breadcrumb-current">Project</span></li>
+            </ol>
+        </nav>
         <div id="content" aria-busy="true">
             <div role="status">
                 <p class="sr-only">Loading project...</p>
@@ -380,6 +388,10 @@
             const content = document.getElementById('content');
             const p = data.project;
             const q = data.question;
+            const bcCurrent = document.getElementById('breadcrumb-current');
+            if (bcCurrent && p && p.title) {
+                bcCurrent.textContent = p.title;
+            }
             let html = '';
             html += '<h1 class="project-title">' + escapeHtml(p.title) + '</h1>';
             // What is being reviewed is stated before anything is asked of the
@@ -412,7 +424,11 @@
                     html += '<div class="message" id="message"></div></form></div>';
                 }
                 var details = '';
-                if (p.image_url) { details += '<img class="project-screenshot" src="' + escapeHtml(p.image_url) + '" alt="Screenshot of ' + escapeHtml(p.title) + '" loading="lazy" onerror="this.style.display=\'none\'">'; }
+                if (p.image_url) {
+                    const projectTitle = p.title || 'project';
+                    const altText = 'Screenshot of ' + escapeHtml(projectTitle);
+                    details += '<img class="project-screenshot" src="' + escapeHtml(p.image_url) + '" alt="' + altText + '" loading="lazy" onerror="this.style.display=\'none\'">';
+                }
                 if (p.url) { details += '<a href="' + escapeHtml(p.url) + '" target="_blank" rel="noopener" class="project-url">' + escapeHtml(p.url) + '</a>'; }
                 if (details) { html += '<div class="eyebrow">About this project</div><div class="project-header" style="margin-top: var(--space-5);">' + details + '</div>'; }
                 if (responses.length > 0) {
