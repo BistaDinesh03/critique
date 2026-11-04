@@ -27,9 +27,16 @@ def test_project_detail_route_serves_breadcrumb_navigation():
         db.add(project)
         db.commit()
         project_id = project.id
+        owner_id = owner.id
 
-    client = TestClient(app)
-    response = client.get(f'/project/{project_id}')
-    assert response.status_code == 200
-    assert 'aria-label="Breadcrumb"' in response.text
-    assert 'id="breadcrumb-title"' in response.text
+    try:
+        client = TestClient(app)
+        response = client.get(f'/project/{project_id}')
+        assert response.status_code == 200
+        assert 'aria-label="Breadcrumb"' in response.text
+        assert 'id="breadcrumb-title"' in response.text
+    finally:
+        with SessionLocal() as db:
+            db.query(Project).filter(Project.id == project_id).delete()
+            db.query(User).filter(User.id == owner_id).delete()
+            db.commit()
