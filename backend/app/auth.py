@@ -429,7 +429,7 @@ def logout():
 @router.get("/check")
 def check_auth(user: User = Depends(get_current_user)):
     """Check if the current user is authenticated."""
-    return {"authenticated": True, "username": user.username}
+    return {"authenticated": True, "username": user.username, "id": user.id}
 
 
 @router.get("/csrf-token")
