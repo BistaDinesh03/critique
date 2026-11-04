@@ -1516,7 +1516,7 @@
 
                 <button type="submit" class="btn btn-primary btn-submit" id="submit-btn">Submit for feedback</button>
                 <p class="form-reassurance">Free to use. Human feedback. No AI-generated responses.</p>
-                <div class="message" id="message"></div>
+                <div class="message" id="message" role="alert" aria-live="polite"></div>
             </form>
         </section>
 
@@ -1807,6 +1807,7 @@
         // it and stays completely optional.
         function showProjectLive(data) {
             var msg = document.getElementById('message');
+            if (msg) msg.setAttribute('role', 'status');
             var project = data && data.project;
             if (!project || !project.id || typeof CritiqueShare === 'undefined') {
                 // The 201 still confirms creation even if the body is not the
@@ -1825,6 +1826,7 @@
         function showProjectInlineLoginPrompt(msg, message) {
             msg = msg || document.getElementById('message');
             if (!msg) return;
+            msg.setAttribute('role', 'alert');
             // The prompt re-renders whenever the gate appears again (the submit
             // handler clears #message first) but the analytics event fires only
             // once per page.
@@ -1911,13 +1913,16 @@
                     // the page, so keep the project first.
                     saveProjectDraft();
                     msg.className = 'alert alert-error';
+                    msg.setAttribute('role', 'alert');
                     msg.textContent = 'Session expired. Your project is saved — refresh and try again.';
                 } else {
                     msg.className = 'alert alert-error';
+                    msg.setAttribute('role', 'alert');
                     msg.textContent = 'Error: ' + JSON.stringify(data);
                 }
             } catch (error) {
                 msg.className = 'alert alert-error';
+                msg.setAttribute('role', 'alert');
                 msg.textContent = 'Network error.';
             } finally {
                 const submitBtn = document.getElementById('submit-btn');

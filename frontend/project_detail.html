@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -403,7 +403,7 @@
                     html += '</div></div>';
                     html += '<div class="form-section"><h3>3. What would you change? <span style="font-weight:400;color:var(--text-muted);">(optional)</span></h3><textarea class="form-textarea" id="suggestion" maxlength="2000" placeholder="Your honest feedback..."></textarea></div>';
                     html += '<button type="submit" class="btn btn-primary" id="submit-btn" style="width:100%;">Submit feedback</button>';
-                    html += '<div class="message" id="message"></div></form></div>';
+                    html += '<div class="message" id="message" role="alert" aria-live="polite"></div></form></div>';
                 }
                 var details = '';
                 if (p.image_url) { details += '<img class="project-screenshot" src="' + escapeHtml(p.image_url) + '" alt="Screenshot of ' + escapeHtml(p.title) + '" loading="lazy" onerror="this.style.display=\'none\'">'; }
@@ -649,6 +649,7 @@
         function showInlineLoginPrompt(msg, message) {
             msg = msg || document.getElementById('message');
             if (!msg) return;
+            msg.setAttribute('role', 'alert');
             // An anonymous visitor cannot get past this point, so the button
             // that would only ever answer 401 stops pretending otherwise. The
             // answers themselves stay editable.
@@ -846,16 +847,19 @@
                     // starts from an empty form.
                     saveFeedbackDraft();
                     msg.className = 'alert alert-error';
+                    msg.setAttribute('role', 'alert');
                     msg.textContent = 'Session expired. Your answers are saved — refresh and try again.';
                 } else {
                     window.CritiqueAnalytics.trackEvent('feedback_submit_error', projectId);
                     msg.className = 'alert alert-error';
+                    msg.setAttribute('role', 'alert');
                     msg.textContent = data.detail || 'Failed to submit.';
                 }
             } catch (e) {
                 window.CritiqueAnalytics.trackEvent('feedback_submit_error', projectId);
                 console.error('Submit error:', e);
                 msg.className = 'alert alert-error';
+                msg.setAttribute('role', 'alert');
                 msg.textContent = 'Network error: ' + e.message;
             } finally {
                 if (!finished && !gated) btn.disabled = false;

@@ -930,3 +930,34 @@ def test_login_prompt_is_mobile_and_keyboard_ready():
     assert "document.createElement('button')" in source
     assert "document.createElement('input')" in source
     assert "document.createElement('label')" in source
+
+
+def test_my_projects_load_failure_has_alert_role(tmp_path):
+    result = run(
+        tmp_path,
+        "my_projects.html",
+        [{"fn": "loadProjects", "args": []}],
+        fetch={"/api/projects/my/list": {"status": 500, "body": {}}},
+        read={"byId": "content"},
+    )
+    assert 'role="alert"' in result["ids"].get("content", "")
+
+
+def test_project_submit_login_gate_has_alert_role(tmp_path):
+    result = run(
+        tmp_path,
+        "index.html",
+        [{"fn": "showProjectInlineLoginPrompt", "args": []}],
+        read={"byId": "message"},
+    )
+    assert result["flags"]["message"]["role"] == "alert"
+
+
+def test_feedback_login_gate_has_alert_role(tmp_path):
+    result = run(
+        tmp_path,
+        "project_detail.html",
+        [{"fn": "showInlineLoginPrompt", "args": []}],
+        location="/project/1",
+    )
+    assert result["flags"]["message"]["role"] == "alert"
