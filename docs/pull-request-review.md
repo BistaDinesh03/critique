@@ -113,8 +113,15 @@ run.
 1. Review status is `READY` — no blocking or important findings.
 2. The pull request is mergeable: no conflict, and GitHub reports a state that
    means "can be merged". `BLOCKED`, `UNKNOWN`, or no answer at all fails here.
+   Note: GitHub reports OAuth token-scope refusals (such as attempting to
+   merge a pull request modifying `.github/workflows/*` with a `gh` token that
+   lacks the `workflow` scope) only as `BLOCKED`. The actual cause is only
+   visible in the `gh` error message or API response (`403: refusing to allow an
+   OAuth App to create or update workflow`).
 3. Every configured check passed. A check in a state this tool cannot read
-   counts as a failure, never as a pass.
+   counts as a failure, never as a pass. Note that on fork PRs, first-time CI
+   runs pause at `action_required` waiting for maintainer approval; until
+   approved, no `test` check context appears.
 4. The required number of approvals is present, and GitHub agrees: its own
    `reviewDecision` of `REVIEW_REQUIRED` or `CHANGES_REQUESTED` fails this
    gate even when the count looks satisfied, and an approval the repository
@@ -198,7 +205,7 @@ In this order:
 2. **Protect the default branch.** Settings → Rules → Add branch rule for
    `main`, then enable:
    - Require a pull request before merging
-   - Require 1 approval
+   - Require 1 approval *(Note: Not currently enabled on this repository; merges do not require a pull request review approval)*
    - Require status checks to pass before merging — add `test` once the
      workflow above has run at least once (GitHub only offers checks that
      have reported before)
@@ -265,3 +272,6 @@ none:
 | `pull request #N was not found` | A typo, or a pull request in another repository |
 | `TESTS_NOT_RUN` with "not available locally and could not be fetched" | No network, or a commit that is not reachable from `refs/pull/N/head` — run the suite yourself and paste the result |
 | `Test run exceeded 900s` | Raise `--test-timeout`, or use `--skip-tests` and run it by hand |
+| `BLOCKED` with HTTP 403 `refusing to allow an OAuth App to create or update workflow` | Merging a PR that changes `.github/workflows/*` with a `gh` token lacking the `workflow` scope. Fix: run `gh auth refresh -h github.com -s workflow`. |
+| PR stuck in `BLOCKED` with no `test` check (`action_required`) | First-time CI runs on fork heads wait for maintainer approval before running. Approve via `gh api -X POST repos/BistaDinesh03/critique/actions/runs/<id>/approve` (or the Actions tab). |
+| PR reports `BEHIND` under branch protection with `strict: true` | Updating `main` invalidates prior checks. Working sequence: merge `origin/main` into the fork branch, push without force, re-approve the new run if from a fork, wait for `test` check success on the exact new head SHA, and merge. |
