@@ -89,8 +89,8 @@ def test_list_projects_with_pagination(auth_client):
         expected_titles = {f"Pagination Project {index}" for index in range(1, 5)}
         assert len(first_titles) == len(second_titles) == 2
         assert first_titles | second_titles == expected_titles
-        assert first_data["total"] == len(first_data["items"]) == 2
-        assert second_data["total"] == len(second_data["items"]) == 2
+        assert len(first_data["items"]) == len(second_data["items"]) == 2
+        assert first_data["total"] == second_data["total"] == 4
         assert first_data["page"] == 1 and second_data["page"] == 2
         assert first_data["page_size"] == second_data["page_size"] == 2
         assert first_data["total_pages"] == second_data["total_pages"] == 2
