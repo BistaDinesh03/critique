@@ -540,6 +540,7 @@ def email_start(
     if payload.return_to and _is_safe_return_path(payload.return_to):
         return_to = payload.return_to
 
+    sent = False
     if _is_plausible_email(normalized) and not cooldown_active:
         raw_token = secrets.token_urlsafe(32)
         token_hash = _hash_token(raw_token)
@@ -560,14 +561,16 @@ def email_start(
 
         # Send. Failure is swallowed intentionally; the response is identical either way.
         try:
-            send_login_link(normalized, raw_token)
+            dispatched = send_login_link(normalized, raw_token)
+            if dispatched:
+                sent = True
         except Exception as e:
             import logging
             logging.getLogger(__name__).warning("Failed to send login link to %s: %s", normalized, e)
             _clear_email_cooldown(normalized)
 
     # Generic response regardless of whether email exists, is valid, or is on cooldown.
-    return {"ok": True}
+    return {"ok": True, "sent": sent}
 
 
 @router.get("/email/verify")
