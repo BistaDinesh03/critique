@@ -409,11 +409,13 @@ one issue from claiming it to opening a pull request.
 [SECURITY.md](SECURITY.md) explains how to report vulnerabilities.
 
 **Looking for something to work on?** Start with the curated shortlist below,
-or the full plan in [docs/issue-roadmap.md](docs/issue-roadmap.md) — reviewed
-issues with the problem, scope, acceptance criteria, difficulty and relevant
-files spelled out for each. Issues are also labeled by area (`frontend`,
-`backend`, `tests`, `accessibility`, `security`, `performance`), and questions
-are welcome in [issue #1](https://github.com/BistaDinesh03/critique/issues/1)
+or the roadmap in [docs/issue-roadmap.md](docs/issue-roadmap.md) — a curated
+starting point with problem statements, scope, acceptance criteria, difficulty,
+and relevant files spelled out for each. (As a prepared roadmap, row statuses
+may lag behind the [live issue tracker](https://github.com/BistaDinesh03/critique/issues),
+so always check tracker availability before starting). Issues are also labeled by
+area (`frontend`, `backend`, `tests`, `accessibility`, `security`, `performance`),
+and questions are welcome in [issue #1](https://github.com/BistaDinesh03/critique/issues/1)
 before you begin.
 
 ### Good issues to contribute
