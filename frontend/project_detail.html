@@ -1,8 +1,14 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:title" id="og-title" content="Project — Critique">
+    <meta property="og:description" id="og-desc" content="Give focused feedback on what an indie builder created.">
+    <meta property="og:image" id="og-image" content="https://critique.page/static/og-image.png">
+    <meta property="og:site_name" content="Critique">
     <title>Project — Critique</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link rel="stylesheet" href="/static/shared.css">
@@ -374,6 +380,17 @@
             const content = document.getElementById('content');
             const p = data.project;
             const q = data.question;
+            if (p && p.title) {
+                document.title = p.title + ' — Critique';
+                var ogTitle = document.getElementById('og-title');
+                if (ogTitle) ogTitle.content = p.title + ' — Critique';
+                var ogDesc = document.getElementById('og-desc');
+                if (ogDesc && (p.description || (q && q.text))) ogDesc.content = p.description || q.text;
+                if (p.image_url) {
+                    var ogImg = document.getElementById('og-image');
+                    if (ogImg) ogImg.content = p.image_url;
+                }
+            }
             let html = '';
             html += '<h1 class="project-title">' + escapeHtml(p.title) + '</h1>';
             // What is being reviewed is stated before anything is asked of the
