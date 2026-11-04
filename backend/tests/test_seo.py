@@ -1,7 +1,21 @@
 ﻿from fastapi.testclient import TestClient
+import pytest
+
+from app.config import settings
 from app.main import app
 
 client = TestClient(app)
+
+# These assertions are written against the production origin. The SEO routes
+# now build their absolute URLs from settings.APP_URL, so pin it here rather
+# than depending on whatever the test environment happens to be configured
+# with (the sitemap rows below would otherwise assert against the wrong host).
+PRODUCTION_ORIGIN = "https://critique.page"
+
+
+@pytest.fixture(autouse=True)
+def configured_origin(monkeypatch):
+    monkeypatch.setattr(settings, "APP_URL", PRODUCTION_ORIGIN)
 
 
 def test_robots_txt_returns_200():

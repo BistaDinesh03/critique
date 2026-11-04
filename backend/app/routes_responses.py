@@ -1,20 +1,20 @@
-﻿import hashlib
-from datetime import datetime, timezone
+﻿from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
-from app.database import get_db
+from app.database import get_db, in_int64_range
 from app.models import Project, Question, Response, User
 from app.schemas import ResponseCreate, ResponseOut, ResponseOwnerOut
 from app.auth import get_current_user, get_current_user_optional
 from app.csrf import require_csrf
 from app.rate_limit import rate_limit
+from app.ip_hash import hash_ip as _hash_ip
 
 router = APIRouter(prefix="/api/projects", tags=["responses"])
 
 
 def hash_ip(ip: str) -> str:
     """Hash an IP address for privacy-preserving duplicate detection."""
-    return hashlib.sha256(ip.encode()).hexdigest()
+    return _hash_ip(ip)
 
 
 @router.post("/{project_id}/responses", response_model=ResponseOut, status_code=201)
@@ -28,6 +28,8 @@ def create_response(
     __: None = Depends(rate_limit("response_submit")),
 ):
     """Submit a structured response. Requires authentication and CSRF."""
+    if not in_int64_range(project_id):
+        raise HTTPException(status_code=404, detail="Project not found")
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -84,6 +86,8 @@ def list_responses(
     current_user: User = Depends(get_current_user_optional),
 ):
     """List responses. Public sees stats only; owner sees written suggestions."""
+    if not in_int64_range(project_id):
+        raise HTTPException(status_code=404, detail="Project not found")
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")

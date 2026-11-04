@@ -28,10 +28,13 @@ BACKEND_DIR = Path(__file__).resolve().parent.parent
 FRONTEND_DIR = BACKEND_DIR.parent / "frontend"
 HARNESS = Path(__file__).resolve().parent / "frontend_render_harness.js"
 
-pytestmark = pytest.mark.skipif(
-    shutil.which("node") is None,
-    reason="node is required to run the frontend rendering harness",
-)
+pytestmark = [
+    pytest.mark.frontend_render,
+    pytest.mark.skipif(
+        shutil.which("node") is None,
+        reason="node is required to run the frontend rendering harness",
+    ),
+]
 
 HOMEPAGE_URL = "/api/projects/?page=1&page_size=6"
 SUBMIT_URL = "/api/projects/"
@@ -186,9 +189,18 @@ def test_project_form_keeps_every_field_the_api_needs():
 
     url = tag_with_id(form, "url")
     assert 'name="url"' in url and 'type="url"' in url and 'maxlength="500"' in url
+    # Option B (#191): URL matches the optional backend field — label tells the truth.
+    assert "required" not in url
+    assert re.search(
+        r'for="url">[^<]*<span class="form-optional-tag">optional</span>', form
+    )
 
     description = tag_with_id(form, "description")
     assert 'name="description"' in description and 'maxlength="5000"' in description
+    assert "required" not in description
+    assert re.search(
+        r'for="description">[^<]*<span class="form-optional-tag">optional</span>', form
+    )
 
     question = tag_with_id(form, "question")
     assert 'name="question"' in question and "required" in question
@@ -199,8 +211,8 @@ def test_project_form_keeps_every_field_the_api_needs():
     # The screenshot stays optional: an unanswered field never blocks a submit.
     assert "required" not in image_url
 
-    assert "(required)" in form
-    assert "form-optional-tag" in form
+    assert "(required)" in form  # title + question still required
+    assert form.count("form-optional-tag") >= 3  # url, description, image_url
 
 
 def test_project_form_gives_the_question_the_only_accent():
@@ -336,6 +348,25 @@ def test_an_anonymous_project_submission_keeps_the_draft_and_offers_sign_in(tmp_
     assert len(events(result, "login_prompt_shown")) == 1
     # Nothing failed: the gate is not a submit error.
     assert "alert-error" not in result["flags"]["message"]["className"]
+
+
+def test_a_stale_session_project_submission_keeps_the_draft(tmp_path):
+    """403 means refresh; the refresh must not empty the form."""
+    result = run(
+        tmp_path,
+        "index.html",
+        FILL_PROJECT,
+        fetch={
+            HOMEPAGE_URL: {"status": 200, "body": {"total": 0, "items": []}},
+            SUBMIT_URL: {"status": 403, "body": {"detail": "CSRF failed"}},
+        },
+    )
+
+    assert len(posts(result)) == 1, result["requests"]
+    draft = json.loads(result["storage"]["session"]["critique_project_draft"])
+    assert draft["title"] == "Akiya Scout"
+    assert draft["question"] == "Is the price shown up front?"
+    assert "Session expired." in result["ids"]["message"]
 
 
 # ---------------------------------------------------------------------------

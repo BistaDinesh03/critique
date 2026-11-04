@@ -2,22 +2,33 @@
 from fastapi.responses import Response as FastAPIResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from app.database import get_db
+from app.database import get_db, in_int64_range
 from app.models import Project, Question, Response as ResponseModel
 
 router = APIRouter(prefix="/badge", tags=["badge"])
 
 
 def format_count(count: int) -> str:
-    """Format count for display. 1000+ shows as 1k+."""
-    if count >= 1000:
-        return "1k+"
-    return str(count)
+    """Format a response count for badge display.
+
+    Below 1,000 the exact number; 1,000-9,999 one decimal in k with a
+    trimmed trailing ``.0`` (``1.2k``); 10,000-999,999 whole thousands
+    (``12k``); a million or more one decimal in m (``1.2m``).
+    """
+    if count < 1000:
+        return str(count)
+    if count < 10_000:
+        return f"{count / 1000:.1f}".removesuffix(".0") + "k"
+    if count < 1_000_000:
+        return f"{count // 1000}k"
+    return f"{count / 1_000_000:.1f}".removesuffix(".0") + "m"
 
 
 @router.get("/{project_id}.svg")
 def get_badge(project_id: int, db: Session = Depends(get_db)):
     """Return a dynamic SVG badge showing feedback count for a project."""
+    if not in_int64_range(project_id):
+        raise HTTPException(status_code=404, detail="Project not found")
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")

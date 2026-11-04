@@ -25,13 +25,16 @@ The stamp deliberately skips the database (signature + age only): it is a
 first-paint hint, and the browser's DB-backed /auth/check stays authoritative.
 """
 
+import uuid
 from pathlib import Path
 
+import pytest
+from app.auth import create_session_token, session_cookie_is_valid
+from app.database import SessionLocal
+from app.main import app
+from app.models import Project, User
 from fastapi.testclient import TestClient
 from starlette.requests import Request
-
-from app.auth import create_session_token, session_cookie_is_valid
-from app.main import app
 
 PAGES = ["/", "/discover", "/my-projects", "/project/1", "/project/1/results"]
 
@@ -40,6 +43,18 @@ LOGIN_RULE = 'html[data-auth="in"] #login-btn{display:none}'
 LOGOUT_RULE = 'html[data-auth="in"] #logout-btn{display:inline-flex}'
 
 SHARED_CSS = Path(__file__).resolve().parent.parent.parent / "static" / "shared.css"
+
+
+@pytest.fixture(scope="module", autouse=True)
+def existing_project_for_page_checks():
+    """These 200/auth-state checks require a real project, not a missing shell."""
+    with SessionLocal() as db:
+        if db.get(Project, 1) is None:
+            owner = User(username=f"synthetic-auth-page-{uuid.uuid4().hex[:12]}")
+            db.add(owner)
+            db.flush()
+            db.add(Project(id=1, title="Synthetic auth page", owner_id=owner.id))
+            db.commit()
 
 
 def get_page(path, token=None):

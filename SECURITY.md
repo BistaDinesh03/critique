@@ -1,4 +1,4 @@
-﻿# Security Policy
+# Security Policy
 
 ## Reporting a Vulnerability
 
@@ -38,8 +38,14 @@ or reviewing:
 - Pydantic input validation (length limits, URL scheme checks, enums)
 - HTML escaping of user content in the frontend
 - Analytics events validated against a strict server-side allowlist
-- IP addresses are stored only as SHA-256 hashes for duplicate detection;
-  raw IPs are never persisted
+- IP addresses used for duplicate detection and email-login auditing are
+  stored as HMAC-SHA-256 digests using a dedicated key derived from
+  `SECRET_KEY` with the `critique:ip-hash:key:v1` context. The IP digest
+  uses the separate `critique:ip-hash:value:v1` context. Raw IPs are not
+  persisted by these hashing paths. Hashes remain stable while `SECRET_KEY`
+  is unchanged; rotating the key changes new digests and does not backfill
+  existing records. Configure a persistent `SECRET_KEY` to preserve
+  hash stability across application restarts.
 - No third-party tracking scripts
 
 ## For Contributors

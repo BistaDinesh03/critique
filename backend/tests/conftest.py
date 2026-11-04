@@ -1,4 +1,5 @@
 ﻿import os
+import shutil
 from pathlib import Path
 
 # Isolate tests to a dedicated SQLite file so schema changes apply from a fresh build.
@@ -71,3 +72,28 @@ def auth_client():
 
     app.dependency_overrides.clear()
     db2.close()
+
+def pytest_configure(config):
+    config.addinivalue_line(
+        "markers",
+        "frontend_render: tests that require the Node frontend rendering harness",
+    )
+
+def pytest_collection_modifyitems(config, items):
+    """Prevent CI from passing when frontend-render tests are skipped for no Node."""
+    ci_value = os.environ.get("CI", "").strip().lower()
+    if ci_value not in {"1", "true", "yes", "on"} or shutil.which("node") is not None:
+        return
+
+    render_items = [
+        item for item in items
+        if item.get_closest_marker("frontend_render") is not None
+    ]
+
+    if render_items:
+        examples = ", ".join(sorted({item.nodeid.split("::", 1)[0] for item in render_items})[:3])
+        pytest.exit(
+            "CI requires Node.js for frontend-render tests, but 'node' was not "
+            f"found on PATH. Refusing to silently skip these tests (e.g. {examples}).",
+            returncode=1,
+        )

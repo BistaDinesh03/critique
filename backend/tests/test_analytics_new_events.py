@@ -93,6 +93,32 @@ def test_new_auth_events_accepted():
     cleanup_database()
 
 
+def test_feedback_form_viewed_accepted():
+    """
+    Regression test: the funnel's first step must actually be recorded
+
+    frontend/project_detail.html fires `feedback_form_viewed` when a visitor
+    scrolls to the form, but the name was missing from both allowlists, so the
+    client guard dropped the call and the server would have answered 400. The
+    event never reached analytics on any page view.
+    """
+    reset_rate_limits()
+    cleanup_database()
+    client = TestClient(app)
+
+    r = _post_event(client, "feedback_form_viewed", project_id=1)
+    assert r.status_code == 200, f"{r.status_code}: {r.text}"
+    assert r.json()["ok"] is True
+
+    db = SessionLocal()
+    count = db.query(AnalyticsEvent).filter(
+        AnalyticsEvent.event_name == "feedback_form_viewed"
+    ).count()
+    db.close()
+    assert count == 1
+    cleanup_database()
+
+
 def test_new_auth_event_names_are_in_allowlist_only():
     """Each new name is a distinct accepted event, not a substring of another."""
     reset_rate_limits()

@@ -3,6 +3,10 @@
 Thanks for your interest in contributing! Critique is meant to be simple and
 maintainable.
 
+> Translations: [简体中文](CONTRIBUTING.zh-CN.md) ·
+> [日本語](CONTRIBUTING.ja.md) · [Español](CONTRIBUTING.es.md) —
+> this English file is the canonical version.
+
 ## Getting Started
 
 1. Fork the repository
@@ -36,7 +40,9 @@ cd backend
 python -m pytest tests/ -q
 ```
 
-Expected: **346 passed**. Install [Node.js](https://nodejs.org) first — the
+Expected: a clean run. The suite grows with almost every PR, so trust
+pytest's own summary (and the CI `test` check) rather than a hardcoded
+count in this file. Install [Node.js](https://nodejs.org) first — the
 frontend-render tests need `node` on PATH and are skipped without it.
 
 For a faster feedback loop while working on a focused change, run a single
@@ -48,8 +54,31 @@ python -m pytest tests/test_main.py::test_health_check -q
 python -m pytest tests/ -q -k health_check
 ```
 
-The frontend-render test modules are skipped when `node` is not on PATH. This
-is expected; install Node.js if your change affects frontend rendering.
+The frontend-render test modules are skipped when `node` is not on PATH.
+This is expected when you run the suite locally; install Node.js if your
+change affects frontend rendering. In CI the behavior is deliberately the
+opposite: the collection guard in `backend/tests/conftest.py` fails the run
+when `node` is missing, so render tests can never skip silently there.
+
+When adding a frontend-render test module, copy this module-level `pytestmark` block:
+
+```python
+pytestmark = [
+    pytest.mark.frontend_render,
+    pytest.mark.skipif(
+        shutil.which("node") is None,
+        reason="node is required to run the frontend rendering harness",
+    ),
+]
+```
+
+The `frontend_render` marker is what lets the CI collection guard identify render tests. CI fails if `node` is missing and marked render tests would otherwise be skipped; a module missing the marker is not yet caught automatically (see [#154](https://github.com/BistaDinesh03/critique/issues/154)).
+
+To run only the frontend-render tests locally:
+
+```bash
+python -m pytest tests/ -m frontend_render -q
+```
 
 ## Development Guidelines
 
@@ -79,8 +108,46 @@ Critique intentionally avoids complexity. Before adding anything, ask:
 
 - Keep PRs focused and small
 - Describe what you changed and why
+- No secrets, unrelated changes, or test results you did not actually run
 - Link any related issues
 - Be respectful and patient
+
+For a step-by-step example of claiming an issue, working in a fork, running relevant checks, and opening a pull request, see the [first-contributor walkthrough](docs/first-contributors.md).
+
+## Welcome to new contributors
+
+Thanks for your interest in contributing to Critique!
+
+Before starting, please comment on the issue so we can confirm it is still
+available. We'll help you understand the implementation and review your
+contribution.
+
+We appreciate every meaningful contribution, whether it's code, tests,
+documentation, or feedback.
+
+### First-contribution checklist
+
+1. Read [README.md](README.md) and skim [docs/first-contributors.md](docs/first-contributors.md).
+2. Pick an issue from the [Good issues to contribute](README.md#good-issues-to-contribute) list.
+3. Comment on the issue to claim it (maintainers confirm availability).
+4. Fork, branch, implement, and add tests.
+5. Run the relevant test suite and `git diff --check`.
+6. Open a pull request linking the issue, describing what changed and why.
+
+### Maintainer welcome template
+
+When a new contributor opens their first issue or PR, reply with:
+
+> Thanks for your interest in contributing to Critique!
+>
+> Before starting, please comment on the issue so we can confirm it is still
+> available. We'll help you understand the implementation and review your
+> contribution.
+>
+> We appreciate every meaningful contribution, whether it's code, tests,
+> documentation, or feedback.
+
+Do not promise instant reviews or unrealistic response times.
 
 ## Finding Something to Work On
 
@@ -200,6 +267,10 @@ process described in [SECURITY.md](SECURITY.md), which also documents the
 project's security-relevant behavior. For anything that is not a
 vulnerability, [issue #1](https://github.com/BistaDinesh03/critique/issues/1)
 is a good place to ask.
+
+If you find Critique useful or appreciate the project, consider starring the
+repository. It helps others discover the project. Starring is entirely
+optional and has no effect on issue assignment, reviews, or merging.
 
 ## License
 

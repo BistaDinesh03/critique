@@ -1,5 +1,5 @@
 ﻿import httpx
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.responses import RedirectResponse, JSONResponse
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from sqlalchemy.orm import Session
@@ -8,10 +8,12 @@ from app.database import get_db
 from app.models import User
 from app.csrf import generate_csrf_token, set_csrf_cookie, require_csrf
 from app.rate_limit import rate_limit
+from app.ip_hash import hash_ip as _shared_hash_ip
 import hashlib
 import hmac
 import secrets
 import time
+from collections import OrderedDict
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 from pydantic import BaseModel, Field
@@ -24,8 +26,26 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 # Separate from the IP-based rate limiter in app/rate_limit.py.
 # Keyed on normalized email to prevent one IP from spamming a single inbox
 # and to prevent a single email from being bombed from many IPs.
-_EMAIL_COOLDOWN = {}
+# The endpoint is unauthenticated, so the map must stay bounded the same way
+# the general rate limiter was bounded in #48: expired entries are swept
+# periodically and a hard cap with LRU eviction bounds memory when new
+# addresses arrive faster than their 60-second windows expire.
+_EMAIL_COOLDOWN: OrderedDict[str, float] = OrderedDict()
 _EMAIL_COOLDOWN_SECONDS = 60
+_EMAIL_COOLDOWN_SWEEP_INTERVAL = 100
+_EMAIL_COOLDOWN_MAX_TRACKED_KEYS = 10_000
+_email_cooldown_calls = 0
+
+
+def _sweep_expired_email_cooldown(now: float) -> None:
+    """Drop entries whose cooldown window has fully elapsed."""
+    expired = [
+        email
+        for email, last in _EMAIL_COOLDOWN.items()
+        if now - last >= _EMAIL_COOLDOWN_SECONDS
+    ]
+    for email in expired:
+        del _EMAIL_COOLDOWN[email]
 
 
 def _email_cooldown_check_and_set(normalized_email: str) -> bool:
@@ -33,11 +53,22 @@ def _email_cooldown_check_and_set(normalized_email: str) -> bool:
 
     Otherwise record the request time and return False (allow).
     """
+    global _email_cooldown_calls
+    _email_cooldown_calls += 1
     now = time.time()
+    if _email_cooldown_calls % _EMAIL_COOLDOWN_SWEEP_INTERVAL == 0:
+        _sweep_expired_email_cooldown(now)
+
     last = _EMAIL_COOLDOWN.get(normalized_email)
     if last is not None and (now - last) < _EMAIL_COOLDOWN_SECONDS:
         return True
+    if (
+        normalized_email not in _EMAIL_COOLDOWN
+        and len(_EMAIL_COOLDOWN) >= _EMAIL_COOLDOWN_MAX_TRACKED_KEYS
+    ):
+        _EMAIL_COOLDOWN.popitem(last=False)
     _EMAIL_COOLDOWN[normalized_email] = now
+    _EMAIL_COOLDOWN.move_to_end(normalized_email)
     return False
 
 serializer = URLSafeTimedSerializer(settings.SECRET_KEY, salt="session")
@@ -101,24 +132,34 @@ RETURN_TO_COOKIE_NAME = "critique_return_to"
 
 
 def _is_safe_return_path(path: str) -> bool:
-    """Return True if path is a safe same-origin relative path."""
-    if not path:
-        return False
-    # Must start with "/" (relative to origin)
-    if not path.startswith("/"):
-        return False
-    # Reject protocol-relative URLs ("//evil.com")
-    if path.startswith("//"):
-        return False
-    # Reject backslash tricks ("/\evil.com")
-    if path.startswith("/\\"):
-        return False
-    # Reject anything containing a scheme separator
-    if "://" in path:
+    """Return True if path is a safe same-origin relative path.
+
+    The value ends up in a ``Location`` header, so anything a browser could
+    interpret as another origin, a scheme, or a header/line break is rejected:
+    control characters, whitespace, backslashes, protocol-relative URLs and
+    explicit schemes. Percent-encoded characters stay allowed.
+    """
+    if not path or not isinstance(path, str):
         return False
     # Cap length to prevent abuse
     if len(path) > 500:
         return False
+    # Must start with "/" (relative to origin), but never "//" or "/\".
+    if not path.startswith("/"):
+        return False
+    if path.startswith("//"):
+        return False
+    # Reject anything containing a scheme separator or a backslash trick
+    # ("/\evil.com", "\/evil.com").
+    if "://" in path or "\\" in path:
+        return False
+    for ch in path:
+        code = ord(ch)
+        # URL parsers may strip controls before interpreting a redirect
+        # target, so reject C0 and C1 controls plus any Unicode whitespace:
+        # they are malformed here and can be used for header splitting.
+        if code < 0x20 or 0x7F <= code <= 0x9F or ch.isspace():
+            return False
     return True
 
 
@@ -229,15 +270,50 @@ def github_login(
     return response
 
 
+# Indicator appended to the homepage URL when the visitor cancels on GitHub's
+# consent screen. There is no flash-message system, so the callback reports the
+# outcome through the query string and the homepage turns it into a banner.
+AUTH_CANCELLED_INDICATOR = "/?auth=cancelled"
+
+
+def _oauth_cancelled_response(remaining: list) -> RedirectResponse:
+    """Friendly outcome for a GitHub OAuth attempt the visitor did not complete.
+
+    Pressing "Cancel" on GitHub's consent screen is a normal user action, not a
+    failure of ours, so this is not an error response. Two bookkeeping steps
+    still have to happen, exactly as on the failure path:
+
+    * the accepted state is consumed, so the browser is not left holding an
+      in-flight attempt it can never finish (and which would otherwise linger
+      for the rest of its ten-minute life);
+    * ``critique_return_to`` is cleared, so a later, unrelated login does not
+      suddenly bounce the visitor back to a page they asked for before they
+      changed their mind.
+
+    The target is a fixed literal, so no open-redirect validation is involved.
+    """
+    response = RedirectResponse(AUTH_CANCELLED_INDICATOR)
+    response.delete_cookie(RETURN_TO_COOKIE_NAME)
+    _set_pending_states_cookie(response, remaining)
+    return response
+
+
 @router.get("/callback")
 async def github_callback(
-    code: str,
     request: Request,
+    code: Optional[str] = None,
     state: Optional[str] = None,
+    error: Optional[str] = None,
     db: Session = Depends(get_db),
     _: None = Depends(rate_limit("auth")),
 ):
-    """Handle GitHub OAuth callback, validating state, and create session."""
+    """Handle GitHub OAuth callback, validating state, and create session.
+
+    GitHub sends the browser back in one of two shapes: ``?code=...&state=...``
+    when the visitor authorises the app, and ``?error=access_denied&state=...``
+    with no ``code`` when they press Cancel. Both carry the state we issued, so
+    both are gated on it before anything else happens.
+    """
     # Validate state before contacting GitHub: missing, unknown, expired,
     # forged, or replayed states are rejected outright.
     pending = _load_pending_states(request.cookies.get(OAUTH_STATE_COOKIE_NAME))
@@ -247,6 +323,14 @@ async def github_callback(
     # Single-use: this state is dropped from the browser's pending list on the
     # response we are about to return, success or failure.
     remaining = [s for s in pending if not hmac.compare_digest(s, state)]
+
+    # Cancellation (or any other outcome GitHub reports through `error`), and
+    # the no-code-at-all case, never reach the token exchange. Handling them
+    # here keeps the visitor out of a framework-generated 422 validation blob.
+    # No session is issued on this path, so nothing about it can authenticate
+    # anyone.
+    if error or not code:
+        return _oauth_cancelled_response(remaining)
 
     async with httpx.AsyncClient() as client:
         token_response = await client.post(
@@ -330,11 +414,12 @@ def check_auth(user: User = Depends(get_current_user)):
 
 
 @router.get("/csrf-token")
-def get_csrf_token(request: Request):
-    """Return the CSRF token for the current session."""
+def get_csrf_token(request: Request, response: Response):
+    """Return the CSRF token for the current session, setting the cookie if absent."""
     token = request.cookies.get("critique_csrf")
     if not token:
         token = generate_csrf_token()
+        set_csrf_cookie(response, token)
     return {"csrf_token": token}
 
 # ============================================================================
@@ -367,7 +452,8 @@ def _hash_token(raw_token: str) -> str:
 
 
 def _hash_ip(ip: str) -> str:
-    return hashlib.sha256(ip.encode("utf-8")).hexdigest()
+    """Hash an IP address using the shared keyed hashing helper."""
+    return _shared_hash_ip(ip)
 
 
 def _client_ip_for_hash(request: Request) -> str:

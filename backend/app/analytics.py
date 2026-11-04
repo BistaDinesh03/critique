@@ -1,6 +1,9 @@
 ﻿import secrets
 from datetime import datetime, timezone
+
 from sqlalchemy.orm import Session
+
+from app.config import settings
 from app.models import AnalyticsEvent
 
 VISITOR_COOKIE_NAME = "critique_visitor"
@@ -23,9 +26,10 @@ def set_visitor_cookie(response, visitor_id: str):
         VISITOR_COOKIE_NAME,
         visitor_id,
         max_age=VISITOR_COOKIE_MAX_AGE,
-        httponly=False,
+        # The visitor ID is read server-side; client-side analytics never reads it.
+        httponly=True,
         samesite="lax",
-        secure=False,
+        secure=settings.SESSION_COOKIE_SECURE,
     )
 
 

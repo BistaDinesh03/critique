@@ -30,6 +30,11 @@ def get_db():
         db.close()
 
 
+def in_int64_range(value: int) -> bool:
+    """SQLite cannot bind integers outside its signed 64-bit range."""
+    return -(2**63) <= value < 2**63
+
+
 def _migrate_postgresql():
     """Add missing columns to existing tables on PostgreSQL."""
     inspector = inspect(engine)

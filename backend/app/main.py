@@ -1,22 +1,29 @@
-﻿from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request
+from contextlib import asynccontextmanager
+from pathlib import Path
+from typing import Annotated
+
+from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.exception_handlers import http_exception_handler
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from pathlib import Path
+from sqlalchemy.orm import Session
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
-from app.config import settings
-from app.database import init_db
+
 from app.auth import router as auth_router
 from app.auth import session_cookie_is_valid
+from app.config import settings
 from app.csrf import generate_csrf_token, set_csrf_cookie
+from app.database import get_db, in_int64_range, init_db
+from app.models import Project
+from app.routes_analytics import router as analytics_router
+from app.routes_analytics_dashboard import router as analytics_dashboard_router
+from app.routes_badge import router as badge_router
 from app.routes_projects import router as projects_router
 from app.routes_responses import router as responses_router
 from app.routes_results import router as results_router
-from app.routes_badge import router as badge_router
-from app.routes_stats import router as stats_router
-from app.routes_analytics import router as analytics_router
-from app.routes_analytics_dashboard import router as analytics_dashboard_router
 from app.routes_seo import router as seo_router
+from app.routes_stats import router as stats_router
 
 
 class CacheControlMiddleware(BaseHTTPMiddleware):
@@ -30,6 +37,10 @@ class CacheControlMiddleware(BaseHTTPMiddleware):
                 response.headers["Cache-Control"] = "no-cache"
             else:
                 response.headers["Cache-Control"] = "public, max-age=86400"
+        # Baseline security headers for every response.
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
         return response
 
 
@@ -85,7 +96,9 @@ _EARLY_AUTH_STYLE = (
 )
 
 
-def _page_response(request: Request, filename: str) -> HTMLResponse:
+def _page_response(
+    request: Request, filename: str, status_code: int = 200
+) -> HTMLResponse:
     """Serve a frontend page, stamping early auth state when a valid session
     cookie accompanies the request (signature + age only, no DB lookup)."""
     html = _read_frontend_file(filename)
@@ -93,7 +106,7 @@ def _page_response(request: Request, filename: str) -> HTMLResponse:
         html = html.replace(
             "</head>", _EARLY_AUTH_SCRIPT + _EARLY_AUTH_STYLE + "</head>", 1
         )
-    response = HTMLResponse(content=html)
+    response = HTMLResponse(content=html, status_code=status_code)
     # The body varies with the session cookie (the early-auth stamp), so no
     # cache -- shared or browser -- may replay one visitor's page to another.
     response.headers["Cache-Control"] = "private, no-store"
@@ -106,6 +119,24 @@ def _page_response(request: Request, filename: str) -> HTMLResponse:
 async def unhandled_exception_handler(request, exc):
     """Generic error handler that doesn't leak stack traces."""
     return JSONResponse(status_code=500, content={"detail": "Internal server error"})
+
+
+def _wants_html(request: Request) -> bool:
+    """A browser navigation wants an HTML page; a JSON client (or anything
+    under /api/) wants the JSON detail shape."""
+    if request.url.path.startswith("/api/"):
+        return False
+    return "text/html" in request.headers.get("accept", "")
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler_custom(request: Request, exc: StarletteHTTPException):
+    """Serve a branded HTML 404 for browser navigation to an unknown route,
+    while every JSON client -- and every /api/* route -- keeps the default
+    {"detail": ...} body, status, and headers."""
+    if exc.status_code == 404 and _wants_html(request):
+        return _page_response(request, "404.html", status_code=404)
+    return await http_exception_handler(request, exc)
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -124,13 +155,25 @@ def discover_page(request: Request):
 
 
 @app.get("/project/{project_id}", response_class=HTMLResponse)
-def project_detail_page(request: Request, project_id: int):
+def project_detail_page(request: Request, project_id: str, db: Annotated[Session, Depends(get_db)]):
+    _require_project(project_id, db)
     return _page_response(request, "project_detail.html")
 
 
 @app.get("/project/{project_id}/results", response_class=HTMLResponse)
-def project_results_page(request: Request, project_id: int):
+def project_results_page(request: Request, project_id: str, db: Annotated[Session, Depends(get_db)]):
+    _require_project(project_id, db)
     return _page_response(request, "project_results.html")
+
+
+def _require_project(project_id: str, db: Session) -> None:
+    """Reject absent or malformed IDs before serving a successful HTML shell."""
+    try:
+        parsed_id = int(project_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Project not found") from None
+    if not in_int64_range(parsed_id) or db.get(Project, parsed_id) is None:
+        raise HTTPException(status_code=404, detail="Project not found")
 
 
 
@@ -140,6 +183,8 @@ def google_verification():
     """Serve Google Search Console verification file."""
     static_dir = Path(__file__).resolve().parent.parent.parent / "static"
     file_path = static_dir / "google8ffd0ae5f931d1e6.html"
+    if not file_path.is_file():
+        raise HTTPException(status_code=404, detail="Verification file not found")
     return HTMLResponse(content=file_path.read_text(encoding="utf-8"))
 
 
