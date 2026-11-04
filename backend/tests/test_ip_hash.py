@@ -90,3 +90,15 @@ def test_ip_hash_changes_when_ip_changes(monkeypatch):
     )
 
     assert hash_ip("192.0.2.10") != hash_ip("192.0.2.11")
+
+
+def test_ip_hash_changes_when_salt_changes(monkeypatch):
+    """Different deployment salt values produce different hashes for privacy (fixes #351)."""
+    monkeypatch.setattr(ip_hash_module.settings, "SECRET_KEY", "test-secret-one")
+    monkeypatch.setattr(ip_hash_module.settings, "IP_HASH_SALT", "deployment-alpha")
+    first = hash_ip("192.0.2.10")
+
+    monkeypatch.setattr(ip_hash_module.settings, "IP_HASH_SALT", "deployment-beta")
+    second = hash_ip("192.0.2.10")
+
+    assert first != second

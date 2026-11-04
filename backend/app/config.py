@@ -1,4 +1,4 @@
-﻿import os
+import os
 import secrets
 import sys
 
@@ -51,6 +51,7 @@ class Settings:
     # Security
     SESSION_COOKIE_SECURE: bool = os.getenv("SESSION_COOKIE_SECURE", "false").lower() == "true"
     SESSION_COOKIE_MAX_AGE: int = int(os.getenv("SESSION_COOKIE_MAX_AGE", "604800"))  # 7 days
+    IP_HASH_SALT: str = os.getenv("IP_HASH_SALT", "")
 
     # Email (Resend) — passwordless magic link
     RESEND_API_KEY: str = os.getenv("RESEND_API_KEY", "")
