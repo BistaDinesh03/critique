@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -855,8 +855,9 @@
             } catch (e) {
                 window.CritiqueAnalytics.trackEvent('feedback_submit_error', projectId);
                 console.error('Submit error:', e);
+                saveFeedbackDraft();
                 msg.className = 'alert alert-error';
-                msg.textContent = 'Network error: ' + e.message;
+                msg.textContent = "Couldn't reach the server. Your answers are saved — please try again.";
             } finally {
                 if (!finished && !gated) btn.disabled = false;
             }
