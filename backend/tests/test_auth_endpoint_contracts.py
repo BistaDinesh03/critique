@@ -55,7 +55,7 @@ def test_csrf_token_returns_existing_cookie_value():
     assert response.headers.get("set-cookie") is None
 
 
-def test_csrf_token_generates_token_without_setting_cookie(monkeypatch):
+def test_csrf_token_generates_token_and_sets_cookie(monkeypatch):
     generated_token = "generated-csrf-token"
     monkeypatch.setattr(
         "app.auth.generate_csrf_token",
@@ -66,4 +66,6 @@ def test_csrf_token_generates_token_without_setting_cookie(monkeypatch):
 
     assert response.status_code == 200
     assert response.json() == {"csrf_token": generated_token}
-    assert response.headers.get("set-cookie") is None
+    assert "critique_csrf=generated-csrf-token" in response.headers.get(
+        "set-cookie", ""
+    )
