@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Annotated
+import uuid
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.exception_handlers import http_exception_handler
@@ -41,6 +42,9 @@ class CacheControlMiddleware(BaseHTTPMiddleware):
         response.headers.setdefault("X-Frame-Options", "DENY")
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
         response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        # Request correlation ID for tracing and debugging
+        request_id = request.headers.get("X-Request-ID") or uuid.uuid4().hex
+        response.headers["X-Request-ID"] = request_id
         return response
 
 
