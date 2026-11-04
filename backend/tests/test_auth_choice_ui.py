@@ -37,7 +37,7 @@ GITHUB = "Continue with GitHub"
 EMAIL = "Continue with email"
 NO_PASSWORD = "No password required."
 
-EMAIL_START = {"/auth/email/start": {"status": 200, "body": {"ok": True}}}
+EMAIL_START = {"/auth/email/start": {"status": 200, "body": {"ok": True, "sent": True}}}
 
 
 def run(tmp_path, page, calls, fetch=None, location="/", read=None):
@@ -249,6 +249,24 @@ def test_email_send_failure_keeps_the_form_and_says_so(tmp_path):
         if m.get("tag") == "BUTTON" and "Email me a sign-in link" in (m.get("text") or "")
     ]
     assert send_buttons and send_buttons[0]["disabled"] is False
+
+
+def test_email_start_sent_false_does_not_fire_sent_events(tmp_path):
+    """When /auth/email/start succeeds with sent: false (cooldown/send failure), no sent event is fired."""
+    result = run(
+        tmp_path,
+        "project_detail.html",
+        [
+            {"fn": "showInlineLoginPrompt", "args": []},
+            *EMAIL_OPS,
+        ],
+        fetch={"/auth/email/start": {"status": 200, "body": {"ok": True, "sent": False}}},
+        location="/project/1",
+    )
+    assert len(email_posts(result)) == 1
+    assert "Check your inbox" in result["html"]
+    assert len(events(result, "email_verification_sent")) == 0
+    assert len(events(result, "login_started")) == 0
 
 
 # ---------------------------------------------------------------------------
@@ -825,14 +843,15 @@ def test_resend_after_cooldown_sends_another_link_and_announces_it(tmp_path):
         ],
         fetch={
             "/auth/email/start": [
-                {"status": 200, "body": {"ok": True}},
-                {"status": 200, "body": {"ok": True}},
+                {"status": 200, "body": {"ok": True, "sent": True}},
+                {"status": 200, "body": {"ok": True, "sent": True}},
             ]
         },
     )
     assert len(email_posts(result)) == 2, result["requests"]
     assert "A new sign-in link is on its way. Check your inbox." in result["html"]
     assert "Resend in" in result["html"]
+    assert len(events(result, "email_verification_sent")) == 2
 
 
 def test_resend_rate_limit_is_reported_without_false_success(tmp_path):
