@@ -56,7 +56,7 @@ Reporting send failures is separately tracked in [#81](https://github.com/BistaD
 | Method | Path | Auth | CSRF | Notes |
 |---|---|---|---|---|
 | GET | `/auth/login` | — | — | Starts GitHub OAuth; rate-limited (`auth`). Redirects to GitHub. |
-| GET | `/auth/callback` | — | — | OAuth callback; validates state; rate-limited. Redirects on success/failure. |
+| GET | `/auth/callback` | — | — | OAuth callback; validates single-use state; rate-limited (`auth`). With a valid state and `code`, sets the session and redirects to `return_to` or `/`. When GitHub reports cancellation via `error` (such as `error=access_denied`) or when `code` is omitted, consumes the state, clears `critique_return_to`, and redirects to `/?auth=cancelled` (where the homepage displays a neutral banner). A missing, expired, forged, or replayed state returns `400 {"detail": "Invalid or missing OAuth state"}`. |
 | GET | `/auth/logout` | — | — | Clears session and CSRF cookies; redirects to `/`. |
 | GET | `/auth/check` | Required | — | `{"authenticated": true, "username": "..."}` or `401`. |
 | GET | `/auth/csrf-token` | — | — | `{"csrf_token": "..."}`; also sets the `critique_csrf` cookie if absent. |
@@ -131,7 +131,7 @@ pointed at the right site.
 
 | Method | Path | Notes |
 |---|---|---|
-| GET | `/` `/discover` `/my-projects` `/project/{id}` `/project/{id}/results` | HTML pages. A CSRF cookie is issued with each page response. |
+| GET | `/` `/discover` `/my-projects` `/project/{id}` `/project/{id}/results` | HTML pages. A CSRF cookie is issued with each page response. `/?auth=cancelled` renders a neutral notice banner and cleans up the URL query flag. |
 | GET | `/google8ffd0ae5f931d1e6.html` | Google Search Console site-verification file. |
 | GET | `/health` | `{"status": "ok"}` — uptime probe. |
 | GET | `/docs`, `/redoc` | FastAPI-generated API documentation. |
@@ -142,6 +142,7 @@ pointed at the right site.
 | Status | Shape | When |
 |---|---|---|
 | 400 | `{"detail": "Invalid event name"}` | Analytics allowlist rejection. |
+| 400 | `{"detail": "Invalid or missing OAuth state"}` | Missing, expired, forged, or replayed state in `GET /auth/callback`. |
 | 401 | `{"detail": "Not authenticated"}` | Auth required, no session. |
 | 403 | `{"detail": "Invalid or missing CSRF token"}` | Missing/mismatched `X-CSRF-Token`. |
 | 403 | `{"detail": "Not authorized"}` | Signed in but not allowed (e.g., dashboard). |
