@@ -354,7 +354,9 @@
                 const description = project.description || 'No description provided.';
                 const questionText = project.question_text || 'No question';
                 const responseCount = project.response_count || 0;
-                const screenshotHtml = project.image_url ? '<img class="project-screenshot" src="' + escapeHtml(project.image_url) + '" alt="Screenshot of ' + escapeHtml(project.title) + '" loading="lazy" onerror="this.style.display=\'none\'">' : '';
+                const projectTitle = project.title || 'project';
+                const altText = 'Screenshot of ' + escapeHtml(projectTitle);
+                const screenshotHtml = project.image_url ? '<img class="project-screenshot" src="' + escapeHtml(project.image_url) + '" alt="' + altText + '" loading="lazy" onerror="this.style.display=\'none\'">' : '';
                 // Scannable order: what it is, what it does, the one question
                 // waiting for an answer, then how much help it already has.
                 card.innerHTML = screenshotHtml +
