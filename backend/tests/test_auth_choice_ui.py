@@ -857,7 +857,7 @@ def test_resend_rate_limit_is_reported_without_false_success(tmp_path):
         },
     )
     assert len(email_posts(result)) == 2, result["requests"]
-    assert "Too many attempts. Please wait a minute, then try again." in result["html"]
+    assert "Too many attempts. Please wait about 15 minutes, then try again." in result["html"]
     assert "on its way" not in result["html"]
     resend = next(
         m

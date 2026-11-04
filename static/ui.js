@@ -1,4 +1,4 @@
-﻿// Critique UI Utilities
+// Critique UI Utilities
 // Shared toast and modal system
 
 var CritiqueUI = (function() {
@@ -195,7 +195,7 @@ var CritiqueUI = (function() {
         resending: 'Sending another link\u2026',
         changeEmail: 'Change email',
         genericError: "We couldn't send the link. Check your connection and try again.",
-        rateLimitError: 'Too many attempts. Please wait a minute, then try again.'
+        rateLimitError: 'Too many attempts. Please wait about 15 minutes, then try again.'
     };
 
     var EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
