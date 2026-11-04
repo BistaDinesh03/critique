@@ -445,3 +445,19 @@ def test_api_failure_renders_the_friendly_error_state(tmp_path):
     assert "bar-track" not in html
     for artifact in ("NaN", "Infinity", "undefined", "[object Object]"):
         assert artifact not in html
+
+
+def test_download_csv_button_visibility_for_owner_vs_visitor(tmp_path):
+    """Verify that results page renders a Download CSV button for owners and hides it for visitors."""
+    clarity, would_use = mixed_stats()
+    owner_data = results_data(2, clarity, would_use, owner=True)
+    owner_html = render_results(tmp_path, owner_data)
+
+    assert 'id="download-csv-btn"' in owner_html
+    assert "Download CSV" in owner_html
+    assert "/results.csv" in owner_html
+
+    visitor_data = results_data(2, clarity, would_use, owner=False)
+    visitor_html = render_results(tmp_path, visitor_data)
+    assert 'id="download-csv-btn"' not in visitor_html
+    assert "Download CSV" not in visitor_html

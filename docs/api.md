@@ -88,6 +88,7 @@ else is ignored.
 | Method | Path | Auth | Notes |
 |---|---|---|---|
 | GET | `.../results` | Optional | `{project_id, project_title, question_text, stats, responses, is_owner}`. `stats` (clarity/would-use aggregates) is public; `responses` (including written suggestions) is populated only for the owner — determined server-side from the session. `404` for unknown projects. |
+| GET | `.../results.csv` | Required (Owner) | Returns feedback as `text/csv; charset=utf-8` attachment (`Content-Disposition: attachment; filename="project-{id}-feedback.csv"`). Columns: `created_at,clarity,would_use,suggestion`. Cells starting with formula triggers (`=`, `+`, `-`, `@`, `\t`, `\r`) are escaped with a leading single quote to neutralize spreadsheet injection. `401` for anonymous, `403` for non-owners, `404` for unknown projects. |
 
 ## Badge — `/badge`
 

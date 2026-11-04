@@ -467,11 +467,15 @@
             return 'Based on ' + total + ' responses. Percentages are simple shares of these answers, not statistical measures.';
         }
 
-        function renderActions() {
-            return '<div class="action-buttons">' +
-                '<a href="/project/' + escapeHtml(projectId) + '" class="btn btn-primary">Get more feedback</a>' +
-                '<a href="/discover" class="btn btn-secondary">Discover projects</a>' +
+        function renderActions(isOwner) {
+            let html = '<div class="action-buttons no-print">' +
+                '<a href="/project/' + escapeHtml(projectId) + '" class="btn btn-primary">Get more feedback</a>';
+            if (isOwner) {
+                html += '<a href="/api/projects/' + escapeHtml(projectId) + '/results.csv" class="btn btn-secondary" id="download-csv-btn" download>Download CSV</a>';
+            }
+            html += '<a href="/discover" class="btn btn-secondary">Discover projects</a>' +
                 '</div>';
+            return html;
         }
 
         function renderPage(data) {
@@ -544,7 +548,7 @@
                 }
             }
 
-            html += renderActions();
+            html += renderActions(data.is_owner);
 
             content.innerHTML = html;
         }
