@@ -418,7 +418,11 @@
                     html += '<div class="message" id="message"></div></form></div>';
                 }
                 var details = '';
-                if (p.image_url) { details += '<img class="project-screenshot" src="' + escapeHtml(p.image_url) + '" alt="Screenshot of ' + escapeHtml(p.title) + '" loading="lazy" onerror="this.style.display=\'none\'">'; }
+                if (p.image_url) {
+                    const projectTitle = p.title || 'project';
+                    const altText = 'Screenshot of ' + escapeHtml(projectTitle);
+                    details += '<img class="project-screenshot" src="' + escapeHtml(p.image_url) + '" alt="' + altText + '" loading="lazy" onerror="this.style.display=\'none\'">';
+                }
                 if (p.url) { details += '<a href="' + escapeHtml(p.url) + '" target="_blank" rel="noopener" class="project-url">' + escapeHtml(p.url) + '</a>'; }
                 if (details) { html += '<div class="eyebrow">About this project</div><div class="project-header" style="margin-top: var(--space-5);">' + details + '</div>'; }
                 if (responses.length > 0) {
