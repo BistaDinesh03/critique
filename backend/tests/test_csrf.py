@@ -190,3 +190,33 @@ def test_verify_csrf_rejects_mismatched_ascii():
     request.headers.get.return_value = "wrong"
 
     assert verify_csrf_token(request) is False
+
+
+def test_csrf_token_expired_cookie_rejected():
+    """When a CSRF cookie expires and is omitted by the client, 403 is returned."""
+    cleanup_database()
+    client, _ = create_authenticated_client()
+    try:
+        # Header token persists from stale client state, but cookie expired (dropped)
+        client.headers["X-CSRF-Token"] = "expired_csrf_token"
+        client.cookies.pop(CSRF_COOKIE_NAME, None)
+
+        response = client.post("/api/projects/", json=create_project_payload())
+        assert response.status_code == 403
+        assert response.json() == {"detail": "Invalid or missing CSRF token"}
+    finally:
+        app.dependency_overrides.clear()
+    cleanup_database()
+
+
+def test_set_csrf_cookie_has_max_age_expiration():
+    """Verify set_csrf_cookie sets Max-Age according to SESSION_COOKIE_MAX_AGE."""
+    from fastapi import Response
+    from app.csrf import set_csrf_cookie
+    from app.config import settings
+
+    response = Response()
+    set_csrf_cookie(response, "test_token_123")
+    cookie_header = response.headers.get("set-cookie", "")
+    assert f"max-age={settings.SESSION_COOKIE_MAX_AGE}" in cookie_header.lower()
+
