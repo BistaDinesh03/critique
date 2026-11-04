@@ -190,3 +190,48 @@ def test_verify_csrf_rejects_mismatched_ascii():
     request.headers.get.return_value = "wrong"
 
     assert verify_csrf_token(request) is False
+
+
+def test_csrf_token_rotated_on_login():
+    """CSRF token must change across the authentication boundary to prevent session fixation (fixes #349)."""
+    import secrets
+    from datetime import datetime, timezone, timedelta
+    from app.models import EmailLoginToken
+    from app.auth import _hash_token
+    from app.database import SessionLocal
+
+    test_client = TestClient(app)
+    initial_csrf = "pre_auth_csrf_token_1234567890"
+    test_client.cookies.set(CSRF_COOKIE_NAME, initial_csrf, domain="testserver.local")
+
+    email = "csrf_rotation_test@example.com"
+    raw_token = secrets.token_urlsafe(32)
+    token_hash = _hash_token(raw_token)
+
+    db = SessionLocal()
+    try:
+        db.query(EmailLoginToken).filter(EmailLoginToken.email == email).delete()
+        db.query(User).filter(User.email == email).delete()
+        db.commit()
+
+        elt = EmailLoginToken(
+            email=email,
+            token_hash=token_hash,
+            expires_at=datetime.now(timezone.utc) + timedelta(minutes=15),
+            used_at=None,
+            requester_ip_hash="testhash",
+        )
+        db.add(elt)
+        db.commit()
+
+        response = test_client.get(f"/auth/email/verify?token={raw_token}", follow_redirects=False)
+        assert response.status_code in (302, 303, 307)
+        new_csrf = test_client.cookies.get(CSRF_COOKIE_NAME, domain="testserver.local")
+        assert new_csrf is not None
+        assert new_csrf != initial_csrf
+    finally:
+        db.query(EmailLoginToken).filter(EmailLoginToken.email == email).delete()
+        db.query(User).filter(User.email == email).delete()
+        db.commit()
+        db.close()
+
