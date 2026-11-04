@@ -41,6 +41,13 @@ class CacheControlMiddleware(BaseHTTPMiddleware):
         response.headers.setdefault("X-Frame-Options", "DENY")
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
         response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        if settings.HSTS_ENABLED or settings.is_production:
+            hsts_val = f"max-age={settings.HSTS_MAX_AGE}"
+            if settings.HSTS_INCLUDE_SUBDOMAINS:
+                hsts_val += "; includeSubDomains"
+            if settings.HSTS_PRELOAD:
+                hsts_val += "; preload"
+            response.headers.setdefault("Strict-Transport-Security", hsts_val)
         return response
 
 
