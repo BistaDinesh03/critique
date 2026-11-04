@@ -1,4 +1,4 @@
-﻿import pytest
+import pytest
 
 from app.database import init_db, SessionLocal
 from app.models import Project, Question, Response, User
@@ -195,4 +195,101 @@ def test_project_description_is_trimmed_or_dropped(auth_client, raw, expected):
     response = auth_client.post("/api/projects/", json=payload)
     assert response.status_code == 201
     assert response.json()["project"]["description"] == expected
+    cleanup_database()
+
+
+@pytest.mark.parametrize(
+    "invalid_url",
+    [
+        "https://",
+        "https:///path",
+        "http://",
+        "not-a-url",
+        "javascript:alert(1)",
+        "https://user:pass@example.com",
+        "https://example .com",
+    ],
+)
+def test_invalid_project_urls_rejected(auth_client, invalid_url):
+    cleanup_database()
+    payload = {
+        "project_data": {
+            "title": "URL Test",
+            "description": None,
+            "url": invalid_url,
+            "image_url": None,
+        },
+        "question_data": {"text": "Valid?"},
+    }
+    response = auth_client.post("/api/projects/", json=payload)
+    assert response.status_code == 422
+    cleanup_database()
+
+
+@pytest.mark.parametrize(
+    "valid_url",
+    [
+        "http://example.com",
+        "https://example.com",
+        "https://sub.domain.example.com/path?q=1",
+    ],
+)
+def test_valid_project_urls_accepted(auth_client, valid_url):
+    cleanup_database()
+    payload = {
+        "project_data": {
+            "title": "URL Test",
+            "description": None,
+            "url": valid_url,
+            "image_url": None,
+        },
+        "question_data": {"text": "Valid?"},
+    }
+    response = auth_client.post("/api/projects/", json=payload)
+    assert response.status_code == 201
+    assert response.json()["project"]["url"] == valid_url
+    cleanup_database()
+
+
+@pytest.mark.parametrize(
+    "invalid_image_url",
+    [
+        "http://example.com/screenshot.png",
+        "https://",
+        "https:///image.png",
+        "https://user:pass@example.com/x.png",
+        "data:image/png;base64,123",
+    ],
+)
+def test_invalid_image_urls_rejected(auth_client, invalid_image_url):
+    cleanup_database()
+    payload = {
+        "project_data": {
+            "title": "Image Test",
+            "description": None,
+            "url": "https://example.com",
+            "image_url": invalid_image_url,
+        },
+        "question_data": {"text": "Valid?"},
+    }
+    response = auth_client.post("/api/projects/", json=payload)
+    assert response.status_code == 422
+    cleanup_database()
+
+
+def test_valid_image_url_accepted(auth_client):
+    cleanup_database()
+    valid_img = "https://images.example.com/screenshot.png"
+    payload = {
+        "project_data": {
+            "title": "Image Test",
+            "description": None,
+            "url": "https://example.com",
+            "image_url": valid_img,
+        },
+        "question_data": {"text": "Valid?"},
+    }
+    response = auth_client.post("/api/projects/", json=payload)
+    assert response.status_code == 201
+    assert response.json()["project"]["image_url"] == valid_img
     cleanup_database()

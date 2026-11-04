@@ -1,4 +1,5 @@
-﻿from datetime import datetime
+from datetime import datetime
+from urllib.parse import urlsplit
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 from typing import Optional
 
@@ -40,15 +41,46 @@ class ProjectCreate(BaseModel):
         """Trim descriptions; whitespace-only ones are stored as None."""
         return strip_optional_text(v)
 
-    @field_validator("url", "image_url")
+    @field_validator("url")
     @classmethod
-    def validate_url(cls, v: Optional[str]) -> Optional[str]:
-        """Validate that URL starts with http:// or https://."""
+    def validate_project_url(cls, v: Optional[str]) -> Optional[str]:
+        """Validate project URL: requires valid host, http/https, no credentials or control chars."""
         if v is None:
             return None
         v = v.strip()
-        if not v.startswith(("http://", "https://")):
-            raise ValueError("URL must start with http:// or https://")
+        if not v:
+            return None
+        if any(ch.isspace() or ord(ch) < 32 or ord(ch) == 127 for ch in v):
+            raise ValueError("URL cannot contain whitespace or control characters")
+        try:
+            parsed = urlsplit(v)
+        except Exception:
+            raise ValueError("Invalid URL")
+        if parsed.scheme not in ("http", "https") or not parsed.netloc:
+            raise ValueError("URL must have http or https scheme and a valid host")
+        if parsed.username or parsed.password:
+            raise ValueError("URL cannot contain embedded credentials")
+        return v
+
+    @field_validator("image_url")
+    @classmethod
+    def validate_image_url(cls, v: Optional[str]) -> Optional[str]:
+        """Validate screenshot URL: requires valid host, HTTPS (to prevent mixed content), no credentials."""
+        if v is None:
+            return None
+        v = v.strip()
+        if not v:
+            return None
+        if any(ch.isspace() or ord(ch) < 32 or ord(ch) == 127 for ch in v):
+            raise ValueError("Image URL cannot contain whitespace or control characters")
+        try:
+            parsed = urlsplit(v)
+        except Exception:
+            raise ValueError("Invalid image URL")
+        if parsed.scheme != "https" or not parsed.netloc:
+            raise ValueError("Image URL must use https scheme and have a valid host")
+        if parsed.username or parsed.password:
+            raise ValueError("Image URL cannot contain embedded credentials")
         return v
 
 
