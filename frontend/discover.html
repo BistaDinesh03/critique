@@ -429,11 +429,33 @@ async function loadProjects(page) {
             const newPage = currentPage + delta;
             if (newPage >= 1 && newPage <= totalPages) {
                 lastPaginationFocus = delta > 0 ? 'next' : 'prev';
+                try {
+                    const url = new URL(window.location);
+                    url.searchParams.set('page', newPage);
+                    history.pushState({ page: newPage }, '', url);
+                } catch (e) {}
                 loadProjects(newPage);
             }
         }
 
-        loadProjects(1);
+        window.addEventListener('popstate', function(e) {
+            try {
+                const params = new URLSearchParams(window.location.search);
+                const p = parseInt(params.get('page') || '1', 10);
+                if (!isNaN(p) && p >= 1) {
+                    loadProjects(p);
+                }
+            } catch (err) {}
+        });
+
+        let initialPage = 1;
+        try {
+            const params = new URLSearchParams(window.location.search);
+            const p = parseInt(params.get('page') || '1', 10);
+            if (!isNaN(p) && p >= 1) initialPage = p;
+        } catch (err) {}
+
+        loadProjects(initialPage);
     
         async function checkAuth() {
             try {
