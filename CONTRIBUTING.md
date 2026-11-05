@@ -265,6 +265,10 @@ before the merge is confirmed, or send a second message. Full usage:
 
 For the project-specific review checklist, see the [Maintainer Pull Request Review Checklist](docs/maintainer-guide.md).
 
+## Code of Conduct
+
+This project and everyone participating in it is governed by the [Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code.
+
 ## Communication
 
 - Be kind and constructive
