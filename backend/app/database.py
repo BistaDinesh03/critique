@@ -1,4 +1,5 @@
-﻿import os
+import os
+from contextlib import contextmanager
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import sessionmaker, declarative_base
 from app.config import settings
@@ -22,10 +23,27 @@ Base = declarative_base()
 
 
 def get_db():
-    """Dependency that provides a database session."""
+    """Dependency that provides a database session, ensuring rollback and closure on exception."""
     db = SessionLocal()
     try:
         yield db
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
+@contextmanager
+def db_session():
+    """Context manager that commits on clean exit, rolls back on error, and closes."""
+    db = SessionLocal()
+    try:
+        yield db
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()
 
