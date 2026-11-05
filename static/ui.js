@@ -1,4 +1,4 @@
-﻿// Critique UI Utilities
+// Critique UI Utilities
 // Shared toast and modal system
 
 var CritiqueUI = (function() {
@@ -101,14 +101,43 @@ var CritiqueUI = (function() {
         modal.appendChild(actionsEl);
 
         backdrop.appendChild(modal);
+        var previousActiveElement = document.activeElement;
         document.body.appendChild(backdrop);
 
         // Prevent body scroll
         document.body.style.overflow = 'hidden';
 
+        function keyHandler(e) {
+            if (e.key === 'Escape') {
+                closeModal();
+                return;
+            }
+            if (e.key === 'Tab') {
+                var focusable = modal.querySelectorAll('button:not([disabled]), [tabindex]:not([tabindex="-1"])');
+                if (!focusable || focusable.length === 0) return;
+                var first = focusable[0];
+                var last = focusable[focusable.length - 1];
+                if (e.shiftKey) {
+                    if (document.activeElement === first) {
+                        e.preventDefault();
+                        last.focus();
+                    }
+                } else {
+                    if (document.activeElement === last) {
+                        e.preventDefault();
+                        first.focus();
+                    }
+                }
+            }
+        }
+
         function closeModal() {
+            document.removeEventListener('keydown', keyHandler);
             document.body.style.overflow = '';
             if (backdrop.parentNode) backdrop.parentNode.removeChild(backdrop);
+            if (previousActiveElement && typeof previousActiveElement.focus === 'function') {
+                previousActiveElement.focus();
+            }
         }
 
         function handleConfirm() {
@@ -127,14 +156,7 @@ var CritiqueUI = (function() {
             if (e.target === backdrop) closeModal();
         });
         confirmBtn.addEventListener('click', handleConfirm);
-
-        // Escape key
-        document.addEventListener('keydown', function escHandler(e) {
-            if (e.key === 'Escape') {
-                closeModal();
-                document.removeEventListener('keydown', escHandler);
-            }
-        });
+        document.addEventListener('keydown', keyHandler);
 
         // Focus confirm button
         setTimeout(function() { confirmBtn.focus(); }, 100);

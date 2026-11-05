@@ -38,6 +38,14 @@ components connect, see [docs/architecture.md](docs/architecture.md).
 
 ```bash
 cd backend
+GITHUB_CLIENT_ID=ci-test-client-id python -m pytest tests/ -q
+```
+
+On Windows (PowerShell):
+
+```powershell
+cd backend
+$env:GITHUB_CLIENT_ID = "ci-test-client-id"
 python -m pytest tests/ -q
 ```
 
@@ -161,10 +169,13 @@ Issues are also labeled by area — `frontend`, `backend`, `tests`,
 `accessibility`, `security`, `performance` — so you can filter to work that
 matches what you know, or deliberately stretch into something new.
 
-A curated, reviewed plan of 50 issues lives in
+A curated plan of 50 issues lives in
 [docs/issue-roadmap.md](docs/issue-roadmap.md). Each entry states its
-difficulty, the problem it solves, and which files it touches. If you are
-looking for something concrete, start there.
+difficulty, the problem it solves, and which files it touches. As a prepared
+roadmap, row statuses may lag behind the live tracker, so always verify on
+the [live issue tracker](https://github.com/BistaDinesh03/critique/issues) that an
+issue is open before beginning work. If you are looking for something concrete,
+start there.
 
 ## How we work together on Critique
 

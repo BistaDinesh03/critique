@@ -10,7 +10,12 @@
     <meta property="og:url" content="https://critique.page/">
     <meta property="og:title" content="Critique — Ask one question. Get real answers.">
     <meta property="og:description" content="Stop getting &quot;Looks good.&quot; Get focused feedback from real people who actually take the time to look.">
+    <meta property="og:image" content="https://critique.page/static/og-image.webp">
+    <meta property="og:image:type" content="image/webp">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
     <meta property="og:image" content="https://critique.page/static/og-image.png">
+    <meta property="og:image:type" content="image/png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:site_name" content="Critique">
@@ -19,7 +24,7 @@
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Critique — Ask one question. Get real answers.">
     <meta name="twitter:description" content="Stop getting &quot;Looks good.&quot; Get focused feedback from real people who actually take the time to look.">
-    <meta name="twitter:image" content="https://critique.page/static/og-image.png">
+    <meta name="twitter:image" content="https://critique.page/static/og-image.webp">
     <title>Critique — Ask one question. Get real answers.</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link rel="stylesheet" href="/static/shared.css">
@@ -1180,6 +1185,11 @@
         <div id="auth-cancelled-banner" class="alert alert-warning" role="status"
              style="display: none; max-width: 72ch; margin-left: auto; margin-right: auto;"></div>
 
+        <!-- Shown on load when the backend redirects here with ?auth=expired
+             (the GitHub OAuth state expired or was invalid). -->
+        <div id="auth-expired-banner" class="alert alert-warning" role="status"
+             style="display: none; max-width: 72ch; margin-left: auto; margin-right: auto;"></div>
+
         <section class="hero">
             <h1>Stop getting "Looks good."</h1>
             <p class="subheadline">Ask one question. Get real answers.</p>
@@ -1330,7 +1340,7 @@
                                     <span class="review-tag">Security</span>
                                     <span class="review-tag">UI</span>
                                     <span class="review-tag">Analytics</span>
-                                    <span class="review-tag accent">70 tests passing</span>
+                                    <span class="review-tag accent">Automated test suite</span>
                                 </div>
                             </article>
                         </li>
@@ -1683,9 +1693,30 @@
             window.history.replaceState(null, '', window.location.pathname + cleaned + window.location.hash);
         }
 
+        const AUTH_EXPIRED = /[?&]auth=expired(?=&|$)/;
+
+        function showAuthExpiredBanner() {
+            const search = window.location.search || '';
+            if (!AUTH_EXPIRED.test(search)) return;
+
+            const banner = document.getElementById('auth-expired-banner');
+            if (!banner) return;
+
+            banner.style.display = 'block';
+            banner.textContent = "Your sign-in attempt timed out or was interrupted. " +
+                "Please try signing in again.";
+
+            const cleaned = search
+                .replace(AUTH_EXPIRED, '')
+                .replace(/^&/, '?')
+                .replace(/\?$/, '');
+            window.history.replaceState(null, '', window.location.pathname + cleaned + window.location.hash);
+        }
+
         // Run auth check immediately on script load
         checkAuth();
         showAuthCancelledBanner();
+        showAuthExpiredBanner();
         showAuthErrorBanner();
 
         async function loadHomepageProjects() {
@@ -1694,15 +1725,6 @@
                 const response = await fetch('/api/projects/?page=1&page_size=6');
                 if (!response.ok) throw new Error('Request failed: ' + response.status);
                 const data = await response.json();
-
-                const totalProjects = data.total || 0;
-                let totalResponses = 0;
-                data.items.forEach(function(p) { totalResponses += (p.response_count || 0); });
-
-                document.getElementById('stat-projects').textContent = totalProjects;
-                document.getElementById('stat-responses').textContent = totalResponses;
-                document.getElementById('stat-questions').textContent = totalProjects;
-                document.getElementById('real-activity').style.display = 'grid';
 
                 if (data.items.length === 0) {
                     container.innerHTML = '<p style="color:var(--text-muted);grid-column:1/-1;text-align:center;">No projects waiting for feedback yet. Be the first to ask a question.</p>';
@@ -2046,6 +2068,17 @@
                 // Nothing to show yet: hide the row, exactly as it behaved
                 // before the placeholder existed.
                 proofContainer.style.display = data.total_builders > 0 ? 'flex' : 'none';
+
+                const statProjects = document.getElementById('stat-projects');
+                if (statProjects) statProjects.textContent = data.total_projects || 0;
+                const statResponses = document.getElementById('stat-responses');
+                if (statResponses) statResponses.textContent = data.total_responses || 0;
+                const statQuestions = document.getElementById('stat-questions');
+                if (statQuestions) statQuestions.textContent = data.total_questions || 0;
+                const realActivity = document.getElementById('real-activity');
+                if (realActivity) {
+                    realActivity.style.display = (data.total_projects || 0) > 0 ? 'grid' : 'none';
+                }
             } catch (e) {
                 // Silently fail - social proof is enhancement
             } finally {
