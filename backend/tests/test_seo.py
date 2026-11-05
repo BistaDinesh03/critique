@@ -1,4 +1,4 @@
-﻿from fastapi.testclient import TestClient
+from fastapi.testclient import TestClient
 import pytest
 
 from app.config import settings
@@ -66,3 +66,13 @@ def test_sitemap_does_not_include_private_pages():
     assert "/my-projects" not in text
     assert "/api/" not in text
     assert "/auth/" not in text
+
+
+def test_twitter_card_metadata_on_frontend_pages():
+    """All public pages carry Twitter Card metadata tags."""
+    pages = ["/", "/discover"]
+    for path in pages:
+        res = client.get(path)
+        assert res.status_code == 200
+        assert '<meta name="twitter:card"' in res.text
+        assert '<meta name="twitter:title"' in res.text
