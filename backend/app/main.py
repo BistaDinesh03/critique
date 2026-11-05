@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 import re
 import uuid
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.exception_handlers import http_exception_handler
@@ -129,11 +129,24 @@ _EARLY_AUTH_STYLE = (
 
 
 def _page_response(
-    request: Request, filename: str, status_code: int = 200
+    request: Request,
+    filename: str,
+    status_code: int = 200,
+    title: Optional[str] = None,
+    description: Optional[str] = None,
 ) -> HTMLResponse:
     """Serve a frontend page, stamping early auth state when a valid session
     cookie accompanies the request (signature + age only, no DB lookup)."""
     html = _read_frontend_file(filename)
+    if title:
+        import re
+        html = re.sub(r"<title>.*?</title>", f"<title>{title}</title>", html, count=1)
+    if description:
+        import re
+        if "<meta name=\"description\"" in html:
+            html = re.sub(r'<meta name="description" content=".*?">', f'<meta name="description" content="{description}">', html, count=1)
+        else:
+            html = html.replace("</head>", f'    <meta name="description" content="{description}">\n</head>', 1)
     if status_code != 404 and filename != "404.html":
         clean_path = request.url.path or "/"
         canonical_url = f"{site_url()}{clean_path}"
@@ -194,24 +207,42 @@ def discover_page(request: Request):
 
 @app.get("/project/{project_id}", response_class=HTMLResponse)
 def project_detail_page(request: Request, project_id: str, db: Annotated[Session, Depends(get_db)]):
-    _require_project(project_id, db)
-    return _page_response(request, "project_detail.html")
+    project = _require_project(project_id, db)
+    import html as html_lib
+    safe_title = html_lib.escape(project.title[:60])
+    safe_desc = html_lib.escape((project.description or "Give honest feedback on Critique.")[:160])
+    return _page_response(
+        request,
+        "project_detail.html",
+        title=f"{safe_title} — Critique",
+        description=safe_desc,
+    )
 
 
 @app.get("/project/{project_id}/results", response_class=HTMLResponse)
 def project_results_page(request: Request, project_id: str, db: Annotated[Session, Depends(get_db)]):
-    _require_project(project_id, db)
-    return _page_response(request, "project_results.html")
+    project = _require_project(project_id, db)
+    import html as html_lib
+    safe_title = html_lib.escape(project.title[:60])
+    return _page_response(
+        request,
+        "project_results.html",
+        title=f"Results: {safe_title} — Critique",
+    )
 
 
-def _require_project(project_id: str, db: Session) -> None:
+def _require_project(project_id: str, db: Session) -> Project:
     """Reject absent or malformed IDs before serving a successful HTML shell."""
     try:
         parsed_id = int(project_id)
     except ValueError:
         raise HTTPException(status_code=404, detail="Project not found") from None
-    if not in_int64_range(parsed_id) or db.get(Project, parsed_id) is None:
+    if not in_int64_range(parsed_id):
         raise HTTPException(status_code=404, detail="Project not found")
+    proj = db.get(Project, parsed_id)
+    if proj is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return proj
 
 
 

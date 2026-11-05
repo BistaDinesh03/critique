@@ -42,12 +42,8 @@ def test_existing_project_page_preserves_shell_and_cache_headers(suffix, filenam
         project_id = project.id
     response = TestClient(app).get(f'/project/{project_id}{suffix}')
     assert response.status_code == 200
-    source = Path(__file__).resolve().parents[2] / 'frontend' / filename
-    expected = source.read_text(encoding='utf-8').replace(
-        '</head>',
-        f'    <link rel="canonical" href="http://127.0.0.1:8000/project/{project_id}{suffix}">\n</head>',
-    )
-    assert response.text == expected
+    assert 'Synthetic project — Critique' in response.text
+    assert f'<link rel="canonical" href="http://127.0.0.1:8000/project/{project_id}{suffix}">' in response.text
     assert response.headers['cache-control'] == 'private, no-store'
     assert response.headers['vary'] == 'Cookie'
     assert response.headers['content-type'].startswith('text/html')
@@ -61,3 +57,57 @@ def test_project_detail_has_breadcrumb_navigation():
     assert '<a href="/discover">Discover</a>' in source
     assert 'aria-current="page"' in source
     assert 'id="breadcrumb-current"' in source
+
+
+def test_two_different_projects_render_distinct_titles_and_descriptions():
+    """Different projects have different server-rendered titles containing project names (fixes #312)."""
+    with SessionLocal() as db:
+        owner = User(username=f'page-title-{uuid.uuid4().hex[:12]}')
+        db.add(owner)
+        db.flush()
+        p1 = Project(title='Alpha Scanner', description='Fast security audits', owner_id=owner.id)
+        p2 = Project(title='Beta Monitor', description='Uptime tracking tool', owner_id=owner.id)
+        db.add_all([p1, p2])
+        db.commit()
+        id1, id2 = p1.id, p2.id
+
+    client = TestClient(app)
+    r1 = client.get(f'/project/{id1}')
+    r2 = client.get(f'/project/{id2}')
+    assert '<title>Alpha Scanner — Critique</title>' in r1.text
+    assert '<title>Beta Monitor — Critique</title>' in r2.text
+    assert 'Fast security audits' in r1.text
+    assert 'Uptime tracking tool' in r2.text
+
+
+def test_discover_and_my_projects_have_meta_descriptions():
+    """Discover has a public meta description; My Projects and Results declare noindex (fixes #312)."""
+    client = TestClient(app)
+    discover_resp = client.get('/discover')
+    assert '<meta name="description"' in discover_resp.text
+    assert 'Discover projects from builders and makers' in discover_resp.text
+
+    my_projects_resp = client.get('/my-projects')
+    assert '<meta name="description"' in my_projects_resp.text
+    assert '<meta name="robots" content="noindex, nofollow">' in my_projects_resp.text
+
+
+def test_project_page_escapes_html_and_truncates_length():
+    """Project titles and descriptions with HTML characters are escaped and truncated (fixes #312)."""
+    with SessionLocal() as db:
+        owner = User(username=f'escape-{uuid.uuid4().hex[:12]}')
+        db.add(owner)
+        db.flush()
+        long_title = '<script>alert("xss")</script> ' + 'A' * 100
+        long_desc = '<b>bold & dangerous</b> ' + 'D' * 200
+        p = Project(title=long_title, description=long_desc, owner_id=owner.id)
+        db.add(p)
+        db.commit()
+        pid = p.id
+
+    client = TestClient(app)
+    resp = client.get(f'/project/{pid}')
+    assert '<script>alert' not in resp.text
+    assert '&lt;script&gt;alert' in resp.text
+    assert '<b>bold' not in resp.text
+    assert '&lt;b&gt;bold &amp; dangerous&lt;/b&gt;' in resp.text
