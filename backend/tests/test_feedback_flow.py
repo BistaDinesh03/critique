@@ -572,3 +572,37 @@ def test_sign_in_events_fire_only_on_a_real_return(tmp_path):
     # the session is still anonymous, it lands on the gate again as designed.
     assert len(events(returned, "feedback_submit_attempt")) == 1
     assert events(returned, "feedback_submit_error") == []
+
+
+def test_feedback_draft_and_responded_keys_are_namespaced_per_account(tmp_path):
+    """Different accounts in the same tab get independent draft and responded state (fixes #315)."""
+    fetch = {
+        "/api/projects/1": {"status": 200, "body": PROJECT},
+    }
+    result = run(
+        tmp_path,
+        "project_detail.html",
+        [
+            {"fn": "renderProject", "args": [PROJECT, []]},
+            # User A
+            {"fn": "setCurrentUserId", "args": ["user_123"]},
+            {"evaluate": "feedbackStorageKey()", "as": "userA_storageKey"},
+            {"evaluate": "feedbackSubmittedKey()", "as": "userA_submittedKey"},
+            # User B
+            {"fn": "setCurrentUserId", "args": ["user_456"]},
+            {"evaluate": "feedbackStorageKey()", "as": "userB_storageKey"},
+            {"evaluate": "feedbackSubmittedKey()", "as": "userB_submittedKey"},
+            # Anonymous
+            {"fn": "setCurrentUserId", "args": [None]},
+            {"evaluate": "feedbackStorageKey()", "as": "anon_storageKey"},
+            {"evaluate": "feedbackSubmittedKey()", "as": "anon_submittedKey"},
+        ],
+        fetch=fetch,
+        location="/project/1",
+    )
+    assert result["values"]["userA_storageKey"] == "critique_feedback_user_123_1"
+    assert result["values"]["userA_submittedKey"] == "critique_responded_user_123_1"
+    assert result["values"]["userB_storageKey"] == "critique_feedback_user_456_1"
+    assert result["values"]["userB_submittedKey"] == "critique_responded_user_456_1"
+    assert result["values"]["anon_storageKey"] == "critique_feedback_1"
+    assert result["values"]["anon_submittedKey"] == "critique_responded_1"
