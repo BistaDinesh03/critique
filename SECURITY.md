@@ -29,7 +29,7 @@ are supported. There are no versioned releases.
 These controls exist in the codebase today — useful context when reporting
 or reviewing:
 
-- CSRF protection (double-submit cookie) on all state-changing requests
+- CSRF protection (double-submit cookie) on state-changing mutation requests (`/api/projects/*`, `/auth/email/start`). Lightweight analytics tracking (`POST /api/analytics/track`) is exempt to support browser beacons and unauthenticated event telemetry, and is guarded by IP rate limiting and a strict server-side event allowlist.
 - Session cookies are `HttpOnly`, `SameSite=Lax`, and `Secure` in production
 - Server-side ownership checks on every mutation, based on the session —
   never on client-supplied headers

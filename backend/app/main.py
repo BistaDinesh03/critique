@@ -1,4 +1,6 @@
 from contextlib import asynccontextmanager
+import re
+import uuid
 from pathlib import Path
 from typing import Annotated
 
@@ -22,8 +24,30 @@ from app.routes_badge import router as badge_router
 from app.routes_projects import router as projects_router
 from app.routes_responses import router as responses_router
 from app.routes_results import router as results_router
-from app.routes_seo import router as seo_router
+from app.routes_seo import router as seo_router, site_url
 from app.routes_stats import router as stats_router
+
+
+_REQUEST_ID_RE = re.compile(r"^[A-Za-z0-9-]{1,64}$")
+
+
+class RequestIDMiddleware(BaseHTTPMiddleware):
+    """Ensure every response carries a safe X-Request-ID for correlation.
+
+    Incoming IDs are validated against a strict allowlist; anything missing or
+    invalid is replaced with a server-generated UUID4 hex string.
+    """
+
+    async def dispatch(self, request, call_next):
+        incoming = request.headers.get("X-Request-ID")
+        if incoming and _REQUEST_ID_RE.fullmatch(incoming):
+            request_id = incoming
+        else:
+            request_id = uuid.uuid4().hex
+        request.state.request_id = request_id
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = request_id
+        return response
 
 
 class CacheControlMiddleware(BaseHTTPMiddleware):
@@ -41,6 +65,13 @@ class CacheControlMiddleware(BaseHTTPMiddleware):
         response.headers.setdefault("X-Frame-Options", "DENY")
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
         response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        if settings.HSTS_ENABLED or settings.is_production:
+            hsts_val = f"max-age={settings.HSTS_MAX_AGE}"
+            if settings.HSTS_INCLUDE_SUBDOMAINS:
+                hsts_val += "; includeSubDomains"
+            if settings.HSTS_PRELOAD:
+                hsts_val += "; preload"
+            response.headers.setdefault("Strict-Transport-Security", hsts_val)
         return response
 
 
@@ -59,6 +90,7 @@ app = FastAPI(
 )
 
 app.add_middleware(CacheControlMiddleware)
+app.add_middleware(RequestIDMiddleware)
 
 app.include_router(auth_router)
 app.include_router(projects_router)
@@ -102,6 +134,12 @@ def _page_response(
     """Serve a frontend page, stamping early auth state when a valid session
     cookie accompanies the request (signature + age only, no DB lookup)."""
     html = _read_frontend_file(filename)
+    if status_code != 404 and filename != "404.html":
+        clean_path = request.url.path or "/"
+        canonical_url = f"{site_url()}{clean_path}"
+        canonical_tag = f'<link rel="canonical" href="{canonical_url}">'
+        if "</head>" in html and 'rel="canonical"' not in html:
+            html = html.replace("</head>", f"    {canonical_tag}\n</head>", 1)
     if session_cookie_is_valid(request):
         html = html.replace(
             "</head>", _EARLY_AUTH_SCRIPT + _EARLY_AUTH_STYLE + "</head>", 1
