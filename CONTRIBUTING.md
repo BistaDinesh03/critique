@@ -267,6 +267,8 @@ For the project-specific review checklist, see the [Maintainer Pull Request Revi
 
 ## Communication
 
+We are committed to providing a welcoming and inspiring community for all. Please review our [Code of Conduct](CODE_OF_CONDUCT.md).
+
 - Be kind and constructive
 - Assume good intentions
 - Focus on the work, not the person
