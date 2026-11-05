@@ -172,3 +172,72 @@ pointed at the right site.
 | 422 | `{"detail": [...]}` | Pydantic validation failure. |
 | 429 | `{"detail": "Too many requests. Please slow down."}` | Rate limit exceeded. |
 | 500 | `{"detail": "Internal server error"}` | Unhandled error; never leaks stack traces. |
+
+## Client Examples
+
+### 1. Fetch Platform Stats and Discover Feed
+
+**curl:**
+```bash
+# Public stats
+curl -s https://critique.page/api/stats
+
+# Paginated projects
+curl -s "https://critique.page/api/projects/?page=1&limit=10"
+```
+
+**Python (`httpx` or `requests`):**
+```python
+import requests
+
+BASE_URL = "https://critique.page"
+
+# Get stats
+stats = requests.get(f"{BASE_URL}/api/stats").json()
+print("Total builders:", stats["total_builders"])
+
+# List discover projects
+feed = requests.get(f"{BASE_URL}/api/projects/?page=1&limit=10").json()
+for project in feed["items"]:
+    print(project["title"], project["url"])
+```
+
+### 2. State-Changing Requests (CSRF & Cookies)
+
+Every `POST` or `DELETE` request requires an active session (for protected endpoints) and matching CSRF headers:
+
+**curl:**
+```bash
+# 1. Fetch CSRF token and store session cookie
+curl -c cookies.txt -s https://critique.page/auth/csrf-token -o csrf.json
+CSRF_TOKEN=$(grep -o '"csrf_token":"[^"]*' csrf.json | cut -d'"' -f4)
+
+# 2. Submit feedback response to project 42
+curl -b cookies.txt \
+  -H "Content-Type: application/json" \
+  -H "X-CSRF-Token: $CSRF_TOKEN" \
+  -d '{"clarity":"very_clear","would_use":"yes","suggestion":"Great interface!"}' \
+  https://critique.page/api/projects/42/responses
+```
+
+**Python:**
+```python
+import requests
+
+session = requests.Session()
+BASE_URL = "https://critique.page"
+
+# Fetch CSRF token (automatically sets critique_csrf cookie in session)
+csrf_resp = session.get(f"{BASE_URL}/auth/csrf-token")
+csrf_token = csrf_resp.json()["csrf_token"]
+session.headers["X-CSRF-Token"] = csrf_token
+
+# Submit feedback
+payload = {
+    "clarity": "very_clear",
+    "would_use": "yes",
+    "suggestion": "Great tool, very intuitive flow.",
+}
+response = session.post(f"{BASE_URL}/api/projects/42/responses", json=payload)
+print(response.status_code, response.json())
+```
