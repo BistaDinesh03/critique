@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+import mimetypes
 import re
 import uuid
 from pathlib import Path
@@ -101,6 +102,8 @@ app.include_router(stats_router)
 app.include_router(analytics_router)
 app.include_router(analytics_dashboard_router)
 app.include_router(seo_router)
+
+mimetypes.add_type("image/webp", ".webp")
 
 static_dir = Path(__file__).resolve().parent.parent.parent / "static"
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
