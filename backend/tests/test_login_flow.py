@@ -144,3 +144,33 @@ def test_analytics_accepts_feedback_resume_event():
     """feedback_resume is in the backend allowlist."""
     response = client.post("/api/analytics/track?event_name=feedback_resume")
     assert response.status_code == 200
+
+
+def test_invalid_or_expired_oauth_state_redirects_browser_to_expired_banner():
+    """Browser request with Accept: text/html receives friendly 302 redirect."""
+    response = client.get(
+        "/auth/callback?code=fake&state=invalid_or_expired_state",
+        headers={"Accept": "text/html,application/xhtml+xml"},
+        follow_redirects=False,
+    )
+    assert response.status_code == 302
+    assert response.headers["location"] == "/?auth=expired"
+
+
+def test_invalid_or_expired_oauth_state_returns_400_for_json_clients():
+    """JSON API client receives 400 error."""
+    response = client.get(
+        "/auth/callback?code=fake&state=invalid_or_expired_state",
+        headers={"Accept": "application/json"},
+        follow_redirects=False,
+    )
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Invalid or missing OAuth state"
+
+
+def test_homepage_contains_auth_expired_banner():
+    """Frontend index.html renders auth-expired-banner."""
+    from pathlib import Path
+    index_html = (Path(__file__).resolve().parents[2] / "frontend" / "index.html").read_text(encoding="utf-8")
+    assert 'id="auth-expired-banner"' in index_html
+    assert "showAuthExpiredBanner()" in index_html
