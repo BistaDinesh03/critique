@@ -120,7 +120,7 @@ Critique intentionally avoids complexity. Before adding anything, ask:
 - Link any related issues
 - Be respectful and patient
 
-For a step-by-step example of claiming an issue, working in a fork, running relevant checks, and opening a pull request, see the [first-contributor walkthrough](docs/first-contributors.md).
+For a step-by-step example of claiming an issue, working in a fork, running relevant checks, and opening a pull request, see the [first-contributor walkthrough](docs/first-contributors.md). If you encounter setup problems or environment issues, see the [Troubleshooting Guide](docs/troubleshooting.md).
 
 ## Welcome to new contributors
 
