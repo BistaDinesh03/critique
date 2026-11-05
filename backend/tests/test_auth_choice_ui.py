@@ -515,6 +515,23 @@ def test_desktop_nav_menu_still_opens_and_closes(tmp_path):
     assert closed["flags"]["login-btn"]["ariaExpanded"] == "false"
 
 
+def test_mobile_nav_closes_on_escape_and_restores_focus(tmp_path):
+    """Pressing Escape collapses the mobile nav and returns focus to the toggle button (fixes #338)."""
+    result = run(
+        tmp_path,
+        "index.html",
+        [
+            {"clickId": "navbar-toggle"},
+            {"dispatchKeydown": {"key": "Escape"}},
+        ],
+    )
+    assert result["flags"]["navbar-toggle"]["ariaExpanded"] == "false"
+    assert "navbar-nav-open" not in (result["flags"]["navbar-nav"]["className"] or "")
+    assert result["focused"] is not None
+    assert result["focused"]["id"] == "navbar-toggle"
+
+
+
 # ---------------------------------------------------------------------------
 # Builder avatars on the homepage
 # ---------------------------------------------------------------------------
