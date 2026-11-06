@@ -41,3 +41,12 @@ def test_info_toast_remains_status(tmp_path):
     assert len(toasts) == 1
     assert toasts[0]['role'] == 'status'
     assert result['values']['containerLive'] is None
+
+
+def test_toast_has_keyboard_dismiss_button(tmp_path):
+    """Toasts include a keyboard-operable dismiss button for WCAG 2.2.1 compliance (fixes #276)."""
+    result = run(tmp_path, 'my_projects.html', [SETUP, {'fn': 'CritiqueUI.showToast', 'args': ['Warning message', 'error']}, READ])
+    dismiss_buttons = [item for item in result['createdMeta'] if item.get('className') == 'toast-dismiss']
+    assert len(dismiss_buttons) == 1
+    assert dismiss_buttons[0].get('ariaLabel') == 'Dismiss notification'
+
