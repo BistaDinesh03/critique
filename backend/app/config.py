@@ -1,4 +1,4 @@
-﻿import os
+import os
 import secrets
 import sys
 
@@ -17,7 +17,7 @@ def _resolve_secret_key(app_env: str) -> str:
     production we fall back to a random per-process key so local runs still
     work, with a warning that sessions will not survive a restart.
     """
-    key = os.getenv("SECRET_KEY", "")
+    key = os.getenv("SECRET_KEY", "").strip()
     if key:
         return key
     if app_env.lower() == "production":
@@ -51,6 +51,10 @@ class Settings:
     # Security
     SESSION_COOKIE_SECURE: bool = os.getenv("SESSION_COOKIE_SECURE", "false").lower() == "true"
     SESSION_COOKIE_MAX_AGE: int = int(os.getenv("SESSION_COOKIE_MAX_AGE", "604800"))  # 7 days
+    HSTS_ENABLED: bool = os.getenv("HSTS_ENABLED", "true" if os.getenv("APP_ENV", "development").lower() == "production" else "false").lower() == "true"
+    HSTS_MAX_AGE: int = int(os.getenv("HSTS_MAX_AGE", "31536000"))  # 1 year
+    HSTS_INCLUDE_SUBDOMAINS: bool = os.getenv("HSTS_INCLUDE_SUBDOMAINS", "true").lower() == "true"
+    HSTS_PRELOAD: bool = os.getenv("HSTS_PRELOAD", "false").lower() == "true"
 
     # Email (Resend) — passwordless magic link
     RESEND_API_KEY: str = os.getenv("RESEND_API_KEY", "")
