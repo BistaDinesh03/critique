@@ -1936,7 +1936,9 @@
                     msg.textContent = 'Session expired. Your project is saved — refresh and try again.';
                 } else {
                     msg.className = 'alert alert-error';
-                    msg.textContent = 'Error: ' + JSON.stringify(data);
+                    msg.textContent = (data && typeof data.detail === 'string')
+                        ? data.detail
+                        : 'Failed to submit project. Please try again.';
                 }
             } catch (error) {
                 msg.className = 'alert alert-error';
