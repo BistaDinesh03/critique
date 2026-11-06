@@ -306,9 +306,9 @@
                     html += '<div><span class="' + pillClass + '">' + pillText + '</span></div>';
                     html += '<div class="card-actions">';
                     html += '<a href="/project/' + p.id + '/results" class="btn btn-primary">View Feedback</a>';
-                    html += '<button type="button" onclick="toggleShare(this)" data-project="' + p.id + '" data-title="' + escapeHtml(p.title) + '" aria-expanded="false" class="btn btn-secondary">Share</button>';
+                    html += '<button type="button" onclick="toggleShare(this)" data-project="' + p.id + '" data-title="' + escapeHtml(p.title) + '" aria-expanded="false" aria-controls="share-row-' + p.id + '" class="btn btn-secondary">Share</button>';
                     html += '<span class="spacer"></span>';
-                    html += '<button onclick="deleteProject(' + p.id + ', this)" data-title="' + escapeHtml(p.title) + '" class="btn-delete">Delete</button>';
+                    html += '<button onclick="deleteProject(' + p.id + ', this)" data-title="' + escapeHtml(p.title) + '" aria-label="Delete ' + escapeHtml(p.title) + '" class="btn-delete">Delete</button>';
                     html += '</div>';
                     html += '</div>';
                     html += '</div>';
@@ -355,6 +355,9 @@
                 projectId: parseInt(projectId, 10),
                 title: title
             });
+            if (row) {
+                row.id = 'share-row-' + projectId;
+            }
             btn.setAttribute('aria-expanded', 'true');
             activeCardShare = { row: row, btn: btn };
         }
