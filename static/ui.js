@@ -28,26 +28,62 @@ var CritiqueUI = (function() {
         text.className = 'toast-text';
         text.textContent = message;
 
+        var dismissBtn = document.createElement('button');
+        dismissBtn.type = 'button';
+        dismissBtn.className = 'toast-dismiss';
+        dismissBtn.setAttribute('aria-label', 'Dismiss notification');
+        dismissBtn.textContent = '×';
+
         toast.appendChild(icon);
         toast.appendChild(text);
+        toast.appendChild(dismissBtn);
 
         container.appendChild(toast);
 
-        // Auto dismiss after 3.5 seconds
-        setTimeout(function() {
+        var dismissTimeout = null;
+        var isPaused = false;
+
+        function dismissToast() {
             toast.classList.add('toast-hide');
             setTimeout(function() {
                 if (toast.parentNode) toast.parentNode.removeChild(toast);
             }, 200);
-        }, 3500);
+        }
+
+        function startTimer() {
+            if (dismissTimeout) clearTimeout(dismissTimeout);
+            dismissTimeout = setTimeout(function() {
+                if (!isPaused) dismissToast();
+            }, 3500);
+        }
+
+        function pauseTimer() {
+            isPaused = true;
+            if (dismissTimeout) {
+                clearTimeout(dismissTimeout);
+                dismissTimeout = null;
+            }
+        }
+
+        function resumeTimer() {
+            isPaused = false;
+            startTimer();
+        }
+
+        toast.addEventListener('mouseenter', pauseTimer);
+        toast.addEventListener('mouseleave', resumeTimer);
+        toast.addEventListener('focusin', pauseTimer);
+        toast.addEventListener('focusout', resumeTimer);
+
+        dismissBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            dismissToast();
+        });
 
         // Click to dismiss
-        toast.addEventListener('click', function() {
-            toast.classList.add('toast-hide');
-            setTimeout(function() {
-                if (toast.parentNode) toast.parentNode.removeChild(toast);
-            }, 200);
-        });
+        toast.addEventListener('click', dismissToast);
+
+        startTimer();
     }
 
     // ============ MODAL SYSTEM ============
