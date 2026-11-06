@@ -375,7 +375,9 @@
                 const nextBtn = document.getElementById('next-btn');
                 document.getElementById('pagination').style.display = 'flex';
                 prevBtn.disabled = currentPage <= 1;
+                prevBtn.setAttribute('aria-disabled', currentPage <= 1 ? 'true' : 'false');
                 nextBtn.disabled = currentPage >= totalPages;
+                nextBtn.setAttribute('aria-disabled', currentPage >= totalPages ? 'true' : 'false');
                 document.getElementById('page-info').textContent = 'Page ' + currentPage + ' of ' + totalPages;
                 if (lastPaginationFocus) {
                     const targetBtn = lastPaginationFocus === 'next' ? nextBtn : prevBtn;
