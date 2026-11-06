@@ -745,7 +745,7 @@
             var form = document.getElementById('response-form');
             if (!form) return;
             setTimeout(function() {
-                form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                form.scrollIntoView({ behavior: CritiqueUI.scrollBehavior(), block: 'start' });
                 var firstRadio = form.querySelector('input[name="clarity"]');
                 if (firstRadio) {
                     setTimeout(function() { firstRadio.focus({ preventScroll: true }); }, 400);

@@ -1961,9 +1961,9 @@
             if (window.location.search.indexOf('resume=project_submit') === -1) return;
             var form = document.getElementById('submit');
             if (!form) return;
-            // Scroll smoothly to the submit section
+            // Honor motion preferences when returning to the submit section
             setTimeout(function() {
-                form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                form.scrollIntoView({ behavior: CritiqueUI.scrollBehavior(), block: 'start' });
                 // Focus the first input for immediate typing
                 var firstInput = document.getElementById('title');
                 if (firstInput) {
@@ -2232,18 +2232,6 @@
             return document.getElementById(id);
         }
 
-        function readReducedMotion() {
-            try {
-                if (typeof window !== 'undefined' && window.matchMedia) {
-                    var mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-                    if (mq && typeof mq.matches === 'boolean') return mq.matches;
-                }
-            } catch (e) {
-                // Treat an unusable media query as "motion allowed".
-            }
-            return false;
-        }
-
         function init() {
             var root = byId('fb-carousel');
             var viewport = byId('fb-viewport');
@@ -2259,7 +2247,7 @@
                 pages: 1,
                 perView: 3,
                 slideCount: 0,
-                reducedMotion: readReducedMotion()
+                reducedMotion: CritiqueUI.readReducedMotion()
             };
 
             function applyMotionPreference() {
