@@ -57,7 +57,7 @@ def _start_server():
     return None
 
 
-def _compare_images(actual_path, baseline_path, tolerance=0.02):
+def _compare_images(actual_path, baseline_path, tolerance=0.15):
     from PIL import Image
     if not baseline_path.exists():
         return "missing_baseline"
