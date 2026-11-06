@@ -146,8 +146,8 @@ def test_all_four_testimonials_keep_their_exact_wording_and_metadata():
     for tag in ("Security", "UI", "Analytics"):
         assert f'<span class="review-tag">{tag}</span>' in src
 
-    # The "70 tests passing" tag is untouched (issue #229 stays out of scope).
-    assert src.count('<span class="review-tag accent">70 tests passing</span>') == 1
+    # Issue #229: Test tag is count-free so it cannot drift.
+    assert src.count('<span class="review-tag accent">Automated test suite</span>') == 1
 
     # Alex Lovesyuk: quote, metadata, no invented role or score.
     assert "“Critique's focus on honest feedback for builders caught my eye.”" in src
@@ -715,7 +715,20 @@ def test_render_harness_is_error_free_and_homepage_features_survive(tmp_path):
     assert re.search(r"total_builders\s*>\s*0", src)
     # Login-gated project submission still present.
     assert "showProjectInlineLoginPrompt" in src
-    # The test-count tag stays exactly as-is (issue #229 out of scope).
-    assert src.count("70 tests passing") == 1
+    # Issue #229: The test tag is count-free so it cannot drift.
+    assert src.count("Automated test suite") == 1
     # shared.css untouched marker: hero still present.
     assert "hero" in src.lower()
+
+
+def test_no_hardcoded_test_count_in_frontend():
+    r"""Asserts that no hardcoded test count like '\d+ tests passing' exists
+    in frontend/ or static/ (closing issue #229 drift class permanently)."""
+    root = Path(__file__).resolve().parent.parent.parent
+    for folder in ("frontend", "static"):
+        folder_path = root / folder
+        for file in folder_path.rglob("*.*"):
+            if file.suffix in (".html", ".js", ".css"):
+                content = file.read_text(encoding="utf-8")
+                match = re.search(r"\d+\s+tests?\s+passing", content, re.IGNORECASE)
+                assert not match, f"Found hardcoded test count in {file}: {match.group(0)}"
