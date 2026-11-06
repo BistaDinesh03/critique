@@ -1,4 +1,4 @@
-﻿from http.cookies import SimpleCookie
+from http.cookies import SimpleCookie
 
 import pytest
 from app.analytics import VISITOR_COOKIE_MAX_AGE, VISITOR_COOKIE_NAME
@@ -144,6 +144,35 @@ def test_visitor_cookie_flags_and_tracking(monkeypatch, secure):
                 events = db.query(AnalyticsEvent).all()
                 assert len(events) == 2
                 assert {event.visitor_id for event in events} == {visitor.value}
+            finally:
+                db.close()
+    finally:
+        cleanup_database()
+
+
+@pytest.mark.parametrize("bad_cookie", ["a" * 200, "../../etc/passwd", "<script>alert(1)</script>", "not-valid-hex!"])
+def test_malformed_or_oversized_visitor_cookie_is_discarded(bad_cookie):
+    """Oversized or malformed critique_visitor cookie is rejected and replaced with a valid 32-hex id."""
+    cleanup_database()
+    try:
+        with TestClient(app, base_url="https://testserver") as client:
+            client.cookies.set(VISITOR_COOKIE_NAME, bad_cookie)
+            res = client.post("/api/analytics/track?event_name=page_view")
+            assert res.status_code == 200
+            assert res.json()["ok"] is True
+
+            cookie = SimpleCookie()
+            cookie.load(res.headers["set-cookie"])
+            visitor = cookie[VISITOR_COOKIE_NAME].value
+            assert visitor != bad_cookie
+            assert len(visitor) == 32
+            assert all(c in "0123456789abcdef" for c in visitor)
+
+            db = SessionLocal()
+            try:
+                events = db.query(AnalyticsEvent).all()
+                assert len(events) == 1
+                assert events[0].visitor_id == visitor
             finally:
                 db.close()
     finally:
