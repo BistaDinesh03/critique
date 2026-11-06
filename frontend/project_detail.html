@@ -1,9 +1,28 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Project — Critique</title>
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Project — Critique">
+    <meta property="og:description" content="Give focused feedback on this project on Critique.">
+    <meta property="og:image" content="https://critique.page/static/og-image.webp">
+    <meta property="og:image:type" content="image/webp">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Critique — Ask one question. Get real answers.">
+    <meta property="og:site_name" content="Critique">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Project — Critique">
+    <meta name="twitter:description" content="Give focused feedback on this project on Critique.">
+    <meta name="twitter:image" content="https://critique.page/static/og-image.webp">
+    <meta name="twitter:image:alt" content="Critique — Ask one question. Get real answers.">
+
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link rel="stylesheet" href="/static/shared.css">
     <style>
@@ -56,6 +75,19 @@
 
         /* What is being reviewed, stated before anything is asked of the
            visitor. Kept to the builder's own words: no summary, no truncation. */
+        .project-header-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: var(--space-3);
+            margin-bottom: var(--space-2);
+        }
+
+        .project-header-row .project-title {
+            margin-bottom: 0;
+        }
+
         .project-summary {
             color: var(--text-secondary);
             font-size: var(--text-base);
@@ -148,13 +180,18 @@
 
         .form-section {
             margin-bottom: var(--space-5);
+            border: 0;
+            padding: 0;
+            min-inline-size: min-content;
         }
 
-        .form-section h3 {
+        .form-section h3,
+        .form-section legend {
             font-size: var(--text-base);
             font-weight: 600;
             margin-bottom: var(--space-3);
             color: var(--text-primary);
+            padding: 0;
         }
 
         .radio-group {
@@ -274,7 +311,15 @@
     </header>
 
     <main class="container">
-        <a href="/discover" class="back-link">Back to discover</a>
+        <nav aria-label="Breadcrumb" class="breadcrumb-nav">
+            <ol class="breadcrumbs">
+                <li><a href="/">Home</a></li>
+                <li aria-hidden="true" class="breadcrumb-separator">/</li>
+                <li><a href="/discover">Discover</a></li>
+                <li aria-hidden="true" class="breadcrumb-separator">/</li>
+                <li aria-current="page"><span id="breadcrumb-current">Project</span></li>
+            </ol>
+        </nav>
         <div id="content" aria-busy="true">
             <div role="status">
                 <p class="sr-only">Loading project...</p>
@@ -326,20 +371,33 @@
         function clarityLabel(v) { return {'very_clear':'Very clear','mostly_clear':'Mostly clear','confusing':'Confusing'}[v] || v; }
         function wouldUseLabel(v) { return {'yes':'Yes','maybe':'Maybe','no':'No'}[v] || v; }
 
+        var currentUserId = null;
+
         function getCurrentUserId() {
-            return localStorage.getItem('user_id') || '';
+            return currentUserId || '';
+        }
+
+        function setCurrentUserId(uid) {
+            currentUserId = uid ? String(uid) : null;
         }
 
         async function loadProject() {
             const content = document.getElementById('content');
             try {
-                const [projectRes, responsesRes] = await Promise.all([
-                    fetch('/api/projects/' + projectId),
-                    fetch('/api/projects/' + projectId + '/responses')
-                ]);
+                const projectRes = await fetch('/api/projects/' + projectId);
                 if (!projectRes.ok) throw new Error('Project not found');
                 const projectData = await projectRes.json();
-                const responses = responsesRes.ok ? await responsesRes.json() : [];
+
+                let responses = [];
+                try {
+                    const responsesRes = await fetch('/api/projects/' + projectId + '/responses');
+                    if (responsesRes.ok) {
+                        responses = await responsesRes.json();
+                    }
+                } catch (err) {
+                    console.warn('Could not load responses:', err);
+                }
+
                 renderProject(projectData, responses);
             } catch (e) {
                 // The placeholder is never the end state: a real message plus a
@@ -374,8 +432,13 @@
             const content = document.getElementById('content');
             const p = data.project;
             const q = data.question;
+            const bcCurrent = document.getElementById('breadcrumb-current');
+            if (bcCurrent && p && p.title) {
+                bcCurrent.textContent = p.title;
+            }
             let html = '';
-            html += '<h1 class="project-title">' + escapeHtml(p.title) + '</h1>';
+            html += '<div class="project-header-row"><h1 class="project-title">' + escapeHtml(p.title) + '</h1>';
+            html += '<button type="button" class="btn btn-secondary" id="copy-project-link" aria-label="Copy project link" style="font-size:var(--text-xs);padding:var(--space-1) var(--space-3);"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-right:6px;"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>Copy link</button></div>';
             // What is being reviewed is stated before anything is asked of the
             // visitor, so the answer is given with the context in view.
             if (p.description) { html += '<p class="project-summary">' + escapeHtml(p.description) + '</p>'; }
@@ -391,22 +454,26 @@
                     // Three short, numbered steps: the form reads as a task
                     // with an end rather than an open-ended questionnaire.
                     html += '<div class="response-form-card"><form id="response-form">';
-                    html += '<div class="form-section"><h3>1. How clear is it?</h3><div class="radio-cards">';
+                    html += '<fieldset class="form-section"><legend>1. How clear is it?</legend><div class="radio-cards">';
                     html += '<label class="radio-card"><input type="radio" id="c1" name="clarity" value="very_clear" required onclick="trackFeedbackStart()"><span class="radio-card-label"><span class="radio-card-title">Very clear</span><span class="radio-card-desc">I understood the project quickly.</span></span></label>';
                     html += '<label class="radio-card"><input type="radio" id="c2" name="clarity" value="mostly_clear" onclick="trackFeedbackStart()"><span class="radio-card-label"><span class="radio-card-title">Mostly clear</span><span class="radio-card-desc">I understood it, but needed some explanation.</span></span></label>';
                     html += '<label class="radio-card"><input type="radio" id="c3" name="clarity" value="confusing" onclick="trackFeedbackStart()"><span class="radio-card-label"><span class="radio-card-title">Confusing</span><span class="radio-card-desc">I was not sure what it does.</span></span></label>';
-                    html += '</div></div>';
-                    html += '<div class="form-section"><h3>2. Would you use it?</h3><div class="radio-cards">';
+                    html += '</div></fieldset>';
+                    html += '<fieldset class="form-section"><legend>2. Would you use it?</legend><div class="radio-cards">';
                     html += '<label class="radio-card"><input type="radio" id="u1" name="would_use" value="yes" required><span class="radio-card-label"><span class="radio-card-title">Yes</span><span class="radio-card-desc">I would use this.</span></span></label>';
                     html += '<label class="radio-card"><input type="radio" id="u2" name="would_use" value="maybe"><span class="radio-card-label"><span class="radio-card-title">Maybe</span><span class="radio-card-desc">I might use this in some cases.</span></span></label>';
                     html += '<label class="radio-card"><input type="radio" id="u3" name="would_use" value="no"><span class="radio-card-label"><span class="radio-card-title">No</span><span class="radio-card-desc">I would not use this.</span></span></label>';
-                    html += '</div></div>';
+                    html += '</div></fieldset>';
                     html += '<div class="form-section"><h3>3. What would you change? <span style="font-weight:400;color:var(--text-muted);">(optional)</span></h3><textarea class="form-textarea" id="suggestion" maxlength="2000" placeholder="Your honest feedback..."></textarea></div>';
                     html += '<button type="submit" class="btn btn-primary" id="submit-btn" style="width:100%;">Submit feedback</button>';
-                    html += '<div class="message" id="message"></div></form></div>';
+                    html += '<div class="message" id="message" role="alert" aria-live="polite"></div></form></div>';
                 }
                 var details = '';
-                if (p.image_url) { details += '<img class="project-screenshot" src="' + escapeHtml(p.image_url) + '" alt="Screenshot of ' + escapeHtml(p.title) + '" loading="lazy" onerror="this.style.display=\'none\'">'; }
+                if (p.image_url) {
+                    const projectTitle = p.title || 'project';
+                    const altText = 'Screenshot of ' + escapeHtml(projectTitle);
+                    details += '<img class="project-screenshot" src="' + escapeHtml(p.image_url) + '" alt="' + altText + '" loading="lazy" onerror="this.style.display=\'none\'">';
+                }
                 if (p.url) { details += '<a href="' + escapeHtml(p.url) + '" target="_blank" rel="noopener" class="project-url">' + escapeHtml(p.url) + '</a>'; }
                 if (details) { html += '<div class="eyebrow">About this project</div><div class="project-header" style="margin-top: var(--space-5);">' + details + '</div>'; }
                 if (responses.length > 0) {
@@ -421,6 +488,8 @@
                 }
             }
             content.innerHTML = html;
+            const copyBtn = document.getElementById('copy-project-link');
+            if (copyBtn) copyBtn.addEventListener('click', copyProjectLink);
             const form = document.getElementById('response-form');
             if (form) form.addEventListener('submit', handleSubmit);
             if (form && !feedbackFormViewedTracked) { feedbackFormViewedTracked = true; window.CritiqueAnalytics.trackEvent('feedback_form_viewed', projectId); }
@@ -432,6 +501,23 @@
             maybeResumeToFeedback();
         }
 
+        function copyProjectLink() {
+            var url = window.location.href;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(url).then(function() {
+                    if (window.CritiqueUI && CritiqueUI.showToast) {
+                        CritiqueUI.showToast('Project link copied to clipboard', 'success');
+                    }
+                }).catch(function() {
+                    if (window.CritiqueUI && CritiqueUI.showToast) {
+                        CritiqueUI.showToast('Could not copy link.', 'error');
+                    }
+                });
+            } else if (window.CritiqueUI && CritiqueUI.showToast) {
+                CritiqueUI.showToast('Copying not supported in this browser', 'error');
+            }
+        }
+
         function trackFeedbackStart() {
             if (feedbackStartTracked) return;
             feedbackStartTracked = true;
@@ -440,7 +526,8 @@
 
         // ===== Feedback form state persistence =====
         function feedbackStorageKey() {
-            return 'critique_feedback_' + projectId;
+            var uid = getCurrentUserId();
+            return uid ? ('critique_feedback_' + uid + '_' + projectId) : ('critique_feedback_' + projectId);
         }
 
         function saveFeedbackDraft() {
@@ -459,7 +546,11 @@
 
         function restoreFeedbackDraft() {
             try {
-                var raw = sessionStorage.getItem(feedbackStorageKey());
+                var key = feedbackStorageKey();
+                var raw = sessionStorage.getItem(key);
+                if (!raw && getCurrentUserId()) {
+                    raw = sessionStorage.getItem('critique_feedback_' + projectId);
+                }
                 if (!raw) return false;
                 var draft = JSON.parse(raw);
                 if (!draft || typeof draft !== 'object') return false;
@@ -536,7 +627,8 @@
         // not offer the form again (the server would only answer 409), and the
         // next step stays reachable instead of vanishing with a page refresh.
         function feedbackSubmittedKey() {
-            return 'critique_responded_' + projectId;
+            var uid = getCurrentUserId();
+            return uid ? ('critique_responded_' + uid + '_' + projectId) : ('critique_responded_' + projectId);
         }
 
         function markFeedbackSubmitted() {
@@ -547,7 +639,13 @@
 
         function feedbackAlreadySubmitted() {
             try {
-                return sessionStorage.getItem(feedbackSubmittedKey()) === '1';
+                var key = feedbackSubmittedKey();
+                var val = sessionStorage.getItem(key);
+                if (val === '1') return true;
+                if (!getCurrentUserId() && sessionStorage.getItem('critique_responded_' + projectId) === '1') {
+                    return true;
+                }
+                return false;
             } catch (e) {
                 return false;
             }
@@ -597,6 +695,15 @@
             link.textContent = 'Help another builder \u2192';
             container.appendChild(link);
             attachNextProjectLink(link);
+
+            var badgeLink = document.createElement('a');
+            badgeLink.id = 'project-badge-link';
+            badgeLink.href = '/badge/' + projectId + '.svg';
+            badgeLink.className = 'badge-share-link';
+            badgeLink.textContent = 'Get a live feedback badge for your README';
+            badgeLink.style.display = 'block';
+            badgeLink.style.marginTop = 'var(--space-2)';
+            container.appendChild(badgeLink);
         }
 
         // The server already holds a response from this person (a second
@@ -649,6 +756,7 @@
         function showInlineLoginPrompt(msg, message) {
             msg = msg || document.getElementById('message');
             if (!msg) return;
+            msg.setAttribute('role', 'alert');
             // An anonymous visitor cannot get past this point, so the button
             // that would only ever answer 401 stops pretending otherwise. The
             // answers themselves stay editable.
@@ -846,16 +954,19 @@
                     // starts from an empty form.
                     saveFeedbackDraft();
                     msg.className = 'alert alert-error';
+                    msg.setAttribute('role', 'alert');
                     msg.textContent = 'Session expired. Your answers are saved — refresh and try again.';
                 } else {
                     window.CritiqueAnalytics.trackEvent('feedback_submit_error', projectId);
                     msg.className = 'alert alert-error';
+                    msg.setAttribute('role', 'alert');
                     msg.textContent = data.detail || 'Failed to submit.';
                 }
             } catch (e) {
                 window.CritiqueAnalytics.trackEvent('feedback_submit_error', projectId);
                 console.error('Submit error:', e);
                 msg.className = 'alert alert-error';
+                msg.setAttribute('role', 'alert');
                 msg.textContent = 'Network error: ' + e.message;
             } finally {
                 if (!finished && !gated) btn.disabled = false;
@@ -868,13 +979,21 @@
             try {
                 const response = await fetch('/auth/check', { credentials: 'same-origin' });
                 if (response.status === 200) {
+                    const data = await response.json();
+                    if (data && data.id) {
+                        setCurrentUserId(data.id);
+                    } else if (data && data.username) {
+                        setCurrentUserId(data.username);
+                    }
                     document.getElementById('login-btn').style.display = 'none';
                     document.getElementById('logout-btn').style.display = 'inline';
                 } else {
+                    setCurrentUserId(null);
                     document.getElementById('login-btn').style.display = 'inline';
                     document.getElementById('logout-btn').style.display = 'none';
                 }
             } catch (e) {
+                setCurrentUserId(null);
                 document.getElementById('login-btn').style.display = 'inline';
                 document.getElementById('logout-btn').style.display = 'none';
             }
