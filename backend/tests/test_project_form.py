@@ -367,6 +367,7 @@ def test_a_stale_session_project_submission_keeps_the_draft(tmp_path):
     assert draft["title"] == "Akiya Scout"
     assert draft["question"] == "Is the price shown up front?"
     assert "Session expired." in result["ids"]["message"]
+    assert any("Refresh and retry" in (m["text"] or m["html"] or "") for m in result["createdMeta"])
 
 
 # ---------------------------------------------------------------------------
