@@ -128,7 +128,7 @@ else is ignored.
 | POST | `/api/analytics/track?event_name=...&project_id=...` | Optional | `analytics` | Parameters are passed in the query string (no request body). `event_name` must be on the server-side allowlist or the request is rejected with `400 {"detail": "Invalid event name"}`. Returns `{"ok": bool}` and sets/refreshes the visitor cookie. Stores only the
   event name, an anonymous visitor ID, optional user/project IDs, and a
   timestamp — no IP addresses, free-form text, or third-party scripts. |
-| GET | `/api/analytics/dashboard` | Required (owner allowlist) | — | Aggregated totals for the site owner; `403` for other signed-in users. |
+| GET | `/api/analytics/dashboard` | Required (owner allowlist) | — | Aggregated totals for the site owner; `403` for other signed-in users. Supports optional ISO 8601 `start` (inclusive) and `end` (exclusive) query parameters for period filtering (returns `400` if format is invalid or `start >= end`). Response includes a `range` object with effective bounds. |
 
 ## SEO — `/`
 
