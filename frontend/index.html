@@ -1897,6 +1897,32 @@
             } catch (e) {}
         }
 
+        var projectFormDirty = false;
+        function updateProjectFormDirty() {
+            var titleEl = document.getElementById('title');
+            var descEl = document.getElementById('description');
+            var urlEl = document.getElementById('url');
+            var qEl = document.getElementById('question');
+            var title = (titleEl && titleEl.value) ? titleEl.value.trim() : '';
+            var desc = (descEl && descEl.value) ? descEl.value.trim() : '';
+            var url = (urlEl && urlEl.value) ? urlEl.value.trim() : '';
+            var question = (qEl && qEl.value) ? qEl.value.trim() : '';
+            projectFormDirty = Boolean(title || desc || url || question);
+        }
+
+        var pForm = document.getElementById('project-form');
+        if (pForm) {
+            pForm.addEventListener('input', updateProjectFormDirty);
+            pForm.addEventListener('change', updateProjectFormDirty);
+        }
+
+        window.addEventListener('beforeunload', function(e) {
+            if (projectFormDirty) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        });
+
         document.getElementById('project-form').addEventListener('submit', async function(e) {
             e.preventDefault();
             const msg = document.getElementById('message');
@@ -1932,6 +1958,7 @@
                     window.CritiqueAnalytics.trackEvent('project_submit', null);
                     CritiqueUI.showToast('Project submitted', 'success');
                     clearProjectDraft();
+                    projectFormDirty = false;
                     document.getElementById('project-form').reset();
                     showProjectLive(data);
                 } else if (response.status === 401) {
