@@ -515,6 +515,23 @@ def test_desktop_nav_menu_still_opens_and_closes(tmp_path):
     assert closed["flags"]["login-btn"]["ariaExpanded"] == "false"
 
 
+def test_mobile_nav_closes_on_escape_and_restores_focus(tmp_path):
+    """Pressing Escape collapses the mobile nav and returns focus to the toggle button (fixes #338)."""
+    result = run(
+        tmp_path,
+        "index.html",
+        [
+            {"clickId": "navbar-toggle"},
+            {"dispatchKeydown": {"key": "Escape"}},
+        ],
+    )
+    assert result["flags"]["navbar-toggle"]["ariaExpanded"] == "false"
+    assert "navbar-nav-open" not in (result["flags"]["navbar-nav"]["className"] or "")
+    assert result["focused"] is not None
+    assert result["focused"]["id"] == "navbar-toggle"
+
+
+
 # ---------------------------------------------------------------------------
 # Builder avatars on the homepage
 # ---------------------------------------------------------------------------
@@ -857,7 +874,7 @@ def test_resend_rate_limit_is_reported_without_false_success(tmp_path):
         },
     )
     assert len(email_posts(result)) == 2, result["requests"]
-    assert "Too many attempts. Please wait a minute, then try again." in result["html"]
+    assert "Too many attempts. Please wait about 15 minutes, then try again." in result["html"]
     assert "on its way" not in result["html"]
     resend = next(
         m
@@ -930,3 +947,34 @@ def test_login_prompt_is_mobile_and_keyboard_ready():
     assert "document.createElement('button')" in source
     assert "document.createElement('input')" in source
     assert "document.createElement('label')" in source
+
+
+def test_my_projects_load_failure_has_alert_role(tmp_path):
+    result = run(
+        tmp_path,
+        "my_projects.html",
+        [{"fn": "loadProjects", "args": []}],
+        fetch={"/api/projects/my/list": {"status": 500, "body": {}}},
+        read={"byId": "content"},
+    )
+    assert 'role="alert"' in result["ids"].get("content", "")
+
+
+def test_project_submit_login_gate_has_alert_role(tmp_path):
+    result = run(
+        tmp_path,
+        "index.html",
+        [{"fn": "showProjectInlineLoginPrompt", "args": []}],
+        read={"byId": "message"},
+    )
+    assert result["flags"]["message"]["role"] == "alert"
+
+
+def test_feedback_login_gate_has_alert_role(tmp_path):
+    result = run(
+        tmp_path,
+        "project_detail.html",
+        [{"fn": "showInlineLoginPrompt", "args": []}],
+        location="/project/1",
+    )
+    assert result["flags"]["message"]["role"] == "alert"

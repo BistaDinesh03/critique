@@ -10,16 +10,24 @@
     <meta property="og:url" content="https://critique.page/">
     <meta property="og:title" content="Critique — Ask one question. Get real answers.">
     <meta property="og:description" content="Stop getting &quot;Looks good.&quot; Get focused feedback from real people who actually take the time to look.">
-    <meta property="og:image" content="https://critique.page/static/og-image.png">
+    <meta property="og:image" content="https://critique.page/static/og-image.webp">
+    <meta property="og:image:type" content="image/webp">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Critique — Ask one question. Get real answers.">
+    <meta property="og:image" content="https://critique.page/static/og-image.png">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Critique — Ask one question. Get real answers.">
     <meta property="og:site_name" content="Critique">
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Critique — Ask one question. Get real answers.">
     <meta name="twitter:description" content="Stop getting &quot;Looks good.&quot; Get focused feedback from real people who actually take the time to look.">
-    <meta name="twitter:image" content="https://critique.page/static/og-image.png">
+    <meta name="twitter:image" content="https://critique.page/static/og-image.webp">
+    <meta name="twitter:image:alt" content="Critique — Ask one question. Get real answers.">
     <title>Critique — Ask one question. Get real answers.</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link rel="stylesheet" href="/static/shared.css">
@@ -277,7 +285,7 @@
         .project-title {
             font-size: var(--text-lg);
             font-weight: 700;
-            margin-bottom: var(--space-2);
+            margin: 0 0 var(--space-2) 0;
             color: var(--text-primary);
             overflow-wrap: anywhere;
         }
@@ -1180,6 +1188,11 @@
         <div id="auth-cancelled-banner" class="alert alert-warning" role="status"
              style="display: none; max-width: 72ch; margin-left: auto; margin-right: auto;"></div>
 
+        <!-- Shown on load when the backend redirects here with ?auth=expired
+             (the GitHub OAuth state expired or was invalid). -->
+        <div id="auth-expired-banner" class="alert alert-warning" role="status"
+             style="display: none; max-width: 72ch; margin-left: auto; margin-right: auto;"></div>
+
         <section class="hero">
             <h1>Stop getting "Looks good."</h1>
             <p class="subheadline">Ask one question. Get real answers.</p>
@@ -1330,7 +1343,7 @@
                                     <span class="review-tag">Security</span>
                                     <span class="review-tag">UI</span>
                                     <span class="review-tag">Analytics</span>
-                                    <span class="review-tag accent">70 tests passing</span>
+                                    <span class="review-tag accent">Automated test suite</span>
                                 </div>
                             </article>
                         </li>
@@ -1475,7 +1488,7 @@
 
                     <div class="form-group">
                         <label class="form-label" for="url">Project URL <span class="form-optional-tag">optional</span></label>
-                        <input class="form-input" type="url" id="url" name="url" maxlength="500" placeholder="https://your-project.com">
+                        <input class="form-input" type="url" id="url" name="url" maxlength="500" placeholder="https://your-project.com" autocomplete="url">
                     </div>
                 </div>
 
@@ -1509,14 +1522,14 @@
                     <div class="form-group">
                         <label class="form-label" for="image_url">Project screenshot <span class="form-optional-tag">optional</span></label>
                         <p class="form-helper">Help others see what you've built.</p>
-                        <input class="form-input" type="url" id="image_url" name="image_url" maxlength="500" placeholder="https://example.com/screenshot.png">
+                        <input class="form-input" type="url" id="image_url" name="image_url" maxlength="500" placeholder="https://example.com/screenshot.png" autocomplete="url">
                         <p class="form-helper">Paste a direct link to an image. Leave blank if you don't have one.</p>
                     </div>
                 </div>
 
                 <button type="submit" class="btn btn-primary btn-submit" id="submit-btn">Submit for feedback</button>
                 <p class="form-reassurance">Free to use. Human feedback. No AI-generated responses.</p>
-                <div class="message" id="message"></div>
+                <div class="message" id="message" role="alert" aria-live="polite"></div>
             </form>
         </section>
 
@@ -1683,9 +1696,30 @@
             window.history.replaceState(null, '', window.location.pathname + cleaned + window.location.hash);
         }
 
+        const AUTH_EXPIRED = /[?&]auth=expired(?=&|$)/;
+
+        function showAuthExpiredBanner() {
+            const search = window.location.search || '';
+            if (!AUTH_EXPIRED.test(search)) return;
+
+            const banner = document.getElementById('auth-expired-banner');
+            if (!banner) return;
+
+            banner.style.display = 'block';
+            banner.textContent = "Your sign-in attempt timed out or was interrupted. " +
+                "Please try signing in again.";
+
+            const cleaned = search
+                .replace(AUTH_EXPIRED, '')
+                .replace(/^&/, '?')
+                .replace(/\?$/, '');
+            window.history.replaceState(null, '', window.location.pathname + cleaned + window.location.hash);
+        }
+
         // Run auth check immediately on script load
         checkAuth();
         showAuthCancelledBanner();
+        showAuthExpiredBanner();
         showAuthErrorBanner();
 
         async function loadHomepageProjects() {
@@ -1694,15 +1728,6 @@
                 const response = await fetch('/api/projects/?page=1&page_size=6');
                 if (!response.ok) throw new Error('Request failed: ' + response.status);
                 const data = await response.json();
-
-                const totalProjects = data.total || 0;
-                let totalResponses = 0;
-                data.items.forEach(function(p) { totalResponses += (p.response_count || 0); });
-
-                document.getElementById('stat-projects').textContent = totalProjects;
-                document.getElementById('stat-responses').textContent = totalResponses;
-                document.getElementById('stat-questions').textContent = totalProjects;
-                document.getElementById('real-activity').style.display = 'grid';
 
                 if (data.items.length === 0) {
                     container.innerHTML = '<p style="color:var(--text-muted);grid-column:1/-1;text-align:center;">No projects waiting for feedback yet. Be the first to ask a question.</p>';
@@ -1727,7 +1752,7 @@
                     html += screenshot;
                     html += '<div class="project-card-body">';
                     html += '<div class="eyebrow">Need feedback on</div>';
-                    html += '<div class="project-title">' + escapeHtml(project.title) + '</div>';
+                    html += '<h3 class="project-title">' + escapeHtml(project.title) + '</h3>';
                     html += description;
                     html += '<div class="project-question">Question: ' + escapeHtml(question) + '</div>';
                     html += '<div class="project-footer">';
@@ -1737,6 +1762,9 @@
                     html += '</div></div>';
                 });
                 container.innerHTML = html;
+                container.querySelectorAll('.project-screenshot').forEach(function(img) {
+                    img.addEventListener('error', function() { this.style.display = 'none'; });
+                });
             } catch (e) {
                 // The placeholder may never be the end state: report the failure
                 // and give the visitor a way to retry instead of showing an
@@ -1807,6 +1835,7 @@
         // it and stays completely optional.
         function showProjectLive(data) {
             var msg = document.getElementById('message');
+            if (msg) msg.setAttribute('role', 'status');
             var project = data && data.project;
             if (!project || !project.id || typeof CritiqueShare === 'undefined') {
                 // The 201 still confirms creation even if the body is not the
@@ -1825,6 +1854,7 @@
         function showProjectInlineLoginPrompt(msg, message) {
             msg = msg || document.getElementById('message');
             if (!msg) return;
+            msg.setAttribute('role', 'alert');
             // The prompt re-renders whenever the gate appears again (the submit
             // handler clears #message first) but the analytics event fires only
             // once per page.
@@ -1911,13 +1941,16 @@
                     // the page, so keep the project first.
                     saveProjectDraft();
                     msg.className = 'alert alert-error';
+                    msg.setAttribute('role', 'alert');
                     msg.textContent = 'Session expired. Your project is saved — refresh and try again.';
                 } else {
                     msg.className = 'alert alert-error';
+                    msg.setAttribute('role', 'alert');
                     msg.textContent = 'Error: ' + JSON.stringify(data);
                 }
             } catch (error) {
                 msg.className = 'alert alert-error';
+                msg.setAttribute('role', 'alert');
                 msg.textContent = 'Network error.';
             } finally {
                 const submitBtn = document.getElementById('submit-btn');
@@ -1936,9 +1969,15 @@
             if (window.location.search.indexOf('resume=project_submit') === -1) return;
             var form = document.getElementById('submit');
             if (!form) return;
-            // Scroll smoothly to the submit section
+            var behavior = 'smooth';
+            try {
+                if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                    behavior = 'auto';
+                }
+            } catch (e) {}
+            // Scroll to the submit section
             setTimeout(function() {
-                form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                form.scrollIntoView({ behavior: behavior, block: 'start' });
                 // Focus the first input for immediate typing
                 var firstInput = document.getElementById('title');
                 if (firstInput) {
@@ -2046,6 +2085,17 @@
                 // Nothing to show yet: hide the row, exactly as it behaved
                 // before the placeholder existed.
                 proofContainer.style.display = data.total_builders > 0 ? 'flex' : 'none';
+
+                const statProjects = document.getElementById('stat-projects');
+                if (statProjects) statProjects.textContent = data.total_projects || 0;
+                const statResponses = document.getElementById('stat-responses');
+                if (statResponses) statResponses.textContent = data.total_responses || 0;
+                const statQuestions = document.getElementById('stat-questions');
+                if (statQuestions) statQuestions.textContent = data.total_questions || 0;
+                const realActivity = document.getElementById('real-activity');
+                if (realActivity) {
+                    realActivity.style.display = (data.total_projects || 0) > 0 ? 'grid' : 'none';
+                }
             } catch (e) {
                 // Silently fail - social proof is enhancement
             } finally {
