@@ -351,3 +351,114 @@ def test_invalid_cf_header_falls_back_to_peer():
         app.dependency_overrides.clear()
     reset_rate_limits()
     cleanup_database()
+
+
+def test_auth_bucket_rate_limit_over_http():
+    """GET /auth/login is gated by the 'auth' bucket (max 10 requests)."""
+    reset_rate_limits()
+    client = TestClient(app)
+    limit = limiter.RATE_LIMITS["auth"]["max_requests"]
+    for _ in range(limit):
+        res = client.get("/auth/login", follow_redirects=False)
+        assert res.status_code == 307
+    res = client.get("/auth/login", follow_redirects=False)
+    assert res.status_code == 429
+    assert res.json() == {"detail": "Too many requests. Please slow down."}
+    assert res.headers.get("Retry-After") is not None
+    assert res.headers["Retry-After"].isdigit()
+    reset_rate_limits()
+
+
+def test_email_login_start_bucket_rate_limit_over_http():
+    """POST /auth/email/start is gated by 'email_login_start' bucket (max 3 requests)."""
+    reset_rate_limits()
+    client = TestClient(app)
+    client.cookies.set("critique_csrf", "csrf_token_rate")
+    client.headers["X-CSRF-Token"] = "csrf_token_rate"
+    limit = limiter.RATE_LIMITS["email_login_start"]["max_requests"]
+    for i in range(limit):
+        res = client.post("/auth/email/start", json={"email": f"user{i}@example.com"})
+        assert res.status_code == 200
+    res = client.post("/auth/email/start", json={"email": "blocked@example.com"})
+    assert res.status_code == 429
+    assert res.json() == {"detail": "Too many requests. Please slow down."}
+    assert res.headers.get("Retry-After") is not None
+    assert res.headers["Retry-After"].isdigit()
+    reset_rate_limits()
+
+
+def test_email_login_verify_bucket_rate_limit_over_http():
+    """GET /auth/email/verify is gated by 'email_login_verify' bucket (max 10 requests)."""
+    reset_rate_limits()
+    client = TestClient(app)
+    limit = limiter.RATE_LIMITS["email_login_verify"]["max_requests"]
+    for _ in range(limit):
+        res = client.get("/auth/email/verify?token=test_token", follow_redirects=False)
+        assert res.status_code == 307
+    res = client.get("/auth/email/verify?token=test_token", follow_redirects=False)
+    assert res.status_code == 429
+    assert res.json() == {"detail": "Too many requests. Please slow down."}
+    assert res.headers.get("Retry-After") is not None
+    assert res.headers["Retry-After"].isdigit()
+    reset_rate_limits()
+
+
+def test_analytics_bucket_rate_limit_over_http():
+    """POST /api/analytics/track is gated by 'analytics' bucket (max 60 requests)."""
+    reset_rate_limits()
+    cleanup_database()
+    client = TestClient(app)
+    limit = limiter.RATE_LIMITS["analytics"]["max_requests"]
+    for _ in range(limit):
+        res = client.post("/api/analytics/track?event_name=page_view")
+        assert res.status_code == 200
+    res = client.post("/api/analytics/track?event_name=page_view")
+    assert res.status_code == 429
+    assert res.json() == {"detail": "Too many requests. Please slow down."}
+    assert res.headers.get("Retry-After") is not None
+    assert res.headers["Retry-After"].isdigit()
+    reset_rate_limits()
+    cleanup_database()
+
+
+def test_project_delete_bucket_rate_limit_over_http():
+    """DELETE /api/projects/{id} is gated by 'project_delete' bucket (max 20 requests)."""
+    reset_rate_limits()
+    cleanup_database()
+    client = create_authenticated_client()
+    try:
+        limit = limiter.RATE_LIMITS["project_delete"]["max_requests"]
+        for i in range(limit):
+            res = client.delete(f"/api/projects/{9000 + i}")
+            assert res.status_code == 404
+        res = client.delete("/api/projects/9999")
+        assert res.status_code == 429
+        assert res.json() == {"detail": "Too many requests. Please slow down."}
+        assert res.headers.get("Retry-After") is not None
+        assert res.headers["Retry-After"].isdigit()
+    finally:
+        app.dependency_overrides.clear()
+        reset_rate_limits()
+        cleanup_database()
+
+
+def test_response_submit_bucket_rate_limit_over_http():
+    """POST /api/projects/{id}/responses is gated by 'response_submit' bucket (max 10 requests)."""
+    reset_rate_limits()
+    cleanup_database()
+    client = create_authenticated_client()
+    payload = {"clarity": "very_clear", "would_use": "yes", "suggestion": "Great project"}
+    try:
+        limit = limiter.RATE_LIMITS["response_submit"]["max_requests"]
+        for i in range(limit):
+            res = client.post(f"/api/projects/{9000 + i}/responses", json=payload)
+            assert res.status_code == 404
+        res = client.post("/api/projects/9999/responses", json=payload)
+        assert res.status_code == 429
+        assert res.json() == {"detail": "Too many requests. Please slow down."}
+        assert res.headers.get("Retry-After") is not None
+        assert res.headers["Retry-After"].isdigit()
+    finally:
+        app.dependency_overrides.clear()
+        reset_rate_limits()
+        cleanup_database()

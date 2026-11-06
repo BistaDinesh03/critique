@@ -33,3 +33,10 @@ Use this checklist when reviewing pull requests for Critique. Apply the checks r
 - [ ] Check whether existing project functionality can meet the requirement without adding a dependency.
 - [ ] Consider the dependency's maintenance status, compatibility, and security implications.
 - [ ] Confirm that dependency changes are documented and configured appropriately.
+
+## 6. Merge Pre-flight & Mechanics
+
+Before merging workflow-touching or fork pull requests, verify the merge mechanics documented in [Pull Request Review Guide](pull-request-review.md#troubleshooting):
+- [ ] If the PR modifies `.github/workflows/*`, ensure your `gh` token has `workflow` scope (`gh auth refresh -h github.com -s workflow`) to avoid 403 `BLOCKED`.
+- [ ] If the PR is from a fork, approve any first-time CI run held in `action_required` (`gh api -X POST repos/BistaDinesh03/critique/actions/runs/<id>/approve`) so the required `test` check runs.
+- [ ] If branch protection reports `BEHIND` (`strict: true`), follow the update branch → approve run → wait for green `test` on the new head → merge sequence.
