@@ -496,8 +496,11 @@ async function main() {
       clearTimeout(id);
     },
     navigator: {
-      clipboard: {
+      clipboard: scenario.clipboard === false ? null : {
         writeText(text) {
+          if (scenario.clipboardReject) {
+            return Promise.reject(new Error('Clipboard write rejected'));
+          }
           clipboardWrites.push(String(text));
           return Promise.resolve();
         },
@@ -812,6 +815,20 @@ async function main() {
         continue;
       }
       bubbleToDocument(makeEvent('click', target, eventPathOf(target)), errors);
+      await settle(0);
+      continue;
+    }
+
+    if (call.dispatchKeydown) {
+      const key = typeof call.dispatchKeydown === 'string' ? call.dispatchKeydown : (call.dispatchKeydown.key || 'Escape');
+      const event = { type: 'keydown', key: key };
+      documentHandlers.filter((h) => h.type === 'keydown').forEach((h) => {
+        try {
+          h.fn(event);
+        } catch (e) {
+          errors.push(`keydown: ${e && e.message ? e.message : String(e)}`);
+        }
+      });
       await settle(0);
       continue;
     }

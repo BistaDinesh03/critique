@@ -28,26 +28,62 @@ var CritiqueUI = (function() {
         text.className = 'toast-text';
         text.textContent = message;
 
+        var dismissBtn = document.createElement('button');
+        dismissBtn.type = 'button';
+        dismissBtn.className = 'toast-dismiss';
+        dismissBtn.setAttribute('aria-label', 'Dismiss notification');
+        dismissBtn.textContent = '×';
+
         toast.appendChild(icon);
         toast.appendChild(text);
+        toast.appendChild(dismissBtn);
 
         container.appendChild(toast);
 
-        // Auto dismiss after 3.5 seconds
-        setTimeout(function() {
+        var dismissTimeout = null;
+        var isPaused = false;
+
+        function dismissToast() {
             toast.classList.add('toast-hide');
             setTimeout(function() {
                 if (toast.parentNode) toast.parentNode.removeChild(toast);
             }, 200);
-        }, 3500);
+        }
+
+        function startTimer() {
+            if (dismissTimeout) clearTimeout(dismissTimeout);
+            dismissTimeout = setTimeout(function() {
+                if (!isPaused) dismissToast();
+            }, 3500);
+        }
+
+        function pauseTimer() {
+            isPaused = true;
+            if (dismissTimeout) {
+                clearTimeout(dismissTimeout);
+                dismissTimeout = null;
+            }
+        }
+
+        function resumeTimer() {
+            isPaused = false;
+            startTimer();
+        }
+
+        toast.addEventListener('mouseenter', pauseTimer);
+        toast.addEventListener('mouseleave', resumeTimer);
+        toast.addEventListener('focusin', pauseTimer);
+        toast.addEventListener('focusout', resumeTimer);
+
+        dismissBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            dismissToast();
+        });
 
         // Click to dismiss
-        toast.addEventListener('click', function() {
-            toast.classList.add('toast-hide');
-            setTimeout(function() {
-                if (toast.parentNode) toast.parentNode.removeChild(toast);
-            }, 200);
-        });
+        toast.addEventListener('click', dismissToast);
+
+        startTimer();
     }
 
     // ============ MODAL SYSTEM ============
@@ -70,6 +106,7 @@ var CritiqueUI = (function() {
         modal.setAttribute('role', 'dialog');
         modal.setAttribute('aria-modal', 'true');
         modal.setAttribute('aria-labelledby', 'modal-title');
+        modal.setAttribute('aria-describedby', 'modal-description');
 
         var titleEl = document.createElement('h3');
         titleEl.id = 'modal-title';
@@ -77,6 +114,7 @@ var CritiqueUI = (function() {
         titleEl.textContent = title;
 
         var bodyEl = document.createElement('div');
+        bodyEl.id = 'modal-description';
         bodyEl.className = 'modal-body';
         bodyEl.textContent = message;
 
@@ -217,7 +255,7 @@ var CritiqueUI = (function() {
         resending: 'Sending another link\u2026',
         changeEmail: 'Change email',
         genericError: "We couldn't send the link. Check your connection and try again.",
-        rateLimitError: 'Too many attempts. Please wait a minute, then try again.'
+        rateLimitError: 'Too many attempts. Please wait about 15 minutes, then try again.'
     };
 
     var EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
