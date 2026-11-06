@@ -9,6 +9,8 @@ maintainable.
 
 ## Getting Started
 
+If you are contributing for the first time, check out our step-by-step [Contributor Onboarding Guide](docs/contributing-start.md).
+
 1. Fork the repository
 2. Clone your fork
 3. Create a branch for your change
@@ -88,6 +90,8 @@ To run only the frontend-render tests locally:
 ```bash
 python -m pytest tests/ -m frontend_render -q
 ```
+
+For full details on scenario construction and DOM stub capabilities, see the [Frontend Render Test Harness guide](docs/frontend-render-harness.md).
 
 ## Development Guidelines
 

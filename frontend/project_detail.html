@@ -650,6 +650,15 @@
             link.textContent = 'Help another builder \u2192';
             container.appendChild(link);
             attachNextProjectLink(link);
+
+            var badgeLink = document.createElement('a');
+            badgeLink.id = 'project-badge-link';
+            badgeLink.href = '/badge/' + projectId + '.svg';
+            badgeLink.className = 'badge-share-link';
+            badgeLink.textContent = 'Get a live feedback badge for your README';
+            badgeLink.style.display = 'block';
+            badgeLink.style.marginTop = 'var(--space-2)';
+            container.appendChild(badgeLink);
         }
 
         // The server already holds a response from this person (a second
