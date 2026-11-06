@@ -46,20 +46,22 @@ def create_project_payload():
 
 
 def test_missing_csrf_token_rejected():
-    """Test that POST without CSRF token returns 403."""
+    """Test that POST without CSRF token returns 403 and persists no project."""
     cleanup_database()
     client, _ = create_authenticated_client()
     
     try:
         response = client.post("/api/projects/", json=create_project_payload())
         assert response.status_code == 403
+        with SessionLocal() as db:
+            assert db.query(Project).count() == 0
     finally:
         app.dependency_overrides.clear()
     cleanup_database()
 
 
 def test_invalid_csrf_token_rejected():
-    """Test that POST with wrong CSRF token returns 403."""
+    """Test that POST with wrong CSRF token returns 403 and persists no project."""
     cleanup_database()
     client, _ = create_authenticated_client()
     client.cookies.set(CSRF_COOKIE_NAME, "correct_token")
@@ -68,6 +70,8 @@ def test_invalid_csrf_token_rejected():
     try:
         response = client.post("/api/projects/", json=create_project_payload())
         assert response.status_code == 403
+        with SessionLocal() as db:
+            assert db.query(Project).count() == 0
     finally:
         app.dependency_overrides.clear()
     cleanup_database()
@@ -83,13 +87,15 @@ def test_valid_csrf_token_accepted():
     try:
         response = client.post("/api/projects/", json=create_project_payload())
         assert response.status_code == 201
+        with SessionLocal() as db:
+            assert db.query(Project).count() == 1
     finally:
         app.dependency_overrides.clear()
     cleanup_database()
 
 
 def test_delete_without_csrf_rejected():
-    """Test that DELETE without CSRF token returns 403."""
+    """Test that DELETE without CSRF token returns 403 and leaves project intact."""
     cleanup_database()
     client, _ = create_authenticated_client()
     client.cookies.set(CSRF_COOKIE_NAME, "correct_token")
@@ -105,6 +111,8 @@ def test_delete_without_csrf_rejected():
     try:
         response = client.delete(f"/api/projects/{project_id}")
         assert response.status_code == 403
+        with SessionLocal() as db:
+            assert db.query(Project).filter(Project.id == project_id).count() == 1
     finally:
         app.dependency_overrides.clear()
     cleanup_database()
@@ -190,3 +198,14 @@ def test_verify_csrf_rejects_mismatched_ascii():
     request.headers.get.return_value = "wrong"
 
     assert verify_csrf_token(request) is False
+
+
+def test_analytics_track_is_exempt_from_csrf():
+    """POST /api/analytics/track is exempt from CSRF double-submit cookies for beaconing.
+
+    It is protected by IP rate-limiting and a strict server-side event allowlist instead.
+    """
+    client = TestClient(app)
+    response = client.post("/api/analytics/track?event_name=page_view")
+    assert response.status_code == 200
+    assert response.json() == {"ok": True}
