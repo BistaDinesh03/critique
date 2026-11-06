@@ -66,6 +66,82 @@ def test_retry_after_is_time_until_oldest_request_expires(monkeypatch):
     reset_rate_limits()
 
 
+def test_rate_limit_resets_after_window_expires(monkeypatch):
+    """Once the rate limit window has elapsed, the client's quota is fully restored."""
+    reset_rate_limits()
+    now = [1000.0]
+    monkeypatch.setattr(limiter.time, "time", lambda: now[0])
+    config = limiter.RATE_LIMITS["auth"]
+    ip = "203.0.113.50"
+
+    # Exhaust the quota
+    for _ in range(config["max_requests"]):
+        limiter.rate_limit("auth")(_request_from(ip))
+
+    # Next request must be rate-limited
+    with pytest.raises(HTTPException) as exc_info:
+        limiter.rate_limit("auth")(_request_from(ip))
+    assert exc_info.value.status_code == 429
+
+    # Advance time strictly past the window
+    now[0] += config["window"] + 0.1
+
+    # Request is now permitted without error
+    limiter.rate_limit("auth")(_request_from(ip))
+
+    # The quota can be consumed again up to the limit
+    for _ in range(config["max_requests"] - 1):
+        limiter.rate_limit("auth")(_request_from(ip))
+
+    # And triggers 429 once more when full
+    with pytest.raises(HTTPException) as exc_info2:
+        limiter.rate_limit("auth")(_request_from(ip))
+    assert exc_info2.value.status_code == 429
+    reset_rate_limits()
+
+
+def test_rate_limit_sliding_window_partial_reset(monkeypatch):
+    """In a sliding window, slots free up individually as each request ages past the window."""
+    reset_rate_limits()
+    now = [1000.0]
+    monkeypatch.setattr(limiter.time, "time", lambda: now[0])
+    config = limiter.RATE_LIMITS["project_create"]  # max_requests: 5, window: 300
+    ip = "203.0.113.60"
+
+    # Send 1st request at t=1000
+    limiter.rate_limit("project_create")(_request_from(ip))
+
+    # Advance 50 seconds and send 4 more requests (total 5 = limit)
+    now[0] += 50.0
+    for _ in range(config["max_requests"] - 1):
+        limiter.rate_limit("project_create")(_request_from(ip))
+
+    # Immediate 6th request at t=1050 gets 429
+    with pytest.raises(HTTPException) as exc_info:
+        limiter.rate_limit("project_create")(_request_from(ip))
+    assert exc_info.value.status_code == 429
+
+    # Advance time to t=1301 (past the 1st request's 300s window: 1000 + 300 = 1300),
+    # but BEFORE the remaining 4 requests expire (1050 + 300 = 1350)
+    now[0] = 1301.0
+
+    # Exactly 1 request should now be accepted
+    limiter.rate_limit("project_create")(_request_from(ip))
+
+    # Another immediate request must be rejected because the other 4 requests haven't expired
+    with pytest.raises(HTTPException) as exc_info2:
+        limiter.rate_limit("project_create")(_request_from(ip))
+    assert exc_info2.value.status_code == 429
+
+    # Finally advance past t=1350 (all initial requests expired)
+    now[0] = 1351.0
+    # 4 more requests are now accepted
+    for _ in range(config["max_requests"] - 1):
+        limiter.rate_limit("project_create")(_request_from(ip))
+
+    reset_rate_limits()
+
+
 def cleanup_database():
     db = SessionLocal()
     try:
