@@ -1,4 +1,5 @@
-﻿from datetime import datetime
+from datetime import datetime
+from urllib.parse import urlsplit
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 from typing import Optional
 
@@ -40,15 +41,50 @@ class ProjectCreate(BaseModel):
         """Trim descriptions; whitespace-only ones are stored as None."""
         return strip_optional_text(v)
 
-    @field_validator("url", "image_url")
+    @field_validator("url")
     @classmethod
     def validate_url(cls, v: Optional[str]) -> Optional[str]:
-        """Validate that URL starts with http:// or https://."""
+        """Validate that URL is a valid http or https URL with a host."""
         if v is None:
             return None
         v = v.strip()
-        if not v.startswith(("http://", "https://")):
-            raise ValueError("URL must start with http:// or https://")
+        if not v:
+            return None
+        try:
+            parsed = urlsplit(v)
+        except ValueError:
+            raise ValueError("Invalid URL")
+        if parsed.scheme not in {"http", "https"}:
+            raise ValueError("URL must use http or https scheme")
+        if not parsed.netloc or not parsed.netloc.strip():
+            raise ValueError("URL must have a valid host")
+        if any(ch.isspace() for ch in parsed.netloc):
+            raise ValueError("URL host must not contain whitespace")
+        if parsed.username or parsed.password:
+            raise ValueError("URL must not contain embedded credentials")
+        return v
+
+    @field_validator("image_url")
+    @classmethod
+    def validate_image_url(cls, v: Optional[str]) -> Optional[str]:
+        """Validate that image URL is a valid https URL with a host."""
+        if v is None:
+            return None
+        v = v.strip()
+        if not v:
+            return None
+        try:
+            parsed = urlsplit(v)
+        except ValueError:
+            raise ValueError("Invalid URL")
+        if parsed.scheme != "https":
+            raise ValueError("Image URL must use https scheme to prevent mixed content")
+        if not parsed.netloc or not parsed.netloc.strip():
+            raise ValueError("Image URL must have a valid host")
+        if any(ch.isspace() for ch in parsed.netloc):
+            raise ValueError("Image URL host must not contain whitespace")
+        if parsed.username or parsed.password:
+            raise ValueError("Image URL must not contain embedded credentials")
         return v
 
 
