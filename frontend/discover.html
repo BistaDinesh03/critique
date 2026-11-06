@@ -327,7 +327,8 @@
             const list = document.getElementById('project-list');
             list.removeAttribute('role');
             list.removeAttribute('aria-label');
-            list.innerHTML = '<div class="empty-state" role="status"><h3>No projects waiting for feedback yet</h3><p>Be the first maker to ask a question.</p><a href="/" class="btn btn-primary">Submit a project</a></div>';
+            const iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="empty-state-icon" aria-hidden="true" style="margin:0 auto var(--space-3);color:var(--text-muted);display:block;"><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>';
+            list.innerHTML = '<div class="empty-state" role="status">' + iconSvg + '<h3>No projects waiting for feedback yet</h3><p>Be the first maker to ask a question.</p><a href="/" class="btn btn-primary">Submit a project</a></div>';
             setListBusy(false, '');
             document.getElementById('pagination').style.display = 'none';
         }
