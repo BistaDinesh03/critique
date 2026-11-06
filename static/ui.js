@@ -309,6 +309,11 @@ var CritiqueUI = (function() {
             trackAuthEvent('auth_method_selected_github', context);
             if (typeof config.onStart === 'function') config.onStart('github');
             trackAuthEvent('login_started', context);
+            ghLink.setAttribute('aria-busy', 'true');
+            ghLink.style.pointerEvents = 'none';
+            ghLink.style.opacity = '0.7';
+            var ghSpan = ghLink.querySelector('span');
+            if (ghSpan) ghSpan.textContent = 'Connecting to GitHub\u2026';
         });
         actions.appendChild(ghLink);
 
