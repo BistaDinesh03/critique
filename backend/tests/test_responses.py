@@ -1,4 +1,4 @@
-﻿import pytest
+import pytest
 
 from app.database import SessionLocal
 from app.models import Project, Question, Response, User
@@ -50,7 +50,7 @@ def test_submit_response(auth_client):
     data = response.json()
     assert data["clarity"] == "very_clear"
     assert data["would_use"] == "yes"
-    assert data["clarity"] == "very_clear"  # suggestion is only visible via results endpoint
+    assert "suggestion" not in data  # suggestion is private, only visible via results endpoint
     cleanup_database()
 
 

@@ -9,6 +9,8 @@ maintainable.
 
 ## Getting Started
 
+If you are contributing for the first time, check out our step-by-step [Contributor Onboarding Guide](docs/contributing-start.md).
+
 1. Fork the repository
 2. Clone your fork
 3. Create a branch for your change
@@ -31,12 +33,21 @@ uvicorn app.main:app --reload
 
 Open http://127.0.0.1:8000. Authentication providers are optional for local
 browsing — see [docs/github-oauth-setup.md](docs/github-oauth-setup.md) if
-your change needs signed-in flows.
+your change needs signed-in flows. For common local setup issues and solutions,
+see [docs/troubleshooting.md](docs/troubleshooting.md).
 
 ### Run the tests
 
 ```bash
 cd backend
+GITHUB_CLIENT_ID=ci-test-client-id python -m pytest tests/ -q
+```
+
+On Windows (PowerShell):
+
+```powershell
+cd backend
+$env:GITHUB_CLIENT_ID = "ci-test-client-id"
 python -m pytest tests/ -q
 ```
 
@@ -79,6 +90,8 @@ To run only the frontend-render tests locally:
 ```bash
 python -m pytest tests/ -m frontend_render -q
 ```
+
+For full details on scenario construction and DOM stub capabilities, see the [Frontend Render Test Harness guide](docs/frontend-render-harness.md).
 
 ## Development Guidelines
 
@@ -160,10 +173,13 @@ Issues are also labeled by area — `frontend`, `backend`, `tests`,
 `accessibility`, `security`, `performance` — so you can filter to work that
 matches what you know, or deliberately stretch into something new.
 
-A curated, reviewed plan of 50 issues lives in
+A curated plan of 50 issues lives in
 [docs/issue-roadmap.md](docs/issue-roadmap.md). Each entry states its
-difficulty, the problem it solves, and which files it touches. If you are
-looking for something concrete, start there.
+difficulty, the problem it solves, and which files it touches. As a prepared
+roadmap, row statuses may lag behind the live tracker, so always verify on
+the [live issue tracker](https://github.com/BistaDinesh03/critique/issues) that an
+issue is open before beginning work. If you are looking for something concrete,
+start there.
 
 ## How we work together on Critique
 

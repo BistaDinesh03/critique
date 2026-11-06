@@ -87,6 +87,8 @@ def test_stats_reports_the_real_builder_count(db):
     real_total = db.query(func.count(User.id)).scalar()
     assert body["total_builders"] == real_total
     assert isinstance(body["total_projects"], int)
+    assert isinstance(body["total_questions"], int)
+    assert isinstance(body["total_responses"], int)
 
 
 def test_stats_includes_a_builder_who_has_no_avatar(db):
