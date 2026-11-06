@@ -75,6 +75,19 @@
 
         /* What is being reviewed, stated before anything is asked of the
            visitor. Kept to the builder's own words: no summary, no truncation. */
+        .project-header-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: var(--space-3);
+            margin-bottom: var(--space-2);
+        }
+
+        .project-header-row .project-title {
+            margin-bottom: 0;
+        }
+
         .project-summary {
             color: var(--text-secondary);
             font-size: var(--text-base);
@@ -412,7 +425,8 @@
                 bcCurrent.textContent = p.title;
             }
             let html = '';
-            html += '<h1 class="project-title">' + escapeHtml(p.title) + '</h1>';
+            html += '<div class="project-header-row"><h1 class="project-title">' + escapeHtml(p.title) + '</h1>';
+            html += '<button type="button" class="btn btn-secondary" id="copy-project-link" aria-label="Copy project link" style="font-size:var(--text-xs);padding:var(--space-1) var(--space-3);"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-right:6px;"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>Copy link</button></div>';
             // What is being reviewed is stated before anything is asked of the
             // visitor, so the answer is given with the context in view.
             if (p.description) { html += '<p class="project-summary">' + escapeHtml(p.description) + '</p>'; }
@@ -462,6 +476,8 @@
                 }
             }
             content.innerHTML = html;
+            const copyBtn = document.getElementById('copy-project-link');
+            if (copyBtn) copyBtn.addEventListener('click', copyProjectLink);
             const form = document.getElementById('response-form');
             if (form) form.addEventListener('submit', handleSubmit);
             if (form && !feedbackFormViewedTracked) { feedbackFormViewedTracked = true; window.CritiqueAnalytics.trackEvent('feedback_form_viewed', projectId); }
@@ -471,6 +487,23 @@
             // Restore any saved feedback draft from before OAuth
             maybeRestoreAfterLogin();
             maybeResumeToFeedback();
+        }
+
+        function copyProjectLink() {
+            var url = window.location.href;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(url).then(function() {
+                    if (window.CritiqueUI && CritiqueUI.showToast) {
+                        CritiqueUI.showToast('Project link copied to clipboard', 'success');
+                    }
+                }).catch(function() {
+                    if (window.CritiqueUI && CritiqueUI.showToast) {
+                        CritiqueUI.showToast('Could not copy link.', 'error');
+                    }
+                });
+            } else if (window.CritiqueUI && CritiqueUI.showToast) {
+                CritiqueUI.showToast('Copying not supported in this browser', 'error');
+            }
         }
 
         function trackFeedbackStart() {
