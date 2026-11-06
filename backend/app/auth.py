@@ -71,6 +71,12 @@ def _email_cooldown_check_and_set(normalized_email: str) -> bool:
     _EMAIL_COOLDOWN.move_to_end(normalized_email)
     return False
 
+
+def _clear_email_cooldown(normalized_email: str) -> None:
+    """Clear cooldown entry for an address when email send failed (fixes #314)."""
+    _EMAIL_COOLDOWN.pop(normalized_email, None)
+
+
 serializer = URLSafeTimedSerializer(settings.SECRET_KEY, salt="session")
 
 SESSION_COOKIE_NAME = "critique_session"
@@ -529,8 +535,10 @@ def email_start(
         # Send. Failure is swallowed intentionally; the response is identical either way.
         try:
             send_login_link(normalized, raw_token)
-        except Exception:
-            pass
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning("Failed to send login link to %s: %s", normalized, e)
+            _clear_email_cooldown(normalized)
 
     # Generic response regardless of whether email exists, is valid, or is on cooldown.
     return {"ok": True}
