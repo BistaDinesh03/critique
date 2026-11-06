@@ -315,6 +315,9 @@
                 });
                 html += '</div>';
                 content.innerHTML = html;
+                content.querySelectorAll('.project-image').forEach(function(img) {
+                    img.addEventListener('error', function() { this.style.display = 'none'; });
+                });
             } catch (e) {
                 content.innerHTML = '<div class="empty-container" role="alert"><h2>Connection problem</h2><p>Check your connection and try again.</p><button onclick="loadProjects()" class="btn btn-secondary">Try again</button></div>';
             }

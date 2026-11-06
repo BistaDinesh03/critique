@@ -1762,6 +1762,9 @@
                     html += '</div></div>';
                 });
                 container.innerHTML = html;
+                container.querySelectorAll('.project-screenshot').forEach(function(img) {
+                    img.addEventListener('error', function() { this.style.display = 'none'; });
+                });
             } catch (e) {
                 // The placeholder may never be the end state: report the failure
                 // and give the visitor a way to retry instead of showing an
