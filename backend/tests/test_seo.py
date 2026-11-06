@@ -1,3 +1,6 @@
+import json
+import re
+
 from fastapi.testclient import TestClient
 import pytest
 
@@ -86,3 +89,24 @@ def test_homepage_declares_webp_og_and_twitter_image():
     assert '<meta property="og:image" content="https://critique.page/static/og-image.webp">' in res.text
     assert '<meta property="og:image:type" content="image/webp">' in res.text
     assert '<meta name="twitter:image" content="https://critique.page/static/og-image.webp">' in res.text
+
+
+def test_homepage_has_application_and_organization_structured_data():
+    response = client.get("/")
+    assert response.status_code == 200
+    head = re.search(r"<head>(.*?)</head>", response.text, re.DOTALL).group(1)
+    blocks = re.findall(
+        r'<script type="application/ld\+json">(.*?)</script>', head, re.DOTALL
+    )
+    assert len(blocks) == 1
+    data = json.loads(blocks[0])
+    assert data["@context"] == "https://schema.org"
+    entities = {entity["@type"]: entity for entity in data["@graph"]}
+    assert set(entities) == {"SoftwareApplication", "Organization"}
+    application = entities["SoftwareApplication"]
+    organization = entities["Organization"]
+    assert application["name"] == organization["name"] == "Critique"
+    assert application["url"] == organization["url"] == f"{PRODUCTION_ORIGIN}/"
+    assert application["@id"] != organization["@id"]
+    assert application["publisher"] == {"@id": organization["@id"]}
+    assert application["description"]
