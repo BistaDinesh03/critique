@@ -1,4 +1,4 @@
-﻿from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from app.config import settings
@@ -37,6 +37,8 @@ def robots_txt():
     content += "Disallow: /auth/\n"
     content += "Disallow: /health\n"
     content += "Disallow: /google8ffd0ae5f931d1e6.html\n"
+    content += "Disallow: /docs\n"
+    content += "Disallow: /redoc\n"
     content += "\n"
     content += "Sitemap: " + site_url() + "/sitemap.xml\n"
     return Response(content=content, media_type="text/plain")
