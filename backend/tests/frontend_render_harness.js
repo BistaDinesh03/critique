@@ -819,6 +819,20 @@ async function main() {
       continue;
     }
 
+    if (call.dispatchKeydown) {
+      const key = typeof call.dispatchKeydown === 'string' ? call.dispatchKeydown : (call.dispatchKeydown.key || 'Escape');
+      const event = { type: 'keydown', key: key };
+      documentHandlers.filter((h) => h.type === 'keydown').forEach((h) => {
+        try {
+          h.fn(event);
+        } catch (e) {
+          errors.push(`keydown: ${e && e.message ? e.message : String(e)}`);
+        }
+      });
+      await settle(0);
+      continue;
+    }
+
     // Read a value straight out of the page -- a pure helper's return value,
     // for example -- instead of having to render it into the DOM first.
     if (call.evaluate) {

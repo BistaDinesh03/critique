@@ -1166,3 +1166,12 @@ def test_the_native_share_path_is_gated_on_the_api_existing():
     assert "err.code === 20" in source
     # Rendered only from a guard -- never unconditionally.
     assert "if (!nativeShareSupported()) return null;" in source
+
+
+def test_share_success_panel_live_region_contains_only_text():
+    """role='status' applies only to non-interactive announcement text (fixes #311)."""
+    source = (STATIC_DIR / "share.js").read_text(encoding="utf-8")
+    assert "announcement.setAttribute('role', 'status')" in source
+    assert "panel.setAttribute('role', 'status')" not in source
+    assert "success-announcement" in source
+

@@ -262,6 +262,53 @@ def test_social_proof_placeholder_is_hidden_when_stats_fail(tmp_path):
     assert "Join" not in result["ids"]["social-proof-text"]
 
 
+def test_homepage_real_activity_reflects_global_stats(tmp_path):
+    """The homepage stats strip reflects platform-wide totals from /api/stats,
+    never the page-scoped project count from /api/projects/?page=1&page_size=6."""
+    result = run(
+        tmp_path,
+        "index.html",
+        [{"fn": "loadSocialProof", "args": []}],
+        fetch={
+            "/api/stats": {
+                "status": 200,
+                "body": {
+                    "total_builders": 5,
+                    "total_projects": 12,
+                    "total_questions": 10,
+                    "total_responses": 45,
+                    "builders": [],
+                },
+            }
+        },
+    )
+    assert result["ids"]["stat-projects"] == "12"
+    assert result["ids"]["stat-questions"] == "10"
+    assert result["ids"]["stat-responses"] == "45"
+    assert result["flags"]["real-activity"]["display"] == "grid"
+
+
+def test_homepage_real_activity_hidden_when_zero_projects(tmp_path):
+    result = run(
+        tmp_path,
+        "index.html",
+        [{"fn": "loadSocialProof", "args": []}],
+        fetch={
+            "/api/stats": {
+                "status": 200,
+                "body": {
+                    "total_builders": 0,
+                    "total_projects": 0,
+                    "total_questions": 0,
+                    "total_responses": 0,
+                    "builders": [],
+                },
+            }
+        },
+    )
+    assert result["flags"]["real-activity"]["display"] == "none"
+
+
 # ---------------------------------------------------------------------------
 # No duplicated critical requests
 # ---------------------------------------------------------------------------
