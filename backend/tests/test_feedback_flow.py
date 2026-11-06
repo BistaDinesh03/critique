@@ -248,6 +248,10 @@ def test_success_offers_the_next_real_project_and_keeps_the_confirmation(tmp_pat
     # Points at a *different* real project, never back at the answered one.
     assert links[0]["href"] == "/project/2"
 
+    # Confirmation panel features: discover link and accessible dismiss button (fixes #331)
+    assert any("Discover more projects" in (m.get("text") or "") for m in result["createdMeta"])
+    assert any(m.get("ariaLabel") == "Dismiss confirmation" for m in result["createdMeta"])
+
     # The success state must not be wiped by a background reload.
     assert "critique_responded_1" in result["storage"]["session"]
     assert not any(r["url"] == "/api/projects/1" for r in result["requests"])
