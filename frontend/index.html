@@ -1047,9 +1047,17 @@
             font-weight: 600;
         }
 
-        .example-good {
-            color: var(--success);
-            font-weight: 600;
+        .question-examples {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: var(--space-2);
+            margin-top: var(--space-3);
+        }
+
+        .question-examples .btn {
+            white-space: normal;
+            text-align: left;
         }
 
         /* The question is the point of Critique, so its section carries the
@@ -1512,7 +1520,7 @@
 
                     <div class="form-examples">
                         <p><span class="example-bad">Too broad:</span> "What do you think of my app?"</p>
-                        <p><span class="example-good">Better:</span> "Is it immediately clear what my app does?"</p>
+                        <div id="question-examples" class="question-examples" role="group" aria-label="Example questions"></div>
                     </div>
                 </div>
 
@@ -1789,6 +1797,29 @@
         }
 
         // ===== Project form state persistence =====
+        function renderQuestionExamples() {
+            var container = document.getElementById('question-examples');
+            container.innerHTML = '';
+            [
+                'Is it immediately clear what my app does?',
+                'What would stop you from trying this product?',
+                'Is the next step on this page easy to find?'
+            ].forEach(function (text) {
+                var button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'btn btn-secondary';
+                button.textContent = text;
+                button.addEventListener('click', function () {
+                    var question = document.getElementById('question');
+                    question.value = text;
+                    question.focus();
+                    saveProjectDraft();
+                });
+                container.appendChild(button);
+            });
+        }
+        renderQuestionExamples();
+
         function projectStorageKey() {
             return 'critique_project_draft';
         }
