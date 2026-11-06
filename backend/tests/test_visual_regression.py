@@ -13,26 +13,15 @@ from pathlib import Path
 import pytest
 import shutil
 
-playwright_available = shutil.which("playwright") is not None
 try:
     from playwright.sync_api import sync_playwright
     _pw_ok = True
-    # Verify chromium can actually launch (CI may not have browsers installed
-    # for the default test job).
-    try:
-        _p = sync_playwright().start()
-        _b = _p.chromium.launch()
-        _b.close()
-        _p.stop()
-        _browser_ok = True
-    except Exception:
-        _browser_ok = False
 except Exception:
     _pw_ok = False
-    _browser_ok = False
+    sync_playwright = None
 
 pytestmark = [
-    pytest.mark.skipif(not (_pw_ok and _browser_ok), reason="playwright/chromium not available"),
+    pytest.mark.skipif(not _pw_ok, reason="playwright not installed"),
 ]
 
 BASE_URL = os.environ.get("CRITIQUE_BASE_URL", "http://127.0.0.1:8099")
@@ -44,6 +33,19 @@ def _server_ready():
     import urllib.request
     try:
         urllib.request.urlopen(BASE_URL + "/health", timeout=2)
+        return True
+    except Exception:
+        return False
+
+
+def _browser_available():
+    if not _pw_ok:
+        return False
+    try:
+        p = sync_playwright().start()
+        b = p.chromium.launch()
+        b.close()
+        p.stop()
         return True
     except Exception:
         return False
@@ -91,6 +93,8 @@ def _compare_images(actual_path, baseline_path, tolerance=0.15):
 
 
 def test_homepage_no_horizontal_overflow():
+    if not _browser_available():
+        pytest.skip("chromium not available")
     proc = _start_server()
     try:
         with sync_playwright() as p:
@@ -110,6 +114,8 @@ def test_homepage_no_horizontal_overflow():
 
 
 def test_homepage_screenshot_regression():
+    if not _browser_available():
+        pytest.skip("chromium not available")
     proc = _start_server()
     try:
         with sync_playwright() as p:
@@ -139,6 +145,8 @@ def test_homepage_screenshot_regression():
 
 
 def test_myprojects_no_horizontal_overflow():
+    if not _browser_available():
+        pytest.skip("chromium not available")
     proc = _start_server()
     try:
         with sync_playwright() as p:
@@ -158,6 +166,8 @@ def test_myprojects_no_horizontal_overflow():
 
 
 def test_login_prompt_visible():
+    if not _browser_available():
+        pytest.skip("chromium not available")
     proc = _start_server()
     try:
         with sync_playwright() as p:
