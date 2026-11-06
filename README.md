@@ -215,7 +215,7 @@ backend/
   tests/                      pytest suite (API, security, frontend render)
 frontend/                     HTML pages (vanilla JS, no build step)
 static/                       CSS, JS, logos, favicon
-docs/                         Setup guides and API reference
+docs/                         Setup guides, architecture, and API reference
 scripts/                      Maintainer scripts (review_pr.py, contributor.py)
 .github/                      GitHub Actions CI (workflows/tests.yml)
 render.yaml                   Deployment config
@@ -313,7 +313,9 @@ authentication flows, SEO endpoints, and frontend rendering through a
 Node-based DOM harness (skipped when Node.js is unavailable). See
 [docs/troubleshooting.md](docs/troubleshooting.md) for local troubleshooting tips.
 
-## API
+## Architecture & API
+
+An overview of system design and components is available in [docs/architecture.md](docs/architecture.md).
 
 The JSON API is documented in [docs/api.md](docs/api.md). Major categories:
 

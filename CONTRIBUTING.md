@@ -140,7 +140,7 @@ documentation, or feedback.
 
 ### First-contribution checklist
 
-1. Read [README.md](README.md) and skim [docs/first-contributors.md](docs/first-contributors.md).
+1. Read [README.md](README.md), skim [docs/architecture.md](docs/architecture.md), and [docs/first-contributors.md](docs/first-contributors.md).
 2. Pick an issue from the [Good issues to contribute](README.md#good-issues-to-contribute) list.
 3. Comment on the issue to claim it (maintainers confirm availability).
 4. Fork, branch, implement, and add tests.
