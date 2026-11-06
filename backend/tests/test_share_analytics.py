@@ -10,7 +10,7 @@ completed share, and no event can carry personal content because the
 tracking row has no free-text column at all.
 """
 
-import re
+import json
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -42,11 +42,14 @@ def cleanup_database():
 
 
 def frontend_events():
-    """The allowlist the browser actually sends against."""
-    source = (STATIC_DIR / "analytics.js").read_text(encoding="utf-8")
-    block = re.search(r"VALID_EVENTS = \[(.*?)\]", source, re.S)
-    assert block, "analytics.js no longer defines a VALID_EVENTS array"
-    return set(re.findall(r"'([a-z_]+)'", block.group(1)))
+    """The allowlist generated for the browser."""
+    source = (STATIC_DIR / "analytics_events.js").read_text(encoding="utf-8")
+
+    prefix = "window.CRITIQUE_VALID_ANALYTICS_EVENTS = "
+    assert source.startswith(prefix), "Generated frontend allowlist is missing"
+
+    events_json = source[len(prefix):].strip().removesuffix(";")
+    return set(json.loads(events_json))
 
 
 def _post_event(client, name, project_id=None):

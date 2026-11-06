@@ -1,8 +1,12 @@
-﻿from fastapi.testclient import TestClient
+﻿from pathlib import Path
+import json
+
+from fastapi.testclient import TestClient
 from app.main import app
 from app.database import SessionLocal
 from app.models import AnalyticsEvent, User, Project
 from app.rate_limit import reset_rate_limits
+from app.routes_analytics import VALID_EVENTS
 
 
 def cleanup_database():
@@ -105,3 +109,17 @@ def test_all_valid_events_accepted():
     db.close()
     assert count == 6
     cleanup_database()
+
+def test_frontend_events_match_backend():
+    """Generated frontend events must match the backend source of truth."""
+    frontend_file = Path(__file__).resolve().parents[2] / "static" / "analytics_events.js"
+
+    expected_content = (
+        "window.CRITIQUE_VALID_ANALYTICS_EVENTS = "
+        + json.dumps(sorted(VALID_EVENTS), indent=4)
+        + ";\n"
+    )
+
+    actual_content = frontend_file.read_text(encoding="utf-8")
+
+    assert actual_content == expected_content

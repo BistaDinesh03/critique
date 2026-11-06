@@ -1,0 +1,22 @@
+window.CRITIQUE_VALID_ANALYTICS_EVENTS = [
+    "auth_method_selected_email",
+    "auth_method_selected_github",
+    "discover_view",
+    "email_verification_sent",
+    "email_verification_success",
+    "feedback_resume",
+    "feedback_start",
+    "feedback_submit",
+    "feedback_submit_attempt",
+    "feedback_submit_error",
+    "login_prompt_shown",
+    "login_started",
+    "login_success",
+    "page_view",
+    "project_submit",
+    "project_view",
+    "share_copy_link",
+    "share_copy_post",
+    "share_option_clicked",
+    "share_ui_shown"
+];
