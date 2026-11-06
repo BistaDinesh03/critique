@@ -543,8 +543,9 @@ def test_duplicate_response_is_a_completed_state_not_a_red_error(tmp_path):
     ]
     assert explore, f"no onward link built: {result['createdMeta']}"
     assert explore[0]["href"] == "/project/2"
-    # The attempt created nothing, so it stays counted as a rejected submit.
-    assert len(events(result, "feedback_submit_error")) == 1
+    # A 409 emits feedback_already_responded, not feedback_submit_error (#270).
+    assert len(events(result, "feedback_already_responded")) == 1
+    assert events(result, "feedback_submit_error") == []
     assert events(result, "feedback_submit") == []
 
 

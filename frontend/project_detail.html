@@ -943,11 +943,9 @@
                     showInlineLoginPrompt(msg);
                 } else if (response.status === 409) {
                     // The server already holds a response from this person
-                    // (another device, a cleared session). The attempt created
-                    // nothing, so it stays counted in feedback_submit_error --
-                    // but the visitor has nothing to fix, so the screen is a
-                    // completed state rather than a red error.
-                    window.CritiqueAnalytics.trackEvent('feedback_submit_error', projectId);
+                    // (another device, a cleared session). Emit feedback_already_responded
+                    // rather than feedback_submit_error to avoid polluting error metrics (#270).
+                    window.CritiqueAnalytics.trackEvent('feedback_already_responded', projectId);
                     finished = true;
                     markFeedbackSubmitted();
                     disableResponseForm();
