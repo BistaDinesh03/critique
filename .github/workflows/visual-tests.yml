@@ -19,6 +19,16 @@ jobs:
         working-directory: backend
       - run: python -m playwright install chromium
         working-directory: backend
+      - name: Start server
+        working-directory: backend
+        env:
+          GITHUB_CLIENT_ID: ${{ vars.OAUTH_CLIENT_ID || 'ci-test-client-id' }}
+        run: |
+          python -m uvicorn app.main:app --host 127.0.0.1 --port 8099 &
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:8099/health >/dev/null; then echo "ready"; break; fi
+            sleep 1
+          done
       - run: python -m pytest tests/test_visual_regression.py -q
         working-directory: backend
         env:
