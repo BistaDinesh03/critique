@@ -55,7 +55,7 @@ Reporting send failures is separately tracked in [#81](https://github.com/BistaD
 | GET | `/auth/login` | — | — | Starts GitHub OAuth; rate-limited (`auth`). Redirects to GitHub. |
 | GET | `/auth/callback` | — | — | OAuth callback; validates single-use state; rate-limited (`auth`). With a valid state and `code`, sets the session and redirects to `return_to` or `/`. When GitHub reports cancellation via `error` (such as `error=access_denied`) or when `code` is omitted, consumes the state, clears `critique_return_to`, and redirects to `/?auth=cancelled` (where the homepage displays a neutral banner). A missing, expired, forged, or replayed state returns `400 {"detail": "Invalid or missing OAuth state"}`. |
 | GET | `/auth/logout` | — | — | Clears session and CSRF cookies; redirects to `/`. |
-| GET | `/auth/check` | Required | — | `{"authenticated": true, "username": "..."}` or `401`. |
+| GET | `/auth/check` | Required | — | `{"authenticated": true, "username": "...", "id": <int>}` or `401`. |
 | GET | `/auth/csrf-token` | — | — | `{"csrf_token": "..."}`; also sets the `critique_csrf` cookie if absent. |
 | POST | `/auth/email/start` | — | Required | Body `{"email": "...", "return_to"?: "/path"}`. Requests a magic link (15-minute, single-use). Always `{"ok": true}` regardless of whether the address exists or sending succeeded. Within the intentional 60-second per-email cooldown, repeat requests return that same success without sending another email. Separately rate-limited per IP (`email_login_start`). |
 | GET | `/auth/email/verify?token=...` | — | — | Consumes the token atomically, sets the session, redirects. Missing, empty, invalid, expired, or used tokens redirect to `/?error=email_link`. Rate-limited (`email_login_verify`). |
@@ -107,6 +107,7 @@ else is ignored.
 | Method | Path | Auth | Notes |
 |---|---|---|---|
 | GET | `.../results` | Optional | `{project_id, project_title, question_text, stats, responses, is_owner}`. `stats` (clarity/would-use aggregates) is public; `responses` (including written suggestions) is populated only for the owner — determined server-side from the session. `404` for unknown projects. |
+| GET | `.../results.csv` | Required (Owner) | Returns feedback as `text/csv; charset=utf-8` attachment (`Content-Disposition: attachment; filename="project-{id}-feedback.csv"`). Columns: `created_at,clarity,would_use,suggestion`. Cells starting with formula triggers (`=`, `+`, `-`, `@`, `\t`, `\r`) are escaped with a leading single quote to neutralize spreadsheet injection. `401` for anonymous, `403` for non-owners, `404` for unknown projects. |
 
 ## Badge — `/badge`
 
@@ -171,3 +172,72 @@ pointed at the right site.
 | 422 | `{"detail": [...]}` | Pydantic validation failure. |
 | 429 | `{"detail": "Too many requests. Please slow down."}` | Rate limit exceeded. |
 | 500 | `{"detail": "Internal server error"}` | Unhandled error; never leaks stack traces. |
+
+## Client Examples
+
+### 1. Fetch Platform Stats and Discover Feed
+
+**curl:**
+```bash
+# Public stats
+curl -s https://critique.page/api/stats
+
+# Paginated projects
+curl -s "https://critique.page/api/projects/?page=1&limit=10"
+```
+
+**Python (`httpx` or `requests`):**
+```python
+import requests
+
+BASE_URL = "https://critique.page"
+
+# Get stats
+stats = requests.get(f"{BASE_URL}/api/stats").json()
+print("Total builders:", stats["total_builders"])
+
+# List discover projects
+feed = requests.get(f"{BASE_URL}/api/projects/?page=1&limit=10").json()
+for project in feed["items"]:
+    print(project["title"], project["url"])
+```
+
+### 2. State-Changing Requests (CSRF & Cookies)
+
+Every `POST` or `DELETE` request requires an active session (for protected endpoints) and matching CSRF headers:
+
+**curl:**
+```bash
+# 1. Fetch CSRF token and store session cookie
+curl -c cookies.txt -s https://critique.page/auth/csrf-token -o csrf.json
+CSRF_TOKEN=$(grep -o '"csrf_token":"[^"]*' csrf.json | cut -d'"' -f4)
+
+# 2. Submit feedback response to project 42
+curl -b cookies.txt \
+  -H "Content-Type: application/json" \
+  -H "X-CSRF-Token: $CSRF_TOKEN" \
+  -d '{"clarity":"very_clear","would_use":"yes","suggestion":"Great interface!"}' \
+  https://critique.page/api/projects/42/responses
+```
+
+**Python:**
+```python
+import requests
+
+session = requests.Session()
+BASE_URL = "https://critique.page"
+
+# Fetch CSRF token (automatically sets critique_csrf cookie in session)
+csrf_resp = session.get(f"{BASE_URL}/auth/csrf-token")
+csrf_token = csrf_resp.json()["csrf_token"]
+session.headers["X-CSRF-Token"] = csrf_token
+
+# Submit feedback
+payload = {
+    "clarity": "very_clear",
+    "would_use": "yes",
+    "suggestion": "Great tool, very intuitive flow.",
+}
+response = session.post(f"{BASE_URL}/api/projects/42/responses", json=payload)
+print(response.status_code, response.json())
+```

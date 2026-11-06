@@ -274,6 +274,15 @@ def github_login(
 # consent screen. There is no flash-message system, so the callback reports the
 # outcome through the query string and the homepage turns it into a banner.
 AUTH_CANCELLED_INDICATOR = "/?auth=cancelled"
+AUTH_EXPIRED_INDICATOR = "/?auth=expired"
+
+
+def _oauth_expired_response() -> RedirectResponse:
+    """Friendly outcome for an expired, invalid, or replayed OAuth state."""
+    response = RedirectResponse(AUTH_EXPIRED_INDICATOR, status_code=302)
+    response.delete_cookie(RETURN_TO_COOKIE_NAME)
+    response.delete_cookie(OAUTH_STATE_COOKIE_NAME)
+    return response
 
 
 def _oauth_cancelled_response(remaining: list) -> RedirectResponse:
@@ -318,6 +327,9 @@ async def github_callback(
     # forged, or replayed states are rejected outright.
     pending = _load_pending_states(request.cookies.get(OAUTH_STATE_COOKIE_NAME))
     if not _state_is_valid(pending, state):
+        accept = request.headers.get("accept", "")
+        if "text/html" in accept:
+            return _oauth_expired_response()
         raise HTTPException(status_code=400, detail="Invalid or missing OAuth state")
 
     # Single-use: this state is dropped from the browser's pending list on the
@@ -332,34 +344,41 @@ async def github_callback(
     if error or not code:
         return _oauth_cancelled_response(remaining)
 
-    async with httpx.AsyncClient() as client:
-        token_response = await client.post(
-            "https://github.com/login/oauth/access_token",
-            json={
-                "client_id": settings.GITHUB_CLIENT_ID,
-                "client_secret": settings.GITHUB_CLIENT_SECRET,
-                "code": code,
-                "redirect_uri": settings.GITHUB_REDIRECT_URI,
-            },
-            headers={"Accept": "application/json"},
+    def _auth_failed():
+        failure = JSONResponse(
+            status_code=400, content={"detail": "GitHub authentication failed"}
         )
-        token_data = token_response.json()
-        access_token = token_data.get("access_token")
+        _set_pending_states_cookie(failure, remaining)
+        return failure
 
-        if not access_token:
-            # Same status and body as the previous HTTPException, but it also
-            # persists consumption of the accepted state.
-            failure = JSONResponse(
-                status_code=400, content={"detail": "GitHub authentication failed"}
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            token_response = await client.post(
+                "https://github.com/login/oauth/access_token",
+                json={
+                    "client_id": settings.GITHUB_CLIENT_ID,
+                    "client_secret": settings.GITHUB_CLIENT_SECRET,
+                    "code": code,
+                    "redirect_uri": settings.GITHUB_REDIRECT_URI,
+                },
+                headers={"Accept": "application/json"},
             )
-            _set_pending_states_cookie(failure, remaining)
-            return failure
+            token_data = token_response.json()
+            if not isinstance(token_data, dict):
+                return _auth_failed()
+            access_token = token_data.get("access_token")
+            if not access_token:
+                return _auth_failed()
 
-        user_response = await client.get(
-            "https://api.github.com/user",
-            headers={"Authorization": f"Bearer {access_token}"},
-        )
-        github_user = user_response.json()
+            user_response = await client.get(
+                "https://api.github.com/user",
+                headers={"Authorization": f"Bearer {access_token}"},
+            )
+            github_user = user_response.json()
+            if not isinstance(github_user, dict) or "id" not in github_user:
+                return _auth_failed()
+    except (httpx.RequestError, ValueError, KeyError):
+        return _auth_failed()
 
     user = db.query(User).filter(User.github_id == github_user["id"]).first()
     if not user:
@@ -410,7 +429,7 @@ def logout():
 @router.get("/check")
 def check_auth(user: User = Depends(get_current_user)):
     """Check if the current user is authenticated."""
-    return {"authenticated": True, "username": user.username}
+    return {"authenticated": True, "username": user.username, "id": user.id}
 
 
 @router.get("/csrf-token")

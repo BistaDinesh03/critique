@@ -1,4 +1,7 @@
 from contextlib import asynccontextmanager
+import mimetypes
+import re
+import uuid
 from pathlib import Path
 from typing import Annotated
 
@@ -26,6 +29,28 @@ from app.routes_seo import router as seo_router, site_url
 from app.routes_stats import router as stats_router
 
 
+_REQUEST_ID_RE = re.compile(r"^[A-Za-z0-9-]{1,64}$")
+
+
+class RequestIDMiddleware(BaseHTTPMiddleware):
+    """Ensure every response carries a safe X-Request-ID for correlation.
+
+    Incoming IDs are validated against a strict allowlist; anything missing or
+    invalid is replaced with a server-generated UUID4 hex string.
+    """
+
+    async def dispatch(self, request, call_next):
+        incoming = request.headers.get("X-Request-ID")
+        if incoming and _REQUEST_ID_RE.fullmatch(incoming):
+            request_id = incoming
+        else:
+            request_id = uuid.uuid4().hex
+        request.state.request_id = request_id
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = request_id
+        return response
+
+
 class CacheControlMiddleware(BaseHTTPMiddleware):
     """Add cache headers to static files."""
     async def dispatch(self, request, call_next):
@@ -41,14 +66,27 @@ class CacheControlMiddleware(BaseHTTPMiddleware):
         response.headers.setdefault("X-Frame-Options", "DENY")
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
         response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        if settings.HSTS_ENABLED or settings.is_production:
+            hsts_val = f"max-age={settings.HSTS_MAX_AGE}"
+            if settings.HSTS_INCLUDE_SUBDOMAINS:
+                hsts_val += "; includeSubDomains"
+            if settings.HSTS_PRELOAD:
+                hsts_val += "; preload"
+            response.headers.setdefault("Strict-Transport-Security", hsts_val)
         return response
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Initialize database on startup."""
+    """Initialize database on startup and gracefully clean up on shutdown."""
     init_db()
     yield
+    # Graceful shutdown: release database pool connections
+    try:
+        from app.database import engine
+        engine.dispose()
+    except Exception:
+        pass
 
 
 app = FastAPI(
@@ -59,6 +97,7 @@ app = FastAPI(
 )
 
 app.add_middleware(CacheControlMiddleware)
+app.add_middleware(RequestIDMiddleware)
 
 app.include_router(auth_router)
 app.include_router(projects_router)
@@ -69,6 +108,8 @@ app.include_router(stats_router)
 app.include_router(analytics_router)
 app.include_router(analytics_dashboard_router)
 app.include_router(seo_router)
+
+mimetypes.add_type("image/webp", ".webp")
 
 static_dir = Path(__file__).resolve().parent.parent.parent / "static"
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
