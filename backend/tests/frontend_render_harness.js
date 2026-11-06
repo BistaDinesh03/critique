@@ -496,8 +496,11 @@ async function main() {
       clearTimeout(id);
     },
     navigator: {
-      clipboard: {
+      clipboard: scenario.clipboard === false ? null : {
         writeText(text) {
+          if (scenario.clipboardReject) {
+            return Promise.reject(new Error('Clipboard write rejected'));
+          }
           clipboardWrites.push(String(text));
           return Promise.resolve();
         },
