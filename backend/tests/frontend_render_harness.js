@@ -321,6 +321,9 @@ function pageScripts(html, root) {
   let m;
   while ((m = re.exec(html)) !== null) {
     const attrs = m[1] || '';
+    // JSON-LD is a data block; browsers do not execute it as JavaScript.
+    const typeMatch = attrs.match(/\btype\s*=\s*["']([^"']+)["']/i);
+    if (typeMatch && typeMatch[1].trim().toLowerCase() === 'application/ld+json') continue;
     const srcMatch = attrs.match(/\bsrc\s*=\s*["']([^"']+)["']/i);
     if (srcMatch) {
       const src = srcMatch[1].split('?')[0];
