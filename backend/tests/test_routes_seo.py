@@ -33,10 +33,12 @@ EXPECTED_ROBOTS_BODY = (
     "Disallow: /auth/\n"
     "Disallow: /health\n"
     "Disallow: /google8ffd0ae5f931d1e6.html\n"
+    "Disallow: /docs\n"
+    "Disallow: /redoc\n"
     "\n"
 )
 
-PRIVATE_PATHS = ("/my-projects", "/api/", "/auth/", "/health")
+PRIVATE_PATHS = ("/my-projects", "/api/", "/auth/", "/health", "/docs", "/redoc")
 
 
 def _build_project():
