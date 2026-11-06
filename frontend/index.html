@@ -14,10 +14,12 @@
     <meta property="og:image:type" content="image/webp">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Critique — Ask one question. Get real answers.">
     <meta property="og:image" content="https://critique.page/static/og-image.png">
     <meta property="og:image:type" content="image/png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Critique — Ask one question. Get real answers.">
     <meta property="og:site_name" content="Critique">
 
     <!-- Twitter Card -->
@@ -25,6 +27,7 @@
     <meta name="twitter:title" content="Critique — Ask one question. Get real answers.">
     <meta name="twitter:description" content="Stop getting &quot;Looks good.&quot; Get focused feedback from real people who actually take the time to look.">
     <meta name="twitter:image" content="https://critique.page/static/og-image.webp">
+    <meta name="twitter:image:alt" content="Critique — Ask one question. Get real answers.">
     <title>Critique — Ask one question. Get real answers.</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link rel="stylesheet" href="/static/shared.css">
@@ -282,7 +285,7 @@
         .project-title {
             font-size: var(--text-lg);
             font-weight: 700;
-            margin-bottom: var(--space-2);
+            margin: 0 0 var(--space-2) 0;
             color: var(--text-primary);
             overflow-wrap: anywhere;
         }
@@ -1493,7 +1496,7 @@
 
                     <div class="form-group">
                         <label class="form-label" for="url">Project URL <span class="form-optional-tag">optional</span></label>
-                        <input class="form-input" type="url" id="url" name="url" maxlength="500" placeholder="https://your-project.com">
+                        <input class="form-input" type="url" id="url" name="url" maxlength="500" placeholder="https://your-project.com" autocomplete="url">
                     </div>
                 </div>
 
@@ -1527,14 +1530,14 @@
                     <div class="form-group">
                         <label class="form-label" for="image_url">Project screenshot <span class="form-optional-tag">optional</span></label>
                         <p class="form-helper">Help others see what you've built.</p>
-                        <input class="form-input" type="url" id="image_url" name="image_url" maxlength="500" placeholder="https://example.com/screenshot.png">
+                        <input class="form-input" type="url" id="image_url" name="image_url" maxlength="500" placeholder="https://example.com/screenshot.png" autocomplete="url">
                         <p class="form-helper">Paste a direct link to an image. Leave blank if you don't have one.</p>
                     </div>
                 </div>
 
                 <button type="submit" class="btn btn-primary btn-submit" id="submit-btn">Submit for feedback</button>
                 <p class="form-reassurance">Free to use. Human feedback. No AI-generated responses.</p>
-                <div class="message" id="message"></div>
+                <div class="message" id="message" role="alert" aria-live="polite"></div>
             </form>
         </section>
 
@@ -1757,7 +1760,7 @@
                     html += screenshot;
                     html += '<div class="project-card-body">';
                     html += '<div class="eyebrow">Need feedback on</div>';
-                    html += '<div class="project-title">' + escapeHtml(project.title) + '</div>';
+                    html += '<h3 class="project-title">' + escapeHtml(project.title) + '</h3>';
                     html += description;
                     html += '<div class="project-question">Question: ' + escapeHtml(question) + '</div>';
                     html += '<div class="project-footer">';
@@ -1767,6 +1770,9 @@
                     html += '</div></div>';
                 });
                 container.innerHTML = html;
+                container.querySelectorAll('.project-screenshot').forEach(function(img) {
+                    img.addEventListener('error', function() { this.style.display = 'none'; });
+                });
             } catch (e) {
                 // The placeholder may never be the end state: report the failure
                 // and give the visitor a way to retry instead of showing an
@@ -1860,6 +1866,7 @@
         // it and stays completely optional.
         function showProjectLive(data) {
             var msg = document.getElementById('message');
+            if (msg) msg.setAttribute('role', 'status');
             var project = data && data.project;
             if (!project || !project.id || typeof CritiqueShare === 'undefined') {
                 // The 201 still confirms creation even if the body is not the
@@ -1878,6 +1885,7 @@
         function showProjectInlineLoginPrompt(msg, message) {
             msg = msg || document.getElementById('message');
             if (!msg) return;
+            msg.setAttribute('role', 'alert');
             // The prompt re-renders whenever the gate appears again (the submit
             // handler clears #message first) but the analytics event fires only
             // once per page.
@@ -1919,6 +1927,32 @@
             } catch (e) {}
         }
 
+        var projectFormDirty = false;
+        function updateProjectFormDirty() {
+            var titleEl = document.getElementById('title');
+            var descEl = document.getElementById('description');
+            var urlEl = document.getElementById('url');
+            var qEl = document.getElementById('question');
+            var title = (titleEl && titleEl.value) ? titleEl.value.trim() : '';
+            var desc = (descEl && descEl.value) ? descEl.value.trim() : '';
+            var url = (urlEl && urlEl.value) ? urlEl.value.trim() : '';
+            var question = (qEl && qEl.value) ? qEl.value.trim() : '';
+            projectFormDirty = Boolean(title || desc || url || question);
+        }
+
+        var pForm = document.getElementById('project-form');
+        if (pForm) {
+            pForm.addEventListener('input', updateProjectFormDirty);
+            pForm.addEventListener('change', updateProjectFormDirty);
+        }
+
+        window.addEventListener('beforeunload', function(e) {
+            if (projectFormDirty) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        });
+
         document.getElementById('project-form').addEventListener('submit', async function(e) {
             e.preventDefault();
             const msg = document.getElementById('message');
@@ -1954,6 +1988,7 @@
                     window.CritiqueAnalytics.trackEvent('project_submit', null);
                     CritiqueUI.showToast('Project submitted', 'success');
                     clearProjectDraft();
+                    projectFormDirty = false;
                     document.getElementById('project-form').reset();
                     showProjectLive(data);
                 } else if (response.status === 401) {
@@ -1964,13 +1999,16 @@
                     // the page, so keep the project first.
                     saveProjectDraft();
                     msg.className = 'alert alert-error';
+                    msg.setAttribute('role', 'alert');
                     msg.textContent = 'Session expired. Your project is saved — refresh and try again.';
                 } else {
                     msg.className = 'alert alert-error';
+                    msg.setAttribute('role', 'alert');
                     msg.textContent = 'Error: ' + JSON.stringify(data);
                 }
             } catch (error) {
                 msg.className = 'alert alert-error';
+                msg.setAttribute('role', 'alert');
                 msg.textContent = 'Network error.';
             } finally {
                 const submitBtn = document.getElementById('submit-btn');
@@ -1989,9 +2027,15 @@
             if (window.location.search.indexOf('resume=project_submit') === -1) return;
             var form = document.getElementById('submit');
             if (!form) return;
-            // Scroll smoothly to the submit section
+            var behavior = 'smooth';
+            try {
+                if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                    behavior = 'auto';
+                }
+            } catch (e) {}
+            // Scroll to the submit section
             setTimeout(function() {
-                form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                form.scrollIntoView({ behavior: behavior, block: 'start' });
                 // Focus the first input for immediate typing
                 var firstInput = document.getElementById('title');
                 if (firstInput) {

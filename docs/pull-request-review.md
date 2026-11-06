@@ -96,6 +96,9 @@ Both runs happen in a throwaway clone under the system temporary directory:
   because those are untracked and never copied.
 - The test process receives a stripped environment containing only what Python
   and Git need to start. No `GITHUB_TOKEN`, no `GH_TOKEN`, no cloud keys.
+  Note that environment variables are stripped, but the filesystem is not
+  sandboxed — use a dedicated low-privilege runner or container when reviewing
+  untrusted code.
 - A fork's commits are fetched anonymously into that clone (`refs/pull/N/head`
   is public on a public repository). The maintainer's own repository is never
   fetched into or modified.

@@ -70,6 +70,7 @@ var CritiqueUI = (function() {
         modal.setAttribute('role', 'dialog');
         modal.setAttribute('aria-modal', 'true');
         modal.setAttribute('aria-labelledby', 'modal-title');
+        modal.setAttribute('aria-describedby', 'modal-description');
 
         var titleEl = document.createElement('h3');
         titleEl.id = 'modal-title';
@@ -77,6 +78,7 @@ var CritiqueUI = (function() {
         titleEl.textContent = title;
 
         var bodyEl = document.createElement('div');
+        bodyEl.id = 'modal-description';
         bodyEl.className = 'modal-body';
         bodyEl.textContent = message;
 
@@ -217,7 +219,7 @@ var CritiqueUI = (function() {
         resending: 'Sending another link\u2026',
         changeEmail: 'Change email',
         genericError: "We couldn't send the link. Check your connection and try again.",
-        rateLimitError: 'Too many attempts. Please wait a minute, then try again.'
+        rateLimitError: 'Too many attempts. Please wait about 15 minutes, then try again.'
     };
 
     var EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
