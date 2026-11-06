@@ -9,6 +9,8 @@ maintainable.
 
 ## Getting Started
 
+If you are contributing for the first time, check out our step-by-step [Contributor Onboarding Guide](docs/contributing-start.md).
+
 1. Fork the repository
 2. Clone your fork
 3. Create a branch for your change
