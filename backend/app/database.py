@@ -1,19 +1,33 @@
-﻿import os
+import os
+from contextlib import contextmanager
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import sessionmaker, declarative_base
 from app.config import settings
 
+def get_engine_kwargs(database_url: str = None, config=None) -> dict:
+    """Return engine keyword arguments based on the database URL and config settings."""
+    cfg = config or settings
+    url = database_url if database_url is not None else cfg.DATABASE_URL
+    if url.startswith("sqlite"):
+        return {"connect_args": {"check_same_thread": False}}
+    return {
+        "pool_size": getattr(cfg, "DB_POOL_SIZE", 5),
+        "max_overflow": getattr(cfg, "DB_MAX_OVERFLOW", 10),
+        "pool_timeout": getattr(cfg, "DB_POOL_TIMEOUT", 30),
+        "pool_recycle": getattr(cfg, "DB_POOL_RECYCLE", 1800),
+        "pool_pre_ping": True,
+    }
+
+
 if settings.DATABASE_URL.startswith("sqlite"):
     engine = create_engine(
         settings.DATABASE_URL,
-        connect_args={"check_same_thread": False},
+        **get_engine_kwargs(settings.DATABASE_URL),
     )
 else:
     engine = create_engine(
         settings.DATABASE_URL,
-        pool_size=5,
-        max_overflow=3,
-        pool_pre_ping=True,
+        **get_engine_kwargs(settings.DATABASE_URL),
     )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -22,10 +36,27 @@ Base = declarative_base()
 
 
 def get_db():
-    """Dependency that provides a database session."""
+    """Dependency that provides a database session, ensuring rollback and closure on exception."""
     db = SessionLocal()
     try:
         yield db
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
+@contextmanager
+def db_session():
+    """Context manager that commits on clean exit, rolls back on error, and closes."""
+    db = SessionLocal()
+    try:
+        yield db
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()
 
