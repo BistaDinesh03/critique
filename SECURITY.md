@@ -1,5 +1,7 @@
 # Security Policy
 
+Canonical machine-readable security contact policy is published at `/.well-known/security.txt` (RFC 9116).
+
 ## Reporting a Vulnerability
 
 If you discover a security vulnerability, please **do not** open a public
