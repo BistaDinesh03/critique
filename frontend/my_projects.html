@@ -277,7 +277,7 @@
                     if (response.status === 401) {
                         showLoginRequired(content);
                     } else {
-                        content.innerHTML = '<div class="empty-container"><h2>Could not load projects</h2><p>Something went wrong.</p><button onclick="loadProjects()" class="btn btn-secondary">Try again</button></div>';
+                        content.innerHTML = '<div class="empty-container" role="alert"><h2>Could not load projects</h2><p>Something went wrong.</p><button onclick="loadProjects()" class="btn btn-secondary">Try again</button></div>';
                     }
                     return;
                 }
@@ -316,7 +316,7 @@
                 html += '</div>';
                 content.innerHTML = html;
             } catch (e) {
-                content.innerHTML = '<div class="empty-container"><h2>Connection problem</h2><p>Check your connection and try again.</p><button onclick="loadProjects()" class="btn btn-secondary">Try again</button></div>';
+                content.innerHTML = '<div class="empty-container" role="alert"><h2>Connection problem</h2><p>Check your connection and try again.</p><button onclick="loadProjects()" class="btn btn-secondary">Try again</button></div>';
             }
         }
 
