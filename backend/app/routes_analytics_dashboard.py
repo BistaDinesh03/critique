@@ -32,6 +32,10 @@ def get_analytics_dashboard(
         AnalyticsEvent.event_name == "project_view"
     ).scalar() or 0
 
+    total_feedback_form_viewed = db.query(func.count(AnalyticsEvent.id)).filter(
+        AnalyticsEvent.event_name == "feedback_form_viewed"
+    ).scalar() or 0
+
     total_feedback_starts = db.query(func.count(AnalyticsEvent.id)).filter(
         AnalyticsEvent.event_name == "feedback_start"
     ).scalar() or 0
@@ -127,6 +131,7 @@ def get_analytics_dashboard(
             "page_views": total_page_views,
             "discover_views": total_discover_views,
             "project_views": total_project_views,
+            "feedback_form_viewed": total_feedback_form_viewed,
             "feedback_starts": total_feedback_starts,
             "feedback_submits": total_feedback_submits,
             "project_submits": total_project_submits,

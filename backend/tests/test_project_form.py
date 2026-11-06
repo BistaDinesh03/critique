@@ -128,6 +128,36 @@ def project_form(source):
     return source[start:source.index("</form>", start)]
 
 
+@pytest.mark.parametrize("question", [
+    "Is it immediately clear what my app does?",
+    "What would stop you from trying this product?",
+    "Is the next step on this page easy to find?",
+])
+def test_question_example_fills_focuses_and_saves_without_submitting(tmp_path, question):
+    result = run(tmp_path, "index.html", [
+        {"fn": "renderQuestionExamples"},
+        {"clickCreatedContaining": question},
+        {"evaluate": "document.getElementById('question').value", "as": "question"},
+        {"evaluate": "document.getElementById('question-examples').children.map(b => b.type)", "as": "types"},
+    ])
+    assert result["values"]["question"] == question
+    assert result["values"]["types"] == ["button", "button", "button"]
+    assert result["focused"]["id"] == "question"
+    assert json.loads(result["storage"]["session"]["critique_project_draft"])["question"] == question
+    assert posts(result) == []
+
+
+def test_selected_question_can_be_edited_and_saved(tmp_path):
+    result = run(tmp_path, "index.html", [
+        {"fn": "renderQuestionExamples"},
+        {"clickCreatedContaining": "Is it immediately clear what my app does?"},
+        {"evaluate": "document.getElementById('question').value = 'Is the export button easy to find?'; saveProjectDraft();"},
+    ])
+    draft = json.loads(result["storage"]["session"]["critique_project_draft"])
+    assert draft["question"] == "Is the export button easy to find?"
+    assert posts(result) == []
+
+
 def tag_with_id(html, field_id):
     """The opening tag of `field_id`, whatever order its attributes are in."""
     match = re.search(r'<[a-z]+[^>]*\bid="' + re.escape(field_id) + r'"[^>]*>', html)

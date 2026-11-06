@@ -1,4 +1,4 @@
-﻿import pytest
+import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from app.main import app
@@ -63,6 +63,82 @@ def test_retry_after_is_time_until_oldest_request_expires(monkeypatch):
 
     assert exc_info.value.status_code == 429
     assert exc_info.value.headers == {"Retry-After": str(config["window"] - 10)}
+    reset_rate_limits()
+
+
+def test_rate_limit_resets_after_window_expires(monkeypatch):
+    """Once the rate limit window has elapsed, the client's quota is fully restored."""
+    reset_rate_limits()
+    now = [1000.0]
+    monkeypatch.setattr(limiter.time, "time", lambda: now[0])
+    config = limiter.RATE_LIMITS["auth"]
+    ip = "203.0.113.50"
+
+    # Exhaust the quota
+    for _ in range(config["max_requests"]):
+        limiter.rate_limit("auth")(_request_from(ip))
+
+    # Next request must be rate-limited
+    with pytest.raises(HTTPException) as exc_info:
+        limiter.rate_limit("auth")(_request_from(ip))
+    assert exc_info.value.status_code == 429
+
+    # Advance time strictly past the window
+    now[0] += config["window"] + 0.1
+
+    # Request is now permitted without error
+    limiter.rate_limit("auth")(_request_from(ip))
+
+    # The quota can be consumed again up to the limit
+    for _ in range(config["max_requests"] - 1):
+        limiter.rate_limit("auth")(_request_from(ip))
+
+    # And triggers 429 once more when full
+    with pytest.raises(HTTPException) as exc_info2:
+        limiter.rate_limit("auth")(_request_from(ip))
+    assert exc_info2.value.status_code == 429
+    reset_rate_limits()
+
+
+def test_rate_limit_sliding_window_partial_reset(monkeypatch):
+    """In a sliding window, slots free up individually as each request ages past the window."""
+    reset_rate_limits()
+    now = [1000.0]
+    monkeypatch.setattr(limiter.time, "time", lambda: now[0])
+    config = limiter.RATE_LIMITS["project_create"]  # max_requests: 5, window: 300
+    ip = "203.0.113.60"
+
+    # Send 1st request at t=1000
+    limiter.rate_limit("project_create")(_request_from(ip))
+
+    # Advance 50 seconds and send 4 more requests (total 5 = limit)
+    now[0] += 50.0
+    for _ in range(config["max_requests"] - 1):
+        limiter.rate_limit("project_create")(_request_from(ip))
+
+    # Immediate 6th request at t=1050 gets 429
+    with pytest.raises(HTTPException) as exc_info:
+        limiter.rate_limit("project_create")(_request_from(ip))
+    assert exc_info.value.status_code == 429
+
+    # Advance time to t=1301 (past the 1st request's 300s window: 1000 + 300 = 1300),
+    # but BEFORE the remaining 4 requests expire (1050 + 300 = 1350)
+    now[0] = 1301.0
+
+    # Exactly 1 request should now be accepted
+    limiter.rate_limit("project_create")(_request_from(ip))
+
+    # Another immediate request must be rejected because the other 4 requests haven't expired
+    with pytest.raises(HTTPException) as exc_info2:
+        limiter.rate_limit("project_create")(_request_from(ip))
+    assert exc_info2.value.status_code == 429
+
+    # Finally advance past t=1350 (all initial requests expired)
+    now[0] = 1351.0
+    # 4 more requests are now accepted
+    for _ in range(config["max_requests"] - 1):
+        limiter.rate_limit("project_create")(_request_from(ip))
+
     reset_rate_limits()
 
 
@@ -275,3 +351,114 @@ def test_invalid_cf_header_falls_back_to_peer():
         app.dependency_overrides.clear()
     reset_rate_limits()
     cleanup_database()
+
+
+def test_auth_bucket_rate_limit_over_http():
+    """GET /auth/login is gated by the 'auth' bucket (max 10 requests)."""
+    reset_rate_limits()
+    client = TestClient(app)
+    limit = limiter.RATE_LIMITS["auth"]["max_requests"]
+    for _ in range(limit):
+        res = client.get("/auth/login", follow_redirects=False)
+        assert res.status_code == 307
+    res = client.get("/auth/login", follow_redirects=False)
+    assert res.status_code == 429
+    assert res.json() == {"detail": "Too many requests. Please slow down."}
+    assert res.headers.get("Retry-After") is not None
+    assert res.headers["Retry-After"].isdigit()
+    reset_rate_limits()
+
+
+def test_email_login_start_bucket_rate_limit_over_http():
+    """POST /auth/email/start is gated by 'email_login_start' bucket (max 3 requests)."""
+    reset_rate_limits()
+    client = TestClient(app)
+    client.cookies.set("critique_csrf", "csrf_token_rate")
+    client.headers["X-CSRF-Token"] = "csrf_token_rate"
+    limit = limiter.RATE_LIMITS["email_login_start"]["max_requests"]
+    for i in range(limit):
+        res = client.post("/auth/email/start", json={"email": f"user{i}@example.com"})
+        assert res.status_code == 200
+    res = client.post("/auth/email/start", json={"email": "blocked@example.com"})
+    assert res.status_code == 429
+    assert res.json() == {"detail": "Too many requests. Please slow down."}
+    assert res.headers.get("Retry-After") is not None
+    assert res.headers["Retry-After"].isdigit()
+    reset_rate_limits()
+
+
+def test_email_login_verify_bucket_rate_limit_over_http():
+    """GET /auth/email/verify is gated by 'email_login_verify' bucket (max 10 requests)."""
+    reset_rate_limits()
+    client = TestClient(app)
+    limit = limiter.RATE_LIMITS["email_login_verify"]["max_requests"]
+    for _ in range(limit):
+        res = client.get("/auth/email/verify?token=test_token", follow_redirects=False)
+        assert res.status_code == 307
+    res = client.get("/auth/email/verify?token=test_token", follow_redirects=False)
+    assert res.status_code == 429
+    assert res.json() == {"detail": "Too many requests. Please slow down."}
+    assert res.headers.get("Retry-After") is not None
+    assert res.headers["Retry-After"].isdigit()
+    reset_rate_limits()
+
+
+def test_analytics_bucket_rate_limit_over_http():
+    """POST /api/analytics/track is gated by 'analytics' bucket (max 60 requests)."""
+    reset_rate_limits()
+    cleanup_database()
+    client = TestClient(app)
+    limit = limiter.RATE_LIMITS["analytics"]["max_requests"]
+    for _ in range(limit):
+        res = client.post("/api/analytics/track?event_name=page_view")
+        assert res.status_code == 200
+    res = client.post("/api/analytics/track?event_name=page_view")
+    assert res.status_code == 429
+    assert res.json() == {"detail": "Too many requests. Please slow down."}
+    assert res.headers.get("Retry-After") is not None
+    assert res.headers["Retry-After"].isdigit()
+    reset_rate_limits()
+    cleanup_database()
+
+
+def test_project_delete_bucket_rate_limit_over_http():
+    """DELETE /api/projects/{id} is gated by 'project_delete' bucket (max 20 requests)."""
+    reset_rate_limits()
+    cleanup_database()
+    client = create_authenticated_client()
+    try:
+        limit = limiter.RATE_LIMITS["project_delete"]["max_requests"]
+        for i in range(limit):
+            res = client.delete(f"/api/projects/{9000 + i}")
+            assert res.status_code == 404
+        res = client.delete("/api/projects/9999")
+        assert res.status_code == 429
+        assert res.json() == {"detail": "Too many requests. Please slow down."}
+        assert res.headers.get("Retry-After") is not None
+        assert res.headers["Retry-After"].isdigit()
+    finally:
+        app.dependency_overrides.clear()
+        reset_rate_limits()
+        cleanup_database()
+
+
+def test_response_submit_bucket_rate_limit_over_http():
+    """POST /api/projects/{id}/responses is gated by 'response_submit' bucket (max 10 requests)."""
+    reset_rate_limits()
+    cleanup_database()
+    client = create_authenticated_client()
+    payload = {"clarity": "very_clear", "would_use": "yes", "suggestion": "Great project"}
+    try:
+        limit = limiter.RATE_LIMITS["response_submit"]["max_requests"]
+        for i in range(limit):
+            res = client.post(f"/api/projects/{9000 + i}/responses", json=payload)
+            assert res.status_code == 404
+        res = client.post("/api/projects/9999/responses", json=payload)
+        assert res.status_code == 429
+        assert res.json() == {"detail": "Too many requests. Please slow down."}
+        assert res.headers.get("Retry-After") is not None
+        assert res.headers["Retry-After"].isdigit()
+    finally:
+        app.dependency_overrides.clear()
+        reset_rate_limits()
+        cleanup_database()

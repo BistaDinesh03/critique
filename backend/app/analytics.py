@@ -1,4 +1,5 @@
-﻿import secrets
+import re
+import secrets
 from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
@@ -8,6 +9,11 @@ from app.models import AnalyticsEvent
 
 VISITOR_COOKIE_NAME = "critique_visitor"
 VISITOR_COOKIE_MAX_AGE = 60 * 60 * 24 * 365  # 1 year
+_VISITOR_ID_PATTERN = re.compile(r"^[0-9a-f]{32}$")
+
+
+def _is_valid_visitor_id(visitor_id: str) -> bool:
+    return bool(visitor_id and isinstance(visitor_id, str) and _VISITOR_ID_PATTERN.match(visitor_id))
 
 
 def _generate_visitor_id() -> str:
@@ -16,7 +22,7 @@ def _generate_visitor_id() -> str:
 
 def get_or_create_visitor_id(request) -> str:
     visitor_id = request.cookies.get(VISITOR_COOKIE_NAME)
-    if not visitor_id:
+    if not _is_valid_visitor_id(visitor_id):
         visitor_id = _generate_visitor_id()
     return visitor_id
 

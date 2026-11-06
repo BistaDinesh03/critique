@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
     <title>Discover — Critique</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link rel="stylesheet" href="/static/shared.css">
@@ -327,7 +328,8 @@
             const list = document.getElementById('project-list');
             list.removeAttribute('role');
             list.removeAttribute('aria-label');
-            list.innerHTML = '<div class="empty-state" role="status"><h3>No projects waiting for feedback yet</h3><p>Be the first maker to ask a question.</p><a href="/" class="btn btn-primary">Submit a project</a></div>';
+            const iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="empty-state-icon" aria-hidden="true" style="margin:0 auto var(--space-3);color:var(--text-muted);display:block;"><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>';
+            list.innerHTML = '<div class="empty-state" role="status">' + iconSvg + '<h3>No projects waiting for feedback yet</h3><p>Be the first maker to ask a question.</p><a href="/" class="btn btn-primary">Submit a project</a></div>';
             setListBusy(false, '');
             document.getElementById('pagination').style.display = 'none';
         }
@@ -354,7 +356,9 @@
                 const description = project.description || 'No description provided.';
                 const questionText = project.question_text || 'No question';
                 const responseCount = project.response_count || 0;
-                const screenshotHtml = project.image_url ? '<img class="project-screenshot" src="' + escapeHtml(project.image_url) + '" alt="Screenshot of ' + escapeHtml(project.title) + '" loading="lazy" onerror="this.style.display=\'none\'">' : '';
+                const projectTitle = project.title || 'project';
+                const altText = 'Screenshot of ' + escapeHtml(projectTitle);
+                const screenshotHtml = project.image_url ? '<img class="project-screenshot" src="' + escapeHtml(project.image_url) + '" alt="' + altText + '" loading="lazy" onerror="this.style.display=\'none\'">' : '';
                 // Scannable order: what it is, what it does, the one question
                 // waiting for an answer, then how much help it already has.
                 card.innerHTML = screenshotHtml +
@@ -372,7 +376,9 @@
                 const nextBtn = document.getElementById('next-btn');
                 document.getElementById('pagination').style.display = 'flex';
                 prevBtn.disabled = currentPage <= 1;
+                prevBtn.setAttribute('aria-disabled', currentPage <= 1 ? 'true' : 'false');
                 nextBtn.disabled = currentPage >= totalPages;
+                nextBtn.setAttribute('aria-disabled', currentPage >= totalPages ? 'true' : 'false');
                 document.getElementById('page-info').textContent = 'Page ' + currentPage + ' of ' + totalPages;
                 if (lastPaginationFocus) {
                     const targetBtn = lastPaginationFocus === 'next' ? nextBtn : prevBtn;
@@ -390,25 +396,41 @@
         }
 
         async function fetchWithRetry(url, options, maxRetries) {
-    maxRetries = maxRetries || 3;
-    let lastError;
-    for (let i = 0; i < maxRetries; i++) {
-        try {
-            const response = await fetch(url, options);
-            if (response.status === 503 || response.status === 500) {
-                throw new Error('Server waking up');
+            maxRetries = maxRetries || 3;
+            let lastError;
+            for (let i = 0; i < maxRetries; i++) {
+                const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+                const timer = controller ? setTimeout(function() { controller.abort(); }, 10000) : null;
+                try {
+                    const fetchOpts = Object.assign({}, options);
+                    if (controller) fetchOpts.signal = controller.signal;
+                    const response = await fetch(url, fetchOpts);
+                    if (response.status === 503 || response.status === 500) {
+                        throw new Error('Server waking up');
+                    }
+                    if (!response.ok) {
+                        return response;
+                    }
+                    // Keep attempt deadline active through body consumption
+                    const data = await response.json();
+                    return {
+                        ok: true,
+                        status: response.status,
+                        headers: response.headers,
+                        json: async function() { return data; }
+                    };
+                } catch (e) {
+                    lastError = e;
+                    if (i < maxRetries - 1) {
+                        const delay = Math.min(1000 * Math.pow(2, i), 4000);
+                        await new Promise(function(resolve) { setTimeout(resolve, delay); });
+                    }
+                } finally {
+                    if (timer) clearTimeout(timer);
+                }
             }
-            return response;
-        } catch (e) {
-            lastError = e;
-            if (i < maxRetries - 1) {
-                const delay = Math.min(1000 * Math.pow(2, i), 4000);
-                await new Promise(function(resolve) { setTimeout(resolve, delay); });
-            }
+            throw lastError;
         }
-    }
-    throw lastError;
-}
 
 async function loadProjects(page) {
             currentPage = page;
@@ -429,11 +451,33 @@ async function loadProjects(page) {
             const newPage = currentPage + delta;
             if (newPage >= 1 && newPage <= totalPages) {
                 lastPaginationFocus = delta > 0 ? 'next' : 'prev';
+                try {
+                    const url = new URL(window.location);
+                    url.searchParams.set('page', newPage);
+                    history.pushState({ page: newPage }, '', url);
+                } catch (e) {}
                 loadProjects(newPage);
             }
         }
 
-        loadProjects(1);
+        window.addEventListener('popstate', function(e) {
+            try {
+                const params = new URLSearchParams(window.location.search);
+                const p = parseInt(params.get('page') || '1', 10);
+                if (!isNaN(p) && p >= 1) {
+                    loadProjects(p);
+                }
+            } catch (err) {}
+        });
+
+        let initialPage = 1;
+        try {
+            const params = new URLSearchParams(window.location.search);
+            const p = parseInt(params.get('page') || '1', 10);
+            if (!isNaN(p) && p >= 1) initialPage = p;
+        } catch (err) {}
+
+        loadProjects(initialPage);
     
         async function checkAuth() {
             try {
