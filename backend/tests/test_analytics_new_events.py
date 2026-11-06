@@ -161,6 +161,7 @@ def test_dashboard_reports_new_totals():
 
     # Seed events that the new totals will report.
     seed = {
+        "feedback_form_viewed": 4,
         "feedback_submit_attempt": 3,
         "feedback_submit_error": 1,
         "auth_method_selected_github": 2,
@@ -194,6 +195,7 @@ def test_dashboard_reports_new_totals():
         data = r.json()
 
         totals = data["totals"]
+        assert totals["feedback_form_viewed"] == 4
         assert totals["feedback_submit_attempts"] == 3
         assert totals["feedback_submit_errors"] == 1
         assert totals["auth_method_selected_github"] == 2
@@ -303,6 +305,7 @@ def test_dashboard_ratios_zero_denominator_safe():
 
         # Every total is present and zero.
         for key in [
+            "feedback_form_viewed",
             "feedback_submit_attempts",
             "feedback_submit_errors",
             "auth_method_selected_github",
