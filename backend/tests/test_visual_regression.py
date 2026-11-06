@@ -17,11 +17,22 @@ playwright_available = shutil.which("playwright") is not None
 try:
     from playwright.sync_api import sync_playwright
     _pw_ok = True
+    # Verify chromium can actually launch (CI may not have browsers installed
+    # for the default test job).
+    try:
+        _p = sync_playwright().start()
+        _b = _p.chromium.launch()
+        _b.close()
+        _p.stop()
+        _browser_ok = True
+    except Exception:
+        _browser_ok = False
 except Exception:
     _pw_ok = False
+    _browser_ok = False
 
 pytestmark = [
-    pytest.mark.skipif(not _pw_ok, reason="playwright not installed"),
+    pytest.mark.skipif(not (_pw_ok and _browser_ok), reason="playwright/chromium not available"),
 ]
 
 BASE_URL = os.environ.get("CRITIQUE_BASE_URL", "http://127.0.0.1:8099")
