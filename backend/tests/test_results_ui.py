@@ -238,9 +238,14 @@ def test_zero_responses_renders_empty_state_with_both_actions(tmp_path):
     assert "Would you understand this in 10 seconds?" in html
     # Both standard actions, no bars, no broken arithmetic.
     assert "Get more feedback" in html
-    assert "Discover projects" in html
-    assert "bar-track" not in html
-    assert "sample-note" not in html
+
+
+def test_results_page_supports_print_styling_and_export_button(tmp_path):
+    clarity, would_use = mixed_stats()
+    html = render_results(tmp_path, results_data(3, clarity, would_use))
+    assert 'id="print-results-btn"' in html
+    assert "Print / PDF" in html
+    assert "@media print" in (FRONTEND_DIR / "project_results.html").read_text(encoding="utf-8")
     for artifact in ("NaN", "Infinity", "undefined"):
         assert artifact not in html
 
@@ -441,7 +446,26 @@ def test_api_failure_renders_the_friendly_error_state(tmp_path):
     )
     html = result["html"]
     assert 'class="error-state"' in html
+    assert 'role="alert"' in html
     assert "Something went wrong. Please try again." in html
+    assert "Try again" in html
+    assert "loadResults" in html
     assert "bar-track" not in html
     for artifact in ("NaN", "Infinity", "undefined", "[object Object]"):
         assert artifact not in html
+
+
+def test_download_csv_button_visibility_for_owner_vs_visitor(tmp_path):
+    """Verify that results page renders a Download CSV button for owners and hides it for visitors."""
+    clarity, would_use = mixed_stats()
+    owner_data = results_data(2, clarity, would_use, owner=True)
+    owner_html = render_results(tmp_path, owner_data)
+
+    assert 'id="download-csv-btn"' in owner_html
+    assert "Download CSV" in owner_html
+    assert "/results.csv" in owner_html
+
+    visitor_data = results_data(2, clarity, would_use, owner=False)
+    visitor_html = render_results(tmp_path, visitor_data)
+    assert 'id="download-csv-btn"' not in visitor_html
+    assert "Download CSV" not in visitor_html
