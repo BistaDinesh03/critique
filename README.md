@@ -216,7 +216,7 @@ backend/
 frontend/                     HTML pages (vanilla JS, no build step)
 static/                       CSS, JS, logos, favicon
 docs/                         Setup guides and API reference
-scripts/                      Maintainer scripts (review_pr.py, contributor.py)
+scripts/                      Local launcher and maintainer scripts
 .github/                      GitHub Actions CI (workflows/tests.yml)
 render.yaml                   Deployment config
 ```
@@ -232,6 +232,19 @@ your PATH.
 ```bash
 git clone https://github.com/BistaDinesh03/critique.git
 cd critique
+python scripts/quickstart.py
+```
+
+The launcher creates or reuses `.venv`, installs the requirements, creates `.env`
+from the example if it is missing, and starts the development server. Existing
+`.env` settings are preserved. On Windows, `py scripts/quickstart.py` also works;
+on macOS/Linux, use `python3` if that is your Python command. Use `--port 8001`
+if the default port is busy, and press Ctrl+C to stop.
+
+<details>
+<summary>Manual setup</summary>
+
+```bash
 python -m venv .venv
 ```
 
@@ -255,6 +268,8 @@ cp .env.example .env    # Windows: copy .env.example .env
 cd backend
 uvicorn app.main:app --reload
 ```
+
+</details>
 
 Open http://127.0.0.1:8000. SQLite tables are created automatically on
 startup — no separate migration step.
