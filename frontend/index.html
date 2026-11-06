@@ -1966,9 +1966,15 @@
             if (window.location.search.indexOf('resume=project_submit') === -1) return;
             var form = document.getElementById('submit');
             if (!form) return;
-            // Scroll smoothly to the submit section
+            var behavior = 'smooth';
+            try {
+                if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                    behavior = 'auto';
+                }
+            } catch (e) {}
+            // Scroll to the submit section
             setTimeout(function() {
-                form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                form.scrollIntoView({ behavior: behavior, block: 'start' });
                 // Focus the first input for immediate typing
                 var firstInput = document.getElementById('title');
                 if (firstInput) {

@@ -790,8 +790,14 @@
             if (!returnedFromAuth()) return;
             var form = document.getElementById('response-form');
             if (!form) return;
+            var behavior = 'smooth';
+            try {
+                if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                    behavior = 'auto';
+                }
+            } catch (e) {}
             setTimeout(function() {
-                form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                form.scrollIntoView({ behavior: behavior, block: 'start' });
                 var firstRadio = form.querySelector('input[name="clarity"]');
                 if (firstRadio) {
                     setTimeout(function() { firstRadio.focus({ preventScroll: true }); }, 400);
