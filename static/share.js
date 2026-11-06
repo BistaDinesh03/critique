@@ -261,11 +261,15 @@ var CritiqueShare = (function() {
 
         container.textContent = '';
         var panel = make('div', 'success-share');
-        panel.setAttribute('role', 'status');
 
-        panel.appendChild(make('h3', 'success-title', 'Your project is live'));
-        panel.appendChild(make('p', 'success-lede', 'Your project is now on Critique.'));
-        panel.appendChild(make('strong', 'success-project-title', data.title));
+        // Text announcement node carries role="status" so screen readers
+        // announce confirmation without trapping interactive controls (WCAG 4.1.2, #311).
+        var announcement = make('div', 'success-announcement');
+        announcement.setAttribute('role', 'status');
+        announcement.appendChild(make('h3', 'success-title', 'Your project is live'));
+        announcement.appendChild(make('p', 'success-lede', 'Your project is now on Critique.'));
+        announcement.appendChild(make('strong', 'success-project-title', data.title));
+        panel.appendChild(announcement);
 
         // One primary action: the named destination (never the raw URL) the
         // whole confirmation is about.

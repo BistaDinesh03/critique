@@ -709,6 +709,17 @@ def test_the_test_environment_carries_no_tokens():
         assert name not in env
     assert env.get("PYTHONIOENCODING") == "utf-8"
     assert "PATH" in env
+    assert env.get("GITHUB_CLIENT_ID")
+
+
+def test_the_test_environment_provides_github_client_id(monkeypatch):
+    monkeypatch.delenv("GITHUB_CLIENT_ID", raising=False)
+    env = review_pr._sanitized_env()
+    assert env.get("GITHUB_CLIENT_ID") == "ci-test-client-id"
+
+    monkeypatch.setenv("GITHUB_CLIENT_ID", "custom-client-id")
+    env_custom = review_pr._sanitized_env()
+    assert env_custom.get("GITHUB_CLIENT_ID") == "custom-client-id"
 
 
 def test_pytest_output_is_parsed_without_being_trusted():
