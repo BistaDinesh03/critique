@@ -419,9 +419,14 @@ img {
 
 .form-input:focus,
 .form-textarea:focus {
-    outline: none;
     border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+}
+
+.form-input:focus-visible,
+.form-textarea:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
 }
 
 .form-textarea {
@@ -663,9 +668,13 @@ img {
 }
 
 .share-post:focus {
-    outline: none;
     border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+}
+
+.share-post:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
 }
 
 /* The native share sheet — rendered only where a browser offers one — sits
