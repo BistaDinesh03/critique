@@ -1761,7 +1761,8 @@ img {
 
 .login-prompt {
     display: block;
-    background: #ffffff;
+    background: var(--surface);
+    color: var(--text-primary);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     padding: var(--space-6);
@@ -1829,9 +1830,9 @@ img {
 }
 
 .login-prompt-actions .btn-secondary {
-    background: #ffffff;
+    background: var(--surface-muted);
     color: var(--text-primary);
-    border: 1px solid #d1d5db;
+    border: 1px solid var(--border);
 }
 
 .login-prompt-actions .btn-secondary:hover {
