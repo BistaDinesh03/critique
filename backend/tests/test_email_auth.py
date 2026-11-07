@@ -264,6 +264,45 @@ def test_start_survives_email_send_failure(client, monkeypatch):
         _cleanup_tokens_by_email(email)
 
 
+def test_start_send_failure_clears_cooldown_for_immediate_retry(client, monkeypatch):
+    """If send_login_link fails, cooldown is cleared so user can retry immediately (fixes #314)."""
+    email = _unique_email()
+    call_count = 0
+
+    def fail_first_then_succeed(*args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            raise RuntimeError("provider timeout")
+        return {"id": "resend_123"}
+
+    monkeypatch.setattr("app.auth.send_login_link", fail_first_then_succeed)
+    monkeypatch.setattr(settings, "RESEND_API_KEY", "test_key_not_real")
+    monkeypatch.setattr(settings, "EMAIL_FROM", "Critique <login@example.com>")
+
+    try:
+        # First attempt fails provider send
+        r1 = client.post("/auth/email/start", json={"email": email})
+        assert r1.status_code == 200
+        assert r1.json() == {"ok": True}
+        assert call_count == 1
+
+        # Second attempt immediately after MUST call send_login_link again (cooldown cleared)
+        r2 = client.post("/auth/email/start", json={"email": email})
+        assert r2.status_code == 200
+        assert r2.json() == {"ok": True}
+        assert call_count == 2
+
+        # Third attempt immediately after SHOULD be blocked by cooldown (successful send initiated cooldown)
+        r3 = client.post("/auth/email/start", json={"email": email})
+        assert r3.status_code == 200
+        assert r3.json() == {"ok": True}
+        assert call_count == 2  # Not called because cooldown is now active
+    finally:
+        _cleanup_tokens_by_email(email)
+
+
+
 def test_start_no_token_in_response(client, fake_email):
     email = _unique_email()
     try:
@@ -361,6 +400,18 @@ def test_verify_expired_token_rejected(client):
         _cleanup_tokens_by_email(email)
 
 
+@pytest.mark.parametrize("verify_path", [
+    "/auth/email/verify",
+    "/auth/email/verify?token=",
+    "/auth/email/verify?token=this_is_not_a_valid_token",
+])
+def test_verify_missing_empty_or_invalid_token_redirects(client, verify_path):
+    """Missing or empty token returns the designed friendly redirect instead of 422 JSON."""
+    r = client.get(verify_path)
+    assert r.status_code in (302, 303, 307)
+    assert "error=email_link" in r.headers["location"]
+
+
 def test_verify_invalid_token_rejected(client):
     r = client.get("/auth/email/verify?token=this_is_not_a_valid_token")
     assert r.status_code in (302, 303, 307)
@@ -426,6 +477,37 @@ def test_verify_drops_unsafe_return_to_at_insert(client, return_to):
         r = client.get(f"/auth/email/verify?token={raw}")
         assert r.status_code in (302, 303, 307)
         assert r.headers["location"] == "/"
+    finally:
+        _cleanup_tokens_by_email(email)
+        _cleanup_user_by_email(email)
+
+
+def test_email_signup_username_is_keyed_not_unsalted_oracle(client):
+    """Email signups derive usernames using a keyed HMAC to prevent public /api/stats existence checks (fixes #199)."""
+    import hashlib
+    email = _unique_email()
+    raw = _insert_token(email)
+    try:
+        r = client.get(f"/auth/email/verify?token={raw}")
+        assert r.status_code in (302, 303, 307)
+
+        # Attacker computes unsalted digest per issue description
+        unsalted_oracle = "email_" + hashlib.sha256(email.encode("utf-8")).hexdigest()[:16]
+
+        db = SessionLocal()
+        try:
+            u = db.query(User).filter(User.email == email).first()
+            assert u is not None
+            assert u.username != unsalted_oracle
+            assert u.username.startswith("email_")
+            assert len(u.username) == 22
+        finally:
+            db.close()
+
+        # Check /api/stats does not leak unsalted_oracle
+        r_stats = client.get("/api/stats")
+        assert r_stats.status_code == 200
+        assert unsalted_oracle not in r_stats.text
     finally:
         _cleanup_tokens_by_email(email)
         _cleanup_user_by_email(email)

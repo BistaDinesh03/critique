@@ -248,6 +248,11 @@ def test_success_offers_the_next_real_project_and_keeps_the_confirmation(tmp_pat
     # Points at a *different* real project, never back at the answered one.
     assert links[0]["href"] == "/project/2"
 
+    # Confirms live README badge link is offered for viral project promotion
+    badge_links = [m for m in result["createdMeta"] if m.get("id") == "project-badge-link"]
+    assert badge_links, f"no project badge link found in {result['createdMeta']}"
+    assert badge_links[0]["href"] == "/badge/1.svg"
+
     # The success state must not be wiped by a background reload.
     assert "critique_responded_1" in result["storage"]["session"]
     assert not any(r["url"] == "/api/projects/1" for r in result["requests"])
@@ -538,8 +543,9 @@ def test_duplicate_response_is_a_completed_state_not_a_red_error(tmp_path):
     ]
     assert explore, f"no onward link built: {result['createdMeta']}"
     assert explore[0]["href"] == "/project/2"
-    # The attempt created nothing, so it stays counted as a rejected submit.
-    assert len(events(result, "feedback_submit_error")) == 1
+    # A 409 emits feedback_already_responded, not feedback_submit_error (#270).
+    assert len(events(result, "feedback_already_responded")) == 1
+    assert events(result, "feedback_submit_error") == []
     assert events(result, "feedback_submit") == []
 
 
@@ -572,3 +578,37 @@ def test_sign_in_events_fire_only_on_a_real_return(tmp_path):
     # the session is still anonymous, it lands on the gate again as designed.
     assert len(events(returned, "feedback_submit_attempt")) == 1
     assert events(returned, "feedback_submit_error") == []
+
+
+def test_feedback_draft_and_responded_keys_are_namespaced_per_account(tmp_path):
+    """Different accounts in the same tab get independent draft and responded state (fixes #315)."""
+    fetch = {
+        "/api/projects/1": {"status": 200, "body": PROJECT},
+    }
+    result = run(
+        tmp_path,
+        "project_detail.html",
+        [
+            {"fn": "renderProject", "args": [PROJECT, []]},
+            # User A
+            {"fn": "setCurrentUserId", "args": ["user_123"]},
+            {"evaluate": "feedbackStorageKey()", "as": "userA_storageKey"},
+            {"evaluate": "feedbackSubmittedKey()", "as": "userA_submittedKey"},
+            # User B
+            {"fn": "setCurrentUserId", "args": ["user_456"]},
+            {"evaluate": "feedbackStorageKey()", "as": "userB_storageKey"},
+            {"evaluate": "feedbackSubmittedKey()", "as": "userB_submittedKey"},
+            # Anonymous
+            {"fn": "setCurrentUserId", "args": [None]},
+            {"evaluate": "feedbackStorageKey()", "as": "anon_storageKey"},
+            {"evaluate": "feedbackSubmittedKey()", "as": "anon_submittedKey"},
+        ],
+        fetch=fetch,
+        location="/project/1",
+    )
+    assert result["values"]["userA_storageKey"] == "critique_feedback_user_123_1"
+    assert result["values"]["userA_submittedKey"] == "critique_responded_user_123_1"
+    assert result["values"]["userB_storageKey"] == "critique_feedback_user_456_1"
+    assert result["values"]["userB_submittedKey"] == "critique_responded_user_456_1"
+    assert result["values"]["anon_storageKey"] == "critique_feedback_1"
+    assert result["values"]["anon_submittedKey"] == "critique_responded_1"

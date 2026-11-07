@@ -1,4 +1,4 @@
-﻿import os
+import os
 import secrets
 import sys
 
@@ -17,7 +17,7 @@ def _resolve_secret_key(app_env: str) -> str:
     production we fall back to a random per-process key so local runs still
     work, with a warning that sessions will not survive a restart.
     """
-    key = os.getenv("SECRET_KEY", "")
+    key = os.getenv("SECRET_KEY", "").strip()
     if key:
         return key
     if app_env.lower() == "production":
@@ -43,6 +43,12 @@ class Settings:
     SECRET_KEY: str = _resolve_secret_key(os.getenv("APP_ENV", "development"))
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./critique.db")
 
+    # Database connection pool settings (for production / PostgreSQL)
+    DB_POOL_SIZE: int = int(os.getenv("DB_POOL_SIZE", "5"))
+    DB_MAX_OVERFLOW: int = int(os.getenv("DB_MAX_OVERFLOW", "10"))
+    DB_POOL_TIMEOUT: int = int(os.getenv("DB_POOL_TIMEOUT", "30"))
+    DB_POOL_RECYCLE: int = int(os.getenv("DB_POOL_RECYCLE", "1800"))
+
     # GitHub OAuth
     GITHUB_CLIENT_ID: str = os.getenv("GITHUB_CLIENT_ID", "")
     GITHUB_CLIENT_SECRET: str = os.getenv("GITHUB_CLIENT_SECRET", "")
@@ -51,10 +57,31 @@ class Settings:
     # Security
     SESSION_COOKIE_SECURE: bool = os.getenv("SESSION_COOKIE_SECURE", "false").lower() == "true"
     SESSION_COOKIE_MAX_AGE: int = int(os.getenv("SESSION_COOKIE_MAX_AGE", "604800"))  # 7 days
+    HSTS_ENABLED: bool = os.getenv("HSTS_ENABLED", "true" if os.getenv("APP_ENV", "development").lower() == "production" else "false").lower() == "true"
+    HSTS_MAX_AGE: int = int(os.getenv("HSTS_MAX_AGE", "31536000"))  # 1 year
+    HSTS_INCLUDE_SUBDOMAINS: bool = os.getenv("HSTS_INCLUDE_SUBDOMAINS", "true").lower() == "true"
+    HSTS_PRELOAD: bool = os.getenv("HSTS_PRELOAD", "false").lower() == "true"
 
     # Email (Resend) — passwordless magic link
     RESEND_API_KEY: str = os.getenv("RESEND_API_KEY", "")
     EMAIL_FROM: str = os.getenv("EMAIL_FROM", "")
+
+    def __init__(self):
+        self.APP_ENV = os.getenv("APP_ENV", "development")
+        self.APP_URL = os.getenv("APP_URL", "http://127.0.0.1:8000")
+        self.DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./critique.db")
+        self.DB_POOL_SIZE = int(os.getenv("DB_POOL_SIZE", "5"))
+        self.DB_MAX_OVERFLOW = int(os.getenv("DB_MAX_OVERFLOW", "10"))
+        self.DB_POOL_TIMEOUT = int(os.getenv("DB_POOL_TIMEOUT", "30"))
+        self.DB_POOL_RECYCLE = int(os.getenv("DB_POOL_RECYCLE", "1800"))
+        self.GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID", "")
+        self.GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET", "")
+        self.GITHUB_REDIRECT_URI = os.getenv("GITHUB_REDIRECT_URI", "http://127.0.0.1:8000/auth/callback")
+        self.SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "false").lower() == "true"
+        self.SESSION_COOKIE_MAX_AGE = int(os.getenv("SESSION_COOKIE_MAX_AGE", "604800"))
+        self.RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
+        self.EMAIL_FROM = os.getenv("EMAIL_FROM", "")
+        self.SECRET_KEY = os.getenv("SECRET_KEY") or getattr(self.__class__, "SECRET_KEY", None) or _resolve_secret_key(self.APP_ENV)
 
     @property
     def is_production(self) -> bool:

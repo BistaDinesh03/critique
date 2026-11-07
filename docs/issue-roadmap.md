@@ -1,8 +1,10 @@
 # Critique issue roadmap
 
-A curated plan of **50 distinct issues**, validated against the live issue tracker and the current code on `BistaDinesh03/critique`.
+> **Note:** This document is a dated snapshot prepared on 2026-10-17 and re-verified on 2026-11-04. For live tracker state and available tasks, always consult the [live issue tracker](https://github.com/BistaDinesh03/critique/issues).
 
-**Prepared:** 2026-10-17  
+A curated plan of **50 distinct issues**, originally prepared and validated against the live issue tracker and the current code on `BistaDinesh03/critique`.
+
+**Prepared:** 2026-10-17 (row statuses re-verified 2026-11-04)  
 **Repository:** https://github.com/BistaDinesh03/critique  
 **Live issues:** https://github.com/BistaDinesh03/critique/issues
 
@@ -14,8 +16,8 @@ A curated plan of **50 distinct issues**, validated against the live issue track
 | | |
 |---|---|
 | Total curated issues | 50 |
-| Already open (reused, no duplicate created) | 8 |
-| New issues to publish | 42 |
+| Already open at roadmap creation | 8 |
+| Issues published from roadmap | 42 |
 
 ### Category counts
 
@@ -39,7 +41,7 @@ A curated plan of **50 distinct issues**, validated against the live issue track
 
 ## Existing issues accounted for
 
-The tracker already had 10 open issues. They are handled as follows rather than being duplicated:
+When this roadmap was prepared, the tracker had 10 open issues. They were handled as follows rather than being duplicated:
 
 | Issue | Disposition |
 |---|---|
@@ -84,9 +86,9 @@ Reused directly as roadmap entries:
 | A6 | Add Dependabot configuration for pip and GitHub Actions | beginner | beginner | published [#19](https://github.com/BistaDinesh03/critique/issues/19) |
 | A7 | Document the analytics event catalogue in docs/ | beginner | beginner | published [#20](https://github.com/BistaDinesh03/critique/issues/20) |
 | A8 | Add coverage measurement with pytest-cov and document the command | beginner | beginner | published [#21](https://github.com/BistaDinesh03/critique/issues/21) |
-| A9 | Explain how to run a single test in CONTRIBUTING.md | beginner | beginner | published [#22](https://github.com/BistaDinesh03/critique/issues/22) |
+| A9 | Explain how to run a single test in CONTRIBUTING.md | beginner | beginner | ✅ done — [#22](https://github.com/BistaDinesh03/critique/issues/22) |
 | A10 | Reconcile the README analytics figures with the HTML analytics report | beginner | beginner | published [#23](https://github.com/BistaDinesh03/critique/issues/23) |
-| A11 | Add an .editorconfig for consistent whitespace and line endings | beginner | beginner | published [#24](https://github.com/BistaDinesh03/critique/issues/24) |
+| A11 | Add an .editorconfig for consistent whitespace and line endings | beginner | beginner | ✅ done — [#24](https://github.com/BistaDinesh03/critique/issues/24) |
 | A12 | Clarify the two requirements.txt files and how they relate | beginner | beginner | published [#25](https://github.com/BistaDinesh03/critique/issues/25) |
 | B1 | Add Open Graph metadata to Discover and project pages | frontend | advanced | published [#26](https://github.com/BistaDinesh03/critique/issues/26) |
 | B2 | Improve project empty states | frontend | beginner | existing #10 |
@@ -97,10 +99,10 @@ Reused directly as roadmap entries:
 | B7 | Show a "Feedback needed" status on projects | frontend | intermediate | existing #4 |
 | B8 | Add project categories to Discover | frontend | intermediate | existing #5 |
 | B9 | Add a skip-to-content link and semantic landmarks to every page | frontend | intermediate | published [#27](https://github.com/BistaDinesh03/critique/issues/27) |
-| B10 | Honour prefers-reduced-motion in shared styles | frontend | intermediate | published [#28](https://github.com/BistaDinesh03/critique/issues/28) |
+| B10 | Honour prefers-reduced-motion in shared styles | frontend | intermediate | ✅ done — [#28](https://github.com/BistaDinesh03/critique/issues/28) |
 | C1 | Add an optional GitHub repository link to projects | backend | intermediate | existing #3 |
 | C2 | Bound the unbounded list endpoints with pagination | backend | intermediate | published [#29](https://github.com/BistaDinesh03/critique/issues/29) |
-| C3 | Send a Retry-After header with 429 responses | backend | beginner | published [#30](https://github.com/BistaDinesh03/critique/issues/30) |
+| C3 | Send a Retry-After header with 429 responses | backend | beginner | ✅ done — [#30](https://github.com/BistaDinesh03/critique/issues/30) |
 | C4 | Make the analytics event allowlist a single source of truth | backend | intermediate | published [#31](https://github.com/BistaDinesh03/critique/issues/31) |
 | C5 | Make the analytics dashboard owner allowlist configurable | backend | beginner | published [#32](https://github.com/BistaDinesh03/critique/issues/32) |
 | C6 | Replace the analytics dashboard's sequential count queries | backend | intermediate | published [#33](https://github.com/BistaDinesh03/critique/issues/33) |
@@ -109,22 +111,22 @@ Reused directly as roadmap entries:
 | C9 | Report database connectivity from the /health endpoint | backend | beginner | published [#36](https://github.com/BistaDinesh03/critique/issues/36) |
 | C10 | Set correct cache directives on authenticated JSON responses | backend | intermediate | published [#37](https://github.com/BistaDinesh03/critique/issues/37) |
 | D1 | Add Ruff configuration and document the lint command | tests | beginner | published [#38](https://github.com/BistaDinesh03/critique/issues/38) |
-| D2 | Add a GitHub Actions workflow that runs the test suite | tests | intermediate | published [#39](https://github.com/BistaDinesh03/critique/issues/39) |
-| D3 | Run the frontend render tests in CI by installing Node | tests | intermediate | published [#40](https://github.com/BistaDinesh03/critique/issues/40) |
+| D2 | Add a GitHub Actions workflow that runs the test suite | tests | intermediate | ✅ done — [#39](https://github.com/BistaDinesh03/critique/issues/39) |
+| D3 | Run the frontend render tests in CI by installing Node | tests | intermediate | ✅ done — [#40](https://github.com/BistaDinesh03/critique/issues/40) |
 | D4 | Add a regression test for the 429 Retry-After contract | tests | intermediate | published [#41](https://github.com/BistaDinesh03/critique/issues/41) |
 | D5 | Add a test asserting security headers on HTML and API responses | tests | intermediate | published [#42](https://github.com/BistaDinesh03/critique/issues/42) |
-| D6 | Add a test keeping the backend and frontend analytics allowlists in sync | tests | intermediate | published [#43](https://github.com/BistaDinesh03/critique/issues/43) |
+| D6 | Add a test keeping the backend and frontend analytics allowlists in sync | tests | intermediate | ✅ done — [#43](https://github.com/BistaDinesh03/critique/issues/43) |
 | D7 | Pin the analytics dashboard response shape with a contract test | tests | intermediate | published [#44](https://github.com/BistaDinesh03/critique/issues/44) |
 | E1 | Add security response headers to HTML and API responses | security | intermediate | published [#45](https://github.com/BistaDinesh03/critique/issues/45) |
 | E2 | Introduce a Content-Security-Policy without breaking the frontend | security | advanced | published [#46](https://github.com/BistaDinesh03/critique/issues/46) |
-| E3 | Serve an HTML 404 page for unknown routes | security | beginner | published [#47](https://github.com/BistaDinesh03/critique/issues/47) |
-| E4 | Bound the in-memory rate limiter's growth | security | intermediate | published [#48](https://github.com/BistaDinesh03/critique/issues/48) |
+| E3 | Serve an HTML 404 page for unknown routes | security | beginner | ✅ done — [#47](https://github.com/BistaDinesh03/critique/issues/47) |
+| E4 | Bound the in-memory rate limiter's growth | security | intermediate | ✅ done — [#48](https://github.com/BistaDinesh03/critique/issues/48) |
 | E5 | Document and harden the rate limiter's multi-instance and restart behaviour | security | advanced | published [#49](https://github.com/BistaDinesh03/critique/issues/49) |
-| E6 | Stop serving mutable JavaScript and CSS with a 24-hour cache | security | intermediate | published [#50](https://github.com/BistaDinesh03/critique/issues/50) |
+| E6 | Stop serving mutable JavaScript and CSS with a 24-hour cache | security | intermediate | ✅ done — [#50](https://github.com/BistaDinesh03/critique/issues/50) |
 | F1 | Create and document a label taxonomy for the expanded issue tracker | community | beginner | published [#51](https://github.com/BistaDinesh03/critique/issues/51) |
-| F2 | Write a first-contributor guide walking through one real issue | community | beginner | published [#52](https://github.com/BistaDinesh03/critique/issues/52) |
+| F2 | Write a first-contributor guide walking through one real issue | community | beginner | ✅ done — [#52](https://github.com/BistaDinesh03/critique/issues/52) |
 | F3 | Define a triage policy and reconcile stale issues | community | intermediate | published [#53](https://github.com/BistaDinesh03/critique/issues/53) |
-| F4 | Add a maintainer checklist for reviewing contributor pull requests | community | intermediate | published [#54](https://github.com/BistaDinesh03/critique/issues/54) |
+| F4 | Add a maintainer checklist for reviewing contributor pull requests | community | intermediate | ✅ done — [#54](https://github.com/BistaDinesh03/critique/issues/54) |
 | F5 | Document the deployment and rollback process for maintainers | community | intermediate | published [#55](https://github.com/BistaDinesh03/critique/issues/55) |
 
 

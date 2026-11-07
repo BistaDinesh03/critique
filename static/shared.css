@@ -1,4 +1,4 @@
-﻿/* ============================================
+/* ============================================
    Critique Design System
    ============================================ */
 
@@ -63,6 +63,36 @@
     --transition-normal: 200ms ease;
 }
 
+@media (prefers-color-scheme: dark) {
+    :root {
+        --background: #0f172a;
+        --surface: #1e293b;
+        --surface-muted: #334155;
+        --text-primary: #f8fafc;
+        --text-secondary: #cbd5e1;
+        --text-muted: #94a3b8;
+        --border: #334155;
+        --border-light: #1e293b;
+        --primary: #f8fafc;
+        --primary-hover: #e2e8f0;
+        --accent: #3b82f6;
+        --accent-hover: #60a5fa;
+        --success: #22c55e;
+        --success-bg: #064e3b;
+        --success-border: #059669;
+        --warning: #f59e0b;
+        --warning-bg: #78350f;
+        --warning-border: #d97706;
+        --danger: #ef4444;
+        --danger-bg: #7f1d1d;
+        --danger-border: #dc2626;
+        --focus: #60a5fa;
+
+        --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+        --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.6);
+    }
+}
+
 /* ============================================
    Base
    ============================================ */
@@ -78,6 +108,7 @@
 html {
     font-size: 16px;
     -webkit-text-size-adjust: 100%;
+    color-scheme: light dark;
 }
 
 body {
@@ -110,6 +141,42 @@ img {
     outline: 2px solid var(--focus);
     outline-offset: 2px;
     border-radius: 2px;
+}
+
+/* ============================================
+   Pagination
+   ============================================ */
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--space-4);
+    margin-top: var(--space-6);
+}
+
+.pagination button {
+    padding: var(--space-2) var(--space-4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    background: var(--surface);
+    color: var(--text-primary);
+    transition: background-color var(--transition-fast), opacity var(--transition-fast);
+}
+
+.pagination button:hover:not(:disabled) {
+    background: var(--surface-muted);
+}
+
+.pagination button:disabled,
+.pagination button[aria-disabled="true"] {
+    opacity: 0.45;
+    cursor: not-allowed;
+    background: var(--surface-muted);
+    color: var(--text-muted);
 }
 
 /* ============================================
@@ -383,9 +450,14 @@ img {
 
 .form-input:focus,
 .form-textarea:focus {
-    outline: none;
     border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+}
+
+.form-input:focus-visible,
+.form-textarea:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
 }
 
 .form-textarea {
@@ -627,9 +699,13 @@ img {
 }
 
 .share-post:focus {
-    outline: none;
     border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+}
+
+.share-post:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
 }
 
 /* The native share sheet — rendered only where a browser offers one — sits
@@ -909,6 +985,27 @@ img {
 
 .toast-text {
     color: var(--text-primary);
+}
+
+.toast-dismiss {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: var(--text-base);
+    line-height: 1;
+    padding: var(--space-1);
+    margin-left: auto;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.toast-dismiss:hover,
+.toast-dismiss:focus-visible {
+    color: var(--text-primary);
+    background: var(--surface-muted);
 }
 
 /* ============================================
@@ -1365,6 +1462,27 @@ img {
     color: var(--text-primary);
 }
 
+.toast-dismiss {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: var(--text-base);
+    line-height: 1;
+    padding: var(--space-1);
+    margin-left: auto;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.toast-dismiss:hover,
+.toast-dismiss:focus-visible {
+    color: var(--text-primary);
+    background: var(--surface-muted);
+}
+
 /* ============================================
    Modal System
    ============================================ */
@@ -1643,7 +1761,8 @@ img {
 
 .login-prompt {
     display: block;
-    background: #ffffff;
+    background: var(--surface);
+    color: var(--text-primary);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     padding: var(--space-6);
@@ -1711,9 +1830,9 @@ img {
 }
 
 .login-prompt-actions .btn-secondary {
-    background: #ffffff;
+    background: var(--surface-muted);
     color: var(--text-primary);
-    border: 1px solid #d1d5db;
+    border: 1px solid var(--border);
 }
 
 .login-prompt-actions .btn-secondary:hover {
@@ -1854,6 +1973,42 @@ img {
     font-size: var(--text-sm);
     font-weight: 600;
     border-radius: var(--radius-md);
+}
+
+.breadcrumb-nav {
+    margin-bottom: var(--space-4);
+    font-size: var(--text-sm);
+}
+
+.breadcrumbs {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    color: var(--text-muted);
+}
+
+.breadcrumbs a {
+    color: var(--text-secondary);
+    text-decoration: none;
+}
+
+.breadcrumbs a:hover {
+    color: var(--primary);
+    text-decoration: underline;
+}
+
+.breadcrumbs [aria-current="page"] {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.breadcrumb-separator {
+    color: var(--text-muted);
+    user-select: none;
 }
 
 @media (max-width: 600px) {
