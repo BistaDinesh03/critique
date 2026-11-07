@@ -1,0 +1,42 @@
+name: visual-tests
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  visual:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements.txt
+        working-directory: backend
+      - run: python -m playwright install chromium
+        working-directory: backend
+      - name: Start server
+        working-directory: backend
+        env:
+          GITHUB_CLIENT_ID: ${{ vars.OAUTH_CLIENT_ID || 'ci-test-client-id' }}
+        run: |
+          python -m uvicorn app.main:app --host 127.0.0.1 --port 8099 &
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:8099/health >/dev/null; then echo "ready"; break; fi
+            sleep 1
+          done
+      - run: python -m pytest tests/test_visual_regression.py -q
+        working-directory: backend
+        env:
+          GITHUB_CLIENT_ID: ${{ vars.OAUTH_CLIENT_ID || 'ci-test-client-id' }}
+          CRITIQUE_BASE_URL: http://127.0.0.1:8099
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: backend/tests/visual_baselines/*_actual.png
+          retention-days: 7
