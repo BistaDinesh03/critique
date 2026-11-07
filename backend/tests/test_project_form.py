@@ -124,7 +124,10 @@ def page_source(page):
 
 def project_form(source):
     """The markup between the form's tags, nothing else on the page."""
-    start = source.index('<form id="project-form">')
+    import re
+    match = re.search(r'<form[^>]*\bid="project-form"[^>]*>', source)
+    assert match, "no form with id=project-form"
+    start = match.start()
     return source[start:source.index("</form>", start)]
 
 
