@@ -1987,7 +1987,9 @@
                 } else {
                     msg.className = 'alert alert-error';
                     msg.setAttribute('role', 'alert');
-                    msg.textContent = 'Error: ' + JSON.stringify(data);
+                    msg.textContent = (data && typeof data.detail === 'string')
+                        ? data.detail
+                        : 'Failed to submit project. Please try again.';
                 }
             } catch (error) {
                 msg.className = 'alert alert-error';
