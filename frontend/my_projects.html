@@ -198,9 +198,10 @@
         </div>
 
         <div id="content">
-            <div class="loading-state">
-                <div class="loading-spinner"></div>
-                <p>Loading projects...</p>
+            <div class="projects-grid" id="skeleton-grid" aria-hidden="true">
+                <div class="skeleton-card"><div class="skeleton skeleton-img"></div><div class="skeleton-body"><div class="skeleton skeleton-line w-75"></div><div class="skeleton skeleton-line w-100"></div><div class="skeleton skeleton-line w-50"></div></div></div>
+                <div class="skeleton-card"><div class="skeleton skeleton-img"></div><div class="skeleton-body"><div class="skeleton skeleton-line w-75"></div><div class="skeleton skeleton-line w-100"></div><div class="skeleton skeleton-line w-50"></div></div></div>
+                <div class="skeleton-card"><div class="skeleton skeleton-img"></div><div class="skeleton-body"><div class="skeleton skeleton-line w-75"></div><div class="skeleton skeleton-line w-100"></div><div class="skeleton skeleton-line w-50"></div></div></div>
             </div>
         </div>
     </main>
@@ -273,6 +274,7 @@
             var content = document.getElementById('content');
             // A re-render detaches any open share row along with its buttons.
             activeCardShare = null;
+            content.innerHTML = '<div class="projects-grid" aria-hidden="true"><div class="skeleton-card"><div class="skeleton skeleton-img"></div><div class="skeleton-body"><div class="skeleton skeleton-line w-75"></div><div class="skeleton skeleton-line w-100"></div><div class="skeleton skeleton-line w-50"></div></div></div><div class="skeleton-card"><div class="skeleton skeleton-img"></div><div class="skeleton-body"><div class="skeleton skeleton-line w-75"></div><div class="skeleton skeleton-line w-100"></div><div class="skeleton skeleton-line w-50"></div></div></div><div class="skeleton-card"><div class="skeleton skeleton-img"></div><div class="skeleton-body"><div class="skeleton skeleton-line w-75"></div><div class="skeleton skeleton-line w-100"></div><div class="skeleton skeleton-line w-50"></div></div></div></div>';
             try {
                 var response = await fetch('/api/projects/my/list');
                 if (!response.ok) {
