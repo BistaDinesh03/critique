@@ -921,7 +921,6 @@
                 }
                 if (response.ok) {
                     window.CritiqueAnalytics.trackEvent('feedback_submit', projectId);
-                    CritiqueUI.showToast('Feedback submitted', 'success');
                     clearFeedbackDraft();
                     clearEmailFallbackDraft();
                     // Keep the confirmation on screen instead of wiping it with
