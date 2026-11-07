@@ -1,3 +1,4 @@
+import pytest
 from fastapi.testclient import TestClient
 from app.main import app
 
@@ -46,3 +47,20 @@ def test_hsts_header_omitted_in_development_by_default(monkeypatch):
     response = client.get("/health")
     assert response.status_code == 200
     assert "Strict-Transport-Security" not in response.headers
+
+
+@pytest.mark.parametrize("path", [
+    "/",
+    "/discover",
+    "/my-projects",
+    "/api/stats",
+    "/static/shared.css",
+    "/nonexistent-page-for-404",
+])
+def test_x_frame_options_clickjacking_protection_across_routes(path):
+    """Every page, API, static file, and error response enforces X-Frame-Options: DENY and baseline security headers (fixes #347)."""
+    client = TestClient(app)
+    response = client.get(path)
+    assert response.headers.get("X-Frame-Options") == "DENY"
+    assert response.headers.get("X-Content-Type-Options") == "nosniff"
+    assert response.headers.get("Referrer-Policy") == "strict-origin-when-cross-origin"
