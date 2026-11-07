@@ -9,6 +9,8 @@ maintainable.
 
 ## Getting Started
 
+If you are contributing for the first time, check out our step-by-step [Contributor Onboarding Guide](docs/contributing-start.md).
+
 1. Fork the repository
 2. Clone your fork
 3. Create a branch for your change
@@ -31,7 +33,8 @@ uvicorn app.main:app --reload
 
 Open http://127.0.0.1:8000. Authentication providers are optional for local
 browsing — see [docs/github-oauth-setup.md](docs/github-oauth-setup.md) if
-your change needs signed-in flows.
+your change needs signed-in flows. For common local setup issues and solutions,
+see [docs/troubleshooting.md](docs/troubleshooting.md).
 
 ### Run the tests
 
@@ -88,6 +91,8 @@ To run only the frontend-render tests locally:
 python -m pytest tests/ -m frontend_render -q
 ```
 
+For full details on scenario construction and DOM stub capabilities, see the [Frontend Render Test Harness guide](docs/frontend-render-harness.md).
+
 ## Development Guidelines
 
 ### Keep it simple
@@ -135,7 +140,7 @@ documentation, or feedback.
 
 ### First-contribution checklist
 
-1. Read [README.md](README.md) and skim [docs/first-contributors.md](docs/first-contributors.md).
+1. Read [README.md](README.md), skim [docs/architecture.md](docs/architecture.md), and [docs/first-contributors.md](docs/first-contributors.md).
 2. Pick an issue from the [Good issues to contribute](README.md#good-issues-to-contribute) list.
 3. Comment on the issue to claim it (maintainers confirm availability).
 4. Fork, branch, implement, and add tests.
