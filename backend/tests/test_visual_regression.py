@@ -130,10 +130,17 @@ def test_homepage_screenshot_regression():
                 page.screenshot(path=str(actual), full_page=False)
                 result = _compare_images(actual, path)
                 if result == "missing_baseline":
-                    # First run: save as baseline
-                    actual.rename(path)
-                    print(f"Created baseline: {path}")
+                    if os.environ.get("GENERATE_VISUAL_BASELINES") == "1":
+                        actual.rename(path)
+                        print(f"Created baseline: {path}")
+                    else:
+                        actual.unlink(missing_ok=True)
+                        raise AssertionError(
+                            f"homepage {w}px: missing baseline screenshot {path.name}. "
+                            "Run with GENERATE_VISUAL_BASELINES=1 to create it intentionally."
+                        )
                 elif result:
+                    actual.unlink(missing_ok=True)
                     raise AssertionError(f"homepage {w}px: {result}")
                 else:
                     actual.unlink(missing_ok=True)
