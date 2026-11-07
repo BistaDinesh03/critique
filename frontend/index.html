@@ -1463,7 +1463,7 @@
              worth answering -> anything extra. The question gets the emphasis,
              because it is the reason this form exists. -->
         <section id="submit" class="card" style="max-width: 620px; margin: 0 auto;">
-            <form id="project-form">
+            <form id="project-form" aria-describedby="message">
                 <div class="form-header">
                     <h3>Share your project</h3>
                     <p class="form-subtitle">Tell us what you're building and what you want to learn.</p>
@@ -1987,7 +1987,9 @@
                 } else {
                     msg.className = 'alert alert-error';
                     msg.setAttribute('role', 'alert');
-                    msg.textContent = 'Error: ' + JSON.stringify(data);
+                    msg.textContent = (data && typeof data.detail === 'string')
+                        ? data.detail
+                        : 'Failed to submit project. Please try again.';
                 }
             } catch (error) {
                 msg.className = 'alert alert-error';
