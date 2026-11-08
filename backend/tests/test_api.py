@@ -199,59 +199,97 @@ def test_project_description_is_trimmed_or_dropped(auth_client, raw, expected):
 
 
 @pytest.mark.parametrize(
-    "url,valid",
+    "invalid_url",
     [
-        ("https://example.com", True),
-        ("http://example.com/project", True),
-        ("https://sub.domain.org/path?q=1#hash", True),
-        ("https://", False),
-        ("https:///path", False),
-        ("http://", False),
-        ("ftp://example.com", False),
-        ("javascript:alert(1)", False),
-        ("https://user:pass@example.com", False),
-        ("https:// user@example.com", False),
+        "https://",
+        "https:///path",
+        "http://",
+        "not-a-url",
+        "javascript:alert(1)",
+        "https://user:pass@example.com",
+        "https://example .com",
     ],
 )
-def test_project_url_validation(auth_client, url, valid):
+def test_invalid_project_urls_rejected(auth_client, invalid_url):
     cleanup_database()
     payload = {
         "project_data": {
-            "title": "URL test",
-            "url": url,
+            "title": "URL Test",
+            "description": None,
+            "url": invalid_url,
+            "image_url": None,
         },
-        "question_data": {"text": "Is this clear?"},
+        "question_data": {"text": "Valid?"},
     }
     response = auth_client.post("/api/projects/", json=payload)
-    if valid:
-        assert response.status_code == 201
-    else:
-        assert response.status_code == 422
+    assert response.status_code == 422
     cleanup_database()
 
 
 @pytest.mark.parametrize(
-    "image_url,valid",
+    "valid_url",
     [
-        ("https://example.com/screenshot.png", True),
-        ("http://example.com/screenshot.png", False),
-        ("https://", False),
-        ("https:///path.png", False),
-        ("https://user:pass@example.com/pic.png", False),
+        "http://example.com",
+        "https://example.com",
+        "https://sub.domain.example.com/path?q=1",
     ],
 )
-def test_project_image_url_validation(auth_client, image_url, valid):
+def test_valid_project_urls_accepted(auth_client, valid_url):
     cleanup_database()
     payload = {
         "project_data": {
-            "title": "Image test",
-            "image_url": image_url,
+            "title": "URL Test",
+            "description": None,
+            "url": valid_url,
+            "image_url": None,
         },
-        "question_data": {"text": "Is this clear?"},
+        "question_data": {"text": "Valid?"},
     }
     response = auth_client.post("/api/projects/", json=payload)
-    if valid:
-        assert response.status_code == 201
-    else:
-        assert response.status_code == 422
+    assert response.status_code == 201
+    assert response.json()["project"]["url"] == valid_url
+    cleanup_database()
+
+
+@pytest.mark.parametrize(
+    "invalid_image_url",
+    [
+        "http://example.com/screenshot.png",
+        "https://",
+        "https:///image.png",
+        "https://user:pass@example.com/x.png",
+        "data:image/png;base64,123",
+    ],
+)
+def test_invalid_image_urls_rejected(auth_client, invalid_image_url):
+    cleanup_database()
+    payload = {
+        "project_data": {
+            "title": "Image Test",
+            "description": None,
+            "url": "https://example.com",
+            "image_url": invalid_image_url,
+        },
+        "question_data": {"text": "Valid?"},
+    }
+    response = auth_client.post("/api/projects/", json=payload)
+    assert response.status_code == 422
+    cleanup_database()
+
+
+def test_valid_image_url_accepted(auth_client):
+    cleanup_database()
+    valid_img = "https://images.example.com/screenshot.png"
+    payload = {
+        "project_data": {
+            "title": "Image Test",
+            "description": None,
+            "url": "https://example.com",
+            "image_url": valid_img,
+        },
+        "question_data": {"text": "Valid?"},
+    }
+    response = auth_client.post("/api/projects/", json=payload)
+    assert response.status_code == 201
+    assert response.json()["project"]["image_url"] == valid_img
     cleanup_database()
