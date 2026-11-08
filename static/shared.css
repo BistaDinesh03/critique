@@ -143,6 +143,25 @@ img {
     border-radius: 2px;
 }
 
+/* Skip to main content link — visually hidden until focused. */
+.skip-link {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    z-index: 1000;
+    padding: var(--space-2) var(--space-4);
+    background: var(--primary);
+    color: var(--surface);
+    font-weight: 600;
+    text-decoration: none;
+    border-radius: 0 0 var(--radius-md) 0;
+    transition: top 0.15s ease;
+}
+
+.skip-link:focus {
+    top: 0;
+}
+
 /* ============================================
    Pagination
    ============================================ */
