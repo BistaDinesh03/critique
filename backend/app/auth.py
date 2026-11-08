@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.responses import RedirectResponse, JSONResponse
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from app.config import settings
 from app.database import get_db
 from app.models import User
@@ -394,8 +395,33 @@ async def github_callback(
             avatar_url=github_user.get("avatar_url"),
         )
         db.add(user)
-        db.commit()
-        db.refresh(user)
+        try:
+            db.commit()
+            db.refresh(user)
+        except IntegrityError:
+            db.rollback()
+            failure = JSONResponse(
+                status_code=400, content={"detail": "GitHub authentication failed"}
+            )
+            _set_pending_states_cookie(failure, remaining)
+            return failure
+    else:
+        new_username = github_user.get("login")
+        new_avatar_url = github_user.get("avatar_url")
+        if new_username and (user.username != new_username or user.avatar_url != new_avatar_url):
+            existing_conflict = (
+                db.query(User)
+                .filter(User.username == new_username, User.id != user.id)
+                .first()
+            )
+            if not existing_conflict:
+                user.username = new_username
+            user.avatar_url = new_avatar_url
+            try:
+                db.commit()
+                db.refresh(user)
+            except IntegrityError:
+                db.rollback()
 
     session_token = create_session_token(user.id)
     csrf_token = generate_csrf_token()
