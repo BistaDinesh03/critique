@@ -40,11 +40,11 @@
     <text x="12" y="34" fill="#94a3b8" font-size="11" font-family="system-ui, -apple-system, sans-serif">Page views</text>
     <rect x="120" y="22" width="220" height="16" rx="4" fill="#334155"/>
     <rect x="120" y="22" width="220" height="16" rx="4" fill="url(#blueBar)"/>
-    <text x="348" y="35" text-anchor="end" fill="#f1f5f9" font-size="11" font-weight="600" font-family="system-ui, -apple-system, sans-serif">2,176</text>
+    <text x="348" y="35" text-anchor="end" fill="#f1f5f9" font-size="11" font-weight="600" font-family="system-ui, -apple-system, sans-serif">2,180</text>
     <text x="12" y="58" fill="#94a3b8" font-size="11" font-family="system-ui, -apple-system, sans-serif">Unique visitors</text>
     <rect x="120" y="46" width="220" height="16" rx="4" fill="#334155"/>
     <rect x="120" y="46" width="47" height="16" rx="4" fill="url(#purpleBar)"/>
-    <text x="175" y="59" fill="#f1f5f9" font-size="11" font-weight="600" font-family="system-ui, -apple-system, sans-serif">469</text>
+    <text x="175" y="59" fill="#f1f5f9" font-size="11" font-weight="600" font-family="system-ui, -apple-system, sans-serif">473</text>
     <text x="12" y="82" fill="#94a3b8" font-size="11" font-family="system-ui, -apple-system, sans-serif">Discover views</text>
     <rect x="120" y="70" width="220" height="16" rx="4" fill="#334155"/>
     <rect x="120" y="70" width="46" height="16" rx="4" fill="url(#cyanBar)"/>
@@ -93,7 +93,7 @@
     <text x="12" y="34" fill="#94a3b8" font-size="11" font-family="system-ui, -apple-system, sans-serif">Login prompts</text>
     <rect x="130" y="22" width="210" height="16" rx="4" fill="#334155"/>
     <rect x="130" y="22" width="210" height="16" rx="4" fill="url(#orangeBar)"/>
-    <text x="348" y="35" text-anchor="end" fill="#f1f5f9" font-size="11" font-weight="600" font-family="system-ui, -apple-system, sans-serif">211</text>
+    <text x="348" y="35" text-anchor="end" fill="#f1f5f9" font-size="11" font-weight="600" font-family="system-ui, -apple-system, sans-serif">212</text>
     <text x="12" y="58" fill="#94a3b8" font-size="11" font-family="system-ui, -apple-system, sans-serif">Login starts</text>
     <rect x="130" y="46" width="210" height="16" rx="4" fill="#334155"/>
     <rect x="130" y="46" width="78" height="16" rx="4" fill="url(#orangeBar)"/>
