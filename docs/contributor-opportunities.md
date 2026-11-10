@@ -66,21 +66,15 @@ These issues are ideal for your first open-source contribution. They have a limi
 | Issue | Title | Difficulty | What you'll accomplish | Skills |
 |-------|-------|------------|----------------------|--------|
 | [#330](https://github.com/BistaDinesh03/critique/issues/330) | Results page cannot filter by clarity | Intermediate | Add client-side filtering | JavaScript, DOM |
-| [#332](https://github.com/BistaDinesh03/critique/issues/332) | Discover cards don't show response count | Intermediate | Add response count badge | HTML, JavaScript, API |
-| [#328](https://github.com/BistaDinesh03/critique/issues/328) | No copy-link affordance on project detail | Intermediate | Add copy-to-clipboard button | JavaScript, Clipboard API |
 | [#327](https://github.com/BistaDinesh03/critique/issues/327) | Project detail doesn't show response count to owner | Intermediate | Add owner-only badge | HTML, JavaScript, auth |
 | [#315](https://github.com/BistaDinesh03/critique/issues/315) | Feedback draft per-tab not per-account | Intermediate | Move draft to server-side | Python, JavaScript, DB |
-| [#311](https://github.com/BistaDinesh03/critique/issues/311) | Share success panel a11y issue | Intermediate | Fix ARIA live region | HTML, ARIA |
 
 ## Advanced Technical Challenges
 
 | Issue | Title | Difficulty | What you'll accomplish | Skills |
 |-------|-------|------------|----------------------|--------|
 | [#344](https://github.com/BistaDinesh03/critique/issues/344) | N+1 query in project list | Advanced | Optimize database queries | Python, SQLAlchemy |
-| [#342](https://github.com/BistaDinesh03/critique/issues/342) | Database sessions may not close on exceptions | Advanced | Fix session lifecycle | Python, SQLAlchemy |
-| [#343](https://github.com/BistaDinesh03/critique/issues/343) | No graceful shutdown handler | Advanced | Add shutdown hooks | Python, FastAPI, signals |
 | [#345](https://github.com/BistaDinesh03/critique/issues/345) | No API versioning prefix | Advanced | Add /api/v1 prefix | Python, FastAPI, routing |
-| [#348](https://github.com/BistaDinesh03/critique/issues/348) | No HSTS header in production | Advanced | Add security header | Python, HTTP headers |
 
 ## How to Get Started
 
