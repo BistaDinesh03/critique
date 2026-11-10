@@ -477,8 +477,6 @@ are **not** a sequential funnel. A single visitor can trigger both.
 
 ## Contributing
 
-## Contributing
-
 Contributions, bug reports, documentation improvements, and thoughtful
 product feedback are welcome. A good place to start is an issue labeled
 [`good first issue`](https://github.com/BistaDinesh03/critique/labels/good%20first%20issue).
