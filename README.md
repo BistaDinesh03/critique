@@ -387,35 +387,93 @@ and email keys — are marked `sync: false` and entered manually in the Render
 dashboard, never stored in the repository. See `render.yaml` for the full
 list of expected variables.
 
-## Project activity
+## Product analytics
 
-> **Analytics snapshot** — recorded activity totals. No reporting period was
-> supplied, so these cannot be dated or reconciled.
+> **Analytics snapshot** — point-in-time event totals. The reporting period
+> was not supplied, so these cannot be dated or reconciled. Event counts,
+> not unique users.
 
-Recorded activity (latest supplied snapshot):
+![Critique product analytics overview](docs/assets/analytics-overview.svg)
 
-- 1,948 page views
-- 418 unique visitors
-- 406 Discover page views
-- 263 project views
-- 97 feedback starts
-- 24 feedback submissions
-- 22 project submissions
+### Top-level KPIs
 
-**Funnel:** 263 project views → 97 feedback starts → 72 submit attempts →
-24 successful submissions.
+| Metric | Value |
+|--------|-------|
+| Unique visitors | 473 |
+| Page views | 2,180 |
+| Discover views | 454 |
+| Project views | 295 |
+| Feedback submissions | 25 |
+| Project submissions | 23 |
 
-These are **recorded event totals**, not unique-user conversion rates, and a
-single visitor can generate multiple events. They are not live analytics and do
-not update automatically.
+### Traffic
+
+| Metric | Count |
+|--------|-------|
+| Page views | 2,180 |
+| Discover views | 454 |
+| Project views | 295 |
+
+Project views represent 13.5% of page views. Discover views represent 20.8%.
+
+### Feedback activity
+
+| Metric | Count |
+|--------|-------|
+| Feedback starts | 103 |
+| Feedback form views | 45 |
+| Submit attempts | 79 |
+| Successful submissions | 25 |
+| Feedback resumes | 22 |
+
+Feedback starts (103) and feedback form views (45) are separate events and
+are **not** a sequential funnel. A single visitor can trigger both.
+
+### Authentication
+
+| Metric | Count |
+|--------|-------|
+| Login prompts shown | 212 |
+| Login started | 78 |
+| Successful logins | 22 |
+| GitHub selected | 64 (58.7%) |
+| Email selected | 45 (41.3%) |
+| Verification emails sent | 22 |
+| Email verifications succeeded | 9 (40.9%) |
+
+### Improvement opportunities
+
+| Metric | Value | Note |
+|--------|-------|------|
+| Feedback submission errors | 33 | 41.8% of attempts — needs investigation |
+| Already-responded events | 4 | Visitors who tried to respond twice |
+| Share UI shown | 28 | Sharing feature usage |
+| Share option clicked | 9 | Click-through on share options |
+| Copy post | 2 | Successful post copies |
+| Copy link | 0 | No link copies recorded |
+
+### Key ratios (event ratios, not unique-user conversion rates)
+
+| Ratio | Value |
+|-------|-------|
+| Project views / page views | 13.5% |
+| Feedback starts / project views | 34.9% |
+| Feedback submits / feedback starts | 24.3% |
+| Project submits / feedback submits | 92.0% |
+| Feedback attempts / feedback starts | 76.7% |
+| Feedback submits / feedback attempts | 31.6% |
+| Feedback errors / feedback attempts | 41.8% |
+| GitHub auth method share | 58.7% |
+| Email auth method share | 41.3% |
+| Email verification success / sent | 40.9% |
 
 > **Two snapshots exist, and they differ.** This figure and the
 > [HTML analytics report](docs/analytics-snapshot.html) were supplied at
-> different times and do not carry the same totals (1,443 vs. 1,948 page
-> views). Neither supplied a reporting period, so neither can be dated or
-> reconciled here. Both datasets are left exactly as supplied — this is tracked
-> in [issue #23](https://github.com/BistaDinesh03/critique/issues/23) for a
-> proper resolution.
+> different times and do not carry the same totals. Neither supplied a
+> reporting period, so neither can be dated or reconciled here. Both datasets
+> are left exactly as supplied — this is tracked in
+> [issue #23](https://github.com/BistaDinesh03/critique/issues/23)
+> for a proper resolution.
 
 ## Contributing
 
