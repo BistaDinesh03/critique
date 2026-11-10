@@ -102,5 +102,5 @@ python -m pytest tests/ -q
 
 - Comment on the issue you're working on.
 - Ask in [Discussion #741](https://github.com/BistaDinesh03/critique/discussions/741).
-- Read [CONTRIBUTING.md](CONTRIBUTING.md) for full guidelines.
-- Read [SECURITY.md](SECURITY.md) for vulnerability reporting.
+- Read [CONTRIBUTING.md](../CONTRIBUTING.md) for full guidelines.
+- Read [SECURITY.md](../SECURITY.md) for vulnerability reporting.
