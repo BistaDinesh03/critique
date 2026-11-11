@@ -462,8 +462,11 @@ product feedback are welcome. A good place to start is an issue labeled
 5. Open a pull request
 
 [CONTRIBUTING.md](CONTRIBUTING.md) has the full guidelines, and the
-[first-contributor walkthrough](docs/first-contributors.md) shows how to take
+[first-contribution walkthrough](docs/first-contribution.md) shows how to take
 one issue from claiming it to opening a pull request.
+
+For a curated list of contribution opportunities organized by difficulty
+and area, see [docs/contributor-opportunities.md](docs/contributor-opportunities.md).
 [SECURITY.md](SECURITY.md) explains how to report vulnerabilities.
 
 **Looking for something to work on?** Start with the curated shortlist below,
