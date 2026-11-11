@@ -138,42 +138,14 @@ it. The merge method defaults to the repository's own configured default
 (merge commits here), and `--merge-method {merge,squash,rebase}` overrides it
 — but only with a method the repository still allows.
 
-### Configuration that has to be enabled by hand
+### Configuration and Merge Gates
 
-Two gates depend on settings that a script cannot change, and this repository
-currently has neither. Until both exist, `--merge` refuses by design: with
-nothing configured, no approval and no check is actually required before
-merging, so the gate would be a rubber stamp.
+Continuous integration and default-branch protection are active on this
+repository:
 
-In this order:
-
-1. **Add CI.** Create `.github/workflows/tests.yml`:
-
-   ```yaml
-   name: tests
-   on:
-     pull_request:
-     push:
-       branches: [main]
-   jobs:
-     test:
-       runs-on: ubuntu-latest
-       steps:
-         - uses: actions/checkout@v4
-         - uses: actions/setup-python@v5
-           with:
-             python-version: "3.11"
-         - run: pip install -r backend/requirements.txt
-         - uses: actions/setup-node@v4
-           with:
-             node-version: "20"
-         - run: python -m pytest tests/ -q
-           working-directory: backend
-           env:
-             # See the note below: without this the OAuth state test fails
-             # on any machine that has no .env -- including this runner.
-             GITHUB_CLIENT_ID: ${{ vars.OAUTH_CLIENT_ID || 'ci-test-client-id' }}
-   ```
+1. **Continuous Integration**: [`.github/workflows/tests.yml`](../.github/workflows/tests.yml)
+   runs on every pull request and push to `main`, validating the full test suite
+   (including backend unit tests and frontend rendering tests).
 
    > **Why there is a fallback literal.**
    > GitHub does not pass repository variables (or secrets) to workflows
@@ -212,8 +184,10 @@ In this order:
    - Require status checks to pass before merging — add `test` once the
      workflow above has run at least once (GitHub only offers checks that
      have reported before)
+   - Require conversation resolution before merging
+   - Enforce all configured rules for administrators
 
-Reviewing works before either is enabled; only `--merge` waits for them.
+Reviewing works without `--merge`; `--merge` waits on these configured gates to pass and refuses if any check or requirement is unsatisfied.
 
 ## Requesting changes
 

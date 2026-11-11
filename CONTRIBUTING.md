@@ -240,12 +240,12 @@ gate — a pull request with a failing check, an unresolved blocker, or a
 missing approval is refused, and the report says which gate and why.
 
 Each report ends with `READY`, `CHANGES_REQUESTED`, or `BLOCKED`, followed by
-the merge gate as a checklist. Two of those gates depend on repository
-settings that cannot be checked by a script: continuous integration, and
-branch protection on the default branch. Until both are configured in
-Settings, `--merge` refuses — deliberately, because with nothing configured
-no check and no approval is actually required before merging. The report
-prints the exact steps each time.
+the merge gate as a checklist. Continuous integration and branch protection
+on the default branch (`main`) are actively configured: every pull request runs
+the required `test` check via GitHub Actions, and `main` requires passing status
+checks, strict up-to-date branch alignment, 1 approval, and conversation
+resolution with administrator enforcement. `--merge` enforces these gates and
+refuses if any check, approval, or gate remains unsatisfied.
 
 Full usage, what each check means, and the limitations:
 [docs/pull-request-review.md](docs/pull-request-review.md).
