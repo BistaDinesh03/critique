@@ -414,58 +414,32 @@ list of expected variables.
 | Discover views | 454 |
 | Project views | 295 |
 
-Project views represent 13.5% of page views. Discover views represent 20.8%.
+Project views represent 13.5% of page views.
 
 ### Feedback activity
 
 | Metric | Count |
 |--------|-------|
 | Feedback starts | 103 |
-| Feedback form views | 45 |
 | Submit attempts | 79 |
 | Successful submissions | 25 |
-| Feedback resumes | 22 |
 
-Feedback starts (103) and feedback form views (45) are separate events and
+Feedback starts (103) and feedback submissions (25) are separate events and
 are **not** a sequential funnel. A single visitor can trigger both.
-
-### Authentication
-
-| Metric | Count |
-|--------|-------|
-| Login prompts shown | 212 |
-| Login started | 78 |
-| Successful logins | 22 |
-| GitHub selected | 64 (58.7%) |
-| Email selected | 45 (41.3%) |
-| Verification emails sent | 22 |
-| Email verifications succeeded | 9 (40.9%) |
-
-### Improvement opportunities
-
-| Metric | Value | Note |
-|--------|-------|------|
-| Feedback submission errors | 33 | 41.8% of attempts — needs investigation |
-| Already-responded events | 4 | Visitors who tried to respond twice |
-| Share UI shown | 28 | Sharing feature usage |
-| Share option clicked | 9 | Click-through on share options |
-| Copy post | 2 | Successful post copies |
-| Copy link | 0 | No link copies recorded |
 
 ### Key ratios (event ratios, not unique-user conversion rates)
 
 | Ratio | Value |
 |-------|-------|
-| Project views / page views | 13.5% |
 | Feedback starts / project views | 34.9% |
 | Feedback submits / feedback starts | 24.3% |
-| Project submits / feedback submits | 92.0% |
-| Feedback attempts / feedback starts | 76.7% |
-| Feedback submits / feedback attempts | 31.6% |
-| Feedback errors / feedback attempts | 41.8% |
-| GitHub auth method share | 58.7% |
-| Email auth method share | 41.3% |
-| Email verification success / sent | 40.9% |
+| Successful submits / attempts | 31.6% |
+
+### Improvement opportunity
+
+| Metric | Value | Note |
+|--------|-------|------|
+| Feedback submission errors | 33 | 41.8% of attempts — needs investigation |
 
 > **Two snapshots exist, and they differ.** This figure and the
 > [HTML analytics report](docs/analytics-snapshot.html) were supplied at
