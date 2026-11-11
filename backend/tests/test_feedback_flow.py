@@ -384,6 +384,56 @@ def test_draft_is_restored_into_the_form_field_for_field(tmp_path):
     assert events(result, "email_verification_success") == []
 
 
+def test_draft_restore_updates_suggestion_char_count(tmp_path):
+    """The counter must reflect a restored draft, not only typed input.
+
+    ``restoreFeedbackDraft()`` assigns ``textarea.value`` directly, which does
+    not fire an ``input`` event. Without a refresh after the restore paths a
+    visitor returning to a saved answer still sees "0 / 2000".
+    """
+    seed = (
+        "sessionStorage.setItem('critique_feedback_1', JSON.stringify("
+        "{clarity: 'confusing', would_use: 'no', suggestion: 'spell out the pricing'}))"
+    )
+    result = run(
+        tmp_path,
+        "project_detail.html",
+        [
+            {"evaluate": seed, "as": "seeded"},
+            {"fn": "renderProject", "args": [PROJECT, []]},
+            {"evaluate": "document.getElementById('suggestion').value", "as": "suggestion"},
+            {
+                "evaluate": "document.getElementById('suggestion-char-count').textContent",
+                "as": "counter",
+            },
+        ],
+        fetch=DETAIL_ROUTES,
+        location="/project/1",
+    )
+
+    assert result["values"]["suggestion"] == "spell out the pricing"
+    assert result["values"]["counter"] == "21 / 2000"
+
+
+def test_suggestion_char_count_starts_at_zero_without_a_draft(tmp_path):
+    """A fresh form starts at 0 / 2000, so the counter never shows a stale value."""
+    result = run(
+        tmp_path,
+        "project_detail.html",
+        [
+            {"fn": "renderProject", "args": [PROJECT, []]},
+            {
+                "evaluate": "document.getElementById('suggestion-char-count').textContent",
+                "as": "counter",
+            },
+        ],
+        fetch=DETAIL_ROUTES,
+        location="/project/1",
+    )
+
+    assert result["values"]["counter"] == "0 / 2000"
+
+
 # ---------------------------------------------------------------------------
 # Returning from sign-in continues the submission (Phase 2 / Phase 11)
 # ---------------------------------------------------------------------------
