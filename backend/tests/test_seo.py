@@ -1,4 +1,7 @@
+import json
 from pathlib import Path
+import re
+
 from fastapi.testclient import TestClient
 import pytest
 
@@ -106,3 +109,23 @@ def test_social_image_dimensions_and_alt_attributes():
     assert '<meta property="og:image:alt" content="Critique — Ask one question. Get real answers.">' in html
     assert '<meta name="twitter:image:alt" content="Critique — Ask one question. Get real answers.">' in html
 
+
+def test_homepage_has_application_and_organization_structured_data():
+    response = client.get("/")
+    assert response.status_code == 200
+    head = re.search(r"<head>(.*?)</head>", response.text, re.DOTALL).group(1)
+    blocks = re.findall(
+        r'<script type="application/ld\+json">(.*?)</script>', head, re.DOTALL
+    )
+    assert len(blocks) == 1
+    data = json.loads(blocks[0])
+    assert data["@context"] == "https://schema.org"
+    entities = {entity["@type"]: entity for entity in data["@graph"]}
+    assert set(entities) == {"SoftwareApplication", "Organization"}
+    application = entities["SoftwareApplication"]
+    organization = entities["Organization"]
+    assert application["name"] == organization["name"] == "Critique"
+    assert application["url"] == organization["url"] == f"{PRODUCTION_ORIGIN}/"
+    assert application["@id"] != organization["@id"]
+    assert application["publisher"] == {"@id": organization["@id"]}
+    assert application["description"]
