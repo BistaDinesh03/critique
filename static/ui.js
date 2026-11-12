@@ -87,6 +87,8 @@ var CritiqueUI = (function() {
     }
 
     // ============ MODAL SYSTEM ============
+    var confirmModalSequence = 0;
+
     function showConfirmModal(options) {
         var title = options.title || 'Confirm';
         var message = options.message || '';
@@ -94,6 +96,7 @@ var CritiqueUI = (function() {
         var cancelText = options.cancelText || 'Cancel';
         var destructive = options.destructive !== false;
         var onConfirm = options.onConfirm || function() {};
+        var modalId = 'confirm-modal-' + (++confirmModalSequence);
 
         // Create backdrop
         var backdrop = document.createElement('div');
@@ -105,16 +108,16 @@ var CritiqueUI = (function() {
         modal.className = 'modal';
         modal.setAttribute('role', 'dialog');
         modal.setAttribute('aria-modal', 'true');
-        modal.setAttribute('aria-labelledby', 'modal-title');
-        modal.setAttribute('aria-describedby', 'modal-description');
+        modal.setAttribute('aria-labelledby', modalId + '-title');
+        modal.setAttribute('aria-describedby', modalId + '-description');
 
         var titleEl = document.createElement('h3');
-        titleEl.id = 'modal-title';
+        titleEl.id = modalId + '-title';
         titleEl.className = 'modal-title';
         titleEl.textContent = title;
 
         var bodyEl = document.createElement('div');
-        bodyEl.id = 'modal-description';
+        bodyEl.id = modalId + '-description';
         bodyEl.className = 'modal-body';
         bodyEl.textContent = message;
 
