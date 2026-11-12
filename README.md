@@ -395,51 +395,12 @@ list of expected variables.
 
 ![Critique product analytics overview](docs/assets/analytics-overview.svg)
 
-### Top-level KPIs
+The dashboard shows four primary metrics — unique visitors, project views,
+feedback starts, and successful submissions — plus the submission error rate
+as an improvement opportunity. All values are event counts, not unique-user
+conversion rates.
 
-| Metric | Value |
-|--------|-------|
-| Unique visitors | 473 |
-| Page views | 2,180 |
-| Discover views | 454 |
-| Project views | 295 |
-| Feedback submissions | 25 |
-| Project submissions | 23 |
-
-### Traffic
-
-| Metric | Count |
-|--------|-------|
-| Page views | 2,180 |
-| Discover views | 454 |
-| Project views | 295 |
-
-Project views represent 13.5% of page views.
-
-### Feedback activity
-
-| Metric | Count |
-|--------|-------|
-| Feedback starts | 103 |
-| Submit attempts | 79 |
-| Successful submissions | 25 |
-
-Feedback starts (103) and feedback submissions (25) are separate events and
-are **not** a sequential funnel. A single visitor can trigger both.
-
-### Key ratios (event ratios, not unique-user conversion rates)
-
-| Ratio | Value |
-|-------|-------|
-| Feedback starts / project views | 34.9% |
-| Feedback submits / feedback starts | 24.3% |
-| Successful submits / attempts | 31.6% |
-
-### Improvement opportunity
-
-| Metric | Value | Note |
-|--------|-------|------|
-| Feedback submission errors | 33 | 41.8% of attempts — needs investigation |
+Live dashboard: https://critique.page/api/analytics/dashboard
 
 > **Two snapshots exist, and they differ.** This figure and the
 > [HTML analytics report](docs/analytics-snapshot.html) were supplied at
