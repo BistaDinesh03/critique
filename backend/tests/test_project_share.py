@@ -600,6 +600,17 @@ MY_PROJECTS_LIST = [
 ]
 
 
+def test_my_projects_cards_use_headings_directly_below_the_page_title(tmp_path):
+    project = {**MY_PROJECTS_LIST[0], "title": "Sentry <bot> & Log Lens"}
+    result = run(
+        tmp_path,
+        "my_projects.html",
+        [{"fn": "loadProjects", "args": []}, WAIT_FOR_RENDER],
+        fetch={MY_PROJECTS_URL: {"status": 200, "body": [project]}},
+    )
+    assert '<h2 class="project-title">Sentry &lt;bot&gt; &amp; Log Lens</h2>' in result["ids"]["content"]
+
+
 def test_card_share_rows_carry_the_project_they_belong_to(tmp_path):
     result = run(
         tmp_path,

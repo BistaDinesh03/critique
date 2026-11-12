@@ -1,142 +1,38 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 640" width="800" height="640" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 320" width="800" height="320" role="img" aria-labelledby="title desc">
   <title id="title">Critique — Project Activity Snapshot</title>
-  <desc id="desc">Latest available analytics snapshot. Event counts are not unique-user counts. Reporting period not specified.</desc>
-  <defs>
-    <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#0f172a"/>
-      <stop offset="100%" stop-color="#1e293b"/>
-    </linearGradient>
-    <linearGradient id="blueBar" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="#2563eb"/>
-      <stop offset="100%" stop-color="#3b82f6"/>
-    </linearGradient>
-    <linearGradient id="purpleBar" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="#7c3aed"/>
-      <stop offset="100%" stop-color="#8b5cf6"/>
-    </linearGradient>
-    <linearGradient id="greenBar" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="#059669"/>
-      <stop offset="100%" stop-color="#10b981"/>
-    </linearGradient>
-    <linearGradient id="orangeBar" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="#ea580c"/>
-      <stop offset="100%" stop-color="#f97316"/>
-    </linearGradient>
-    <linearGradient id="redBar" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="#dc2626"/>
-      <stop offset="100%" stop-color="#ef4444"/>
-    </linearGradient>
-    <linearGradient id="cyanBar" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="#0891b2"/>
-      <stop offset="100%" stop-color="#06b6d4"/>
-    </linearGradient>
-  </defs>
-  <rect width="800" height="640" fill="url(#bgGrad)" rx="12"/>
-  <text x="400" y="36" text-anchor="middle" fill="#f1f5f9" font-size="22" font-weight="700" font-family="system-ui, -apple-system, sans-serif">Critique — Project Activity Snapshot</text>
-  <text x="400" y="56" text-anchor="middle" fill="#94a3b8" font-size="12" font-family="system-ui, -apple-system, sans-serif">Latest available snapshot. Reporting period not specified.</text>
-  <g transform="translate(30, 75)">
-    <text x="0" y="0" fill="#60a5fa" font-size="13" font-weight="600" font-family="system-ui, -apple-system, sans-serif">TRAFFIC</text>
-    <rect x="0" y="10" width="360" height="130" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1"/>
-    <text x="12" y="34" fill="#94a3b8" font-size="11" font-family="system-ui, -apple-system, sans-serif">Page views</text>
-    <rect x="120" y="22" width="220" height="16" rx="4" fill="#334155"/>
-    <rect x="120" y="22" width="220" height="16" rx="4" fill="url(#blueBar)"/>
-    <text x="348" y="35" text-anchor="end" fill="#f1f5f9" font-size="11" font-weight="600" font-family="system-ui, -apple-system, sans-serif">2,180</text>
-    <text x="12" y="58" fill="#94a3b8" font-size="11" font-family="system-ui, -apple-system, sans-serif">Unique visitors</text>
-    <rect x="120" y="46" width="220" height="16" rx="4" fill="#334155"/>
-    <rect x="120" y="46" width="47" height="16" rx="4" fill="url(#purpleBar)"/>
-    <text x="175" y="59" fill="#f1f5f9" font-size="11" font-weight="600" font-family="system-ui, -apple-system, sans-serif">473</text>
-    <text x="12" y="82" fill="#94a3b8" font-size="11" font-family="system-ui, -apple-system, sans-serif">Discover views</text>
-    <rect x="120" y="70" width="220" height="16" rx="4" fill="#334155"/>
-    <rect x="120" y="70" width="46" height="16" rx="4" fill="url(#cyanBar)"/>
-    <text x="174" y="83" fill="#f1f5f9" font-size="11" font-weight="600" font-family="system-ui, -apple-system, sans-serif">454</text>
-    <text x="12" y="106" fill="#94a3b8" font-size="11" font-family="system-ui, -apple-system, sans-serif">Project views</text>
-    <rect x="120" y="94" width="220" height="16" rx="4" fill="#334155"/>
-    <rect x="120" y="94" width="30" height="16" rx="4" fill="url(#greenBar)"/>
-    <text x="158" y="107" fill="#f1f5f9" font-size="11" font-weight="600" font-family="system-ui, -apple-system, sans-serif">295</text>
+  <desc id="desc">Latest available analytics snapshot. Event counts, not unique-user conversion rates. Reporting period not specified.</desc>
+
+  <rect width="800" height="320" fill="#0f172a" rx="8"/>
+
+  <text x="400" y="36" text-anchor="middle" fill="#f1f5f9" font-size="18" font-weight="600" font-family="system-ui, -apple-system, sans-serif" letter-spacing="0.5">Critique — Project Activity Snapshot</text>
+  <text x="400" y="56" text-anchor="middle" fill="#64748b" font-size="10" font-family="system-ui, -apple-system, sans-serif">Latest available snapshot. Reporting period not specified.</text>
+
+  <line x1="60" y1="72" x2="740" y2="72" stroke="#334155" stroke-width="0.5"/>
+
+  <g transform="translate(60, 90)">
+    <text x="0" y="48" fill="#f1f5f9" font-size="48" font-weight="300" font-family="system-ui, -apple-system, sans-serif">473</text>
+    <text x="0" y="72" fill="#94a3b8" font-size="11" font-family="system-ui, -apple-system, sans-serif">Unique visitors</text>
+
+    <text x="190" y="48" fill="#f1f5f9" font-size="48" font-weight="300" font-family="system-ui, -apple-system, sans-serif">295</text>
+    <text x="190" y="72" fill="#94a3b8" font-size="11" font-family="system-ui, -apple-system, sans-serif">Project views</text>
+
+    <text x="380" y="48" fill="#f1f5f9" font-size="48" font-weight="300" font-family="system-ui, -apple-system, sans-serif">103</text>
+    <text x="380" y="72" fill="#94a3b8" font-size="11" font-family="system-ui, -apple-system, sans-serif">Feedback starts</text>
+
+    <text x="570" y="48" fill="#f1f5f9" font-size="48" font-weight="300" font-family="system-ui, -apple-system, sans-serif">25</text>
+    <text x="570" y="72" fill="#94a3b8" font-size="11" font-family="system-ui, -apple-system, sans-serif">Successful submissions</text>
   </g>
-  <g transform="translate(410, 75)">
-    <text x="0" y="0" fill="#a78bfa" font-size="13" font-weight="600" font-family="system-ui, -apple-system, sans-serif">FEEDBACK ACTIVITY</text>
-    <rect x="0" y="10" width="360" height="130" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1"/>
-    <text x="12" y="34" fill="#94a3b8" font-size="11" font-family="system-ui, -apple-system, sans-serif">Feedback starts</text>
-    <rect x="140" y="22" width="200" height="16" rx="4" fill="#334155"/>
-    <rect x="140" y="22" width="200" height="16" rx="4" fill="url(#purpleBar)"/>
-    <text x="348" y="35" text-anchor="end" fill="#f1f5f9" font-size="11" font-weight="600" font-family="system-ui, -apple-system, sans-serif">103</text>
-    <text x="12" y="58" fill="#94a3b8" font-size="11" font-family="system-ui, -apple-system, sans-serif">Submit attempts</text>
-    <rect x="140" y="46" width="200" height="16" rx="4" fill="#334155"/>
-    <rect x="140" y="46" width="154" height="16" rx="4" fill="url(#blueBar)"/>
-    <text x="302" y="59" fill="#f1f5f9" font-size="11" font-weight="600" font-family="system-ui, -apple-system, sans-serif">79</text>
-    <text x="12" y="82" fill="#94a3b8" font-size="11" font-family="system-ui, -apple-system, sans-serif">Successful</text>
-    <rect x="140" y="70" width="200" height="16" rx="4" fill="#334155"/>
-    <rect x="140" y="70" width="49" height="16" rx="4" fill="url(#greenBar)"/>
-    <text x="197" y="83" fill="#f1f5f9" font-size="11" font-weight="600" font-family="system-ui, -apple-system, sans-serif">25</text>
-    <text x="12" y="106" fill="#94a3b8" font-size="11" font-family="system-ui, -apple-system, sans-serif">Errors</text>
-    <rect x="140" y="94" width="200" height="16" rx="4" fill="#334155"/>
-    <rect x="140" y="94" width="83" height="16" rx="4" fill="url(#redBar)"/>
-    <text x="231" y="107" fill="#f1f5f9" font-size="11" font-weight="600" font-family="system-ui, -apple-system, sans-serif">33</text>
+
+  <line x1="60" y1="180" x2="740" y2="180" stroke="#334155" stroke-width="0.5"/>
+
+  <g transform="translate(60, 200)">
+    <text x="0" y="0" fill="#ef4444" font-size="20" font-weight="600" font-family="system-ui, -apple-system, sans-serif">41.8%</text>
+    <text x="70" y="0" fill="#94a3b8" font-size="11" font-family="system-ui, -apple-system, sans-serif">submission error rate — 33 errors out of 79 attempts</text>
   </g>
-  <g transform="translate(30, 225)">
-    <text x="0" y="0" fill="#34d399" font-size="13" font-weight="600" font-family="system-ui, -apple-system, sans-serif">ENGAGEMENT RATIOS (event ratios, not unique-user conversion)</text>
-    <rect x="0" y="10" width="740" height="70" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1"/>
-    <rect x="15" y="22" width="230" height="48" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
-    <text x="130" y="42" text-anchor="middle" fill="#f1f5f9" font-size="18" font-weight="700" font-family="system-ui, -apple-system, sans-serif">34.9%</text>
-    <text x="130" y="60" text-anchor="middle" fill="#94a3b8" font-size="9" font-family="system-ui, -apple-system, sans-serif">Feedback starts / project views</text>
-    <rect x="255" y="22" width="230" height="48" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
-    <text x="370" y="42" text-anchor="middle" fill="#f1f5f9" font-size="18" font-weight="700" font-family="system-ui, -apple-system, sans-serif">24.3%</text>
-    <text x="370" y="60" text-anchor="middle" fill="#94a3b8" font-size="9" font-family="system-ui, -apple-system, sans-serif">Feedback submits / feedback starts</text>
-    <rect x="495" y="22" width="230" height="48" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
-    <text x="610" y="42" text-anchor="middle" fill="#f1f5f9" font-size="18" font-weight="700" font-family="system-ui, -apple-system, sans-serif">31.6%</text>
-    <text x="610" y="60" text-anchor="middle" fill="#94a3b8" font-size="9" font-family="system-ui, -apple-system, sans-serif">Successful submits / attempts</text>
-  </g>
-  <g transform="translate(30, 315)">
-    <text x="0" y="0" fill="#fb923c" font-size="13" font-weight="600" font-family="system-ui, -apple-system, sans-serif">AUTHENTICATION</text>
-    <rect x="0" y="10" width="360" height="130" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1"/>
-    <text x="12" y="34" fill="#94a3b8" font-size="11" font-family="system-ui, -apple-system, sans-serif">Login prompts</text>
-    <rect x="130" y="22" width="210" height="16" rx="4" fill="#334155"/>
-    <rect x="130" y="22" width="210" height="16" rx="4" fill="url(#orangeBar)"/>
-    <text x="348" y="35" text-anchor="end" fill="#f1f5f9" font-size="11" font-weight="600" font-family="system-ui, -apple-system, sans-serif">212</text>
-    <text x="12" y="58" fill="#94a3b8" font-size="11" font-family="system-ui, -apple-system, sans-serif">Login starts</text>
-    <rect x="130" y="46" width="210" height="16" rx="4" fill="#334155"/>
-    <rect x="130" y="46" width="78" height="16" rx="4" fill="url(#orangeBar)"/>
-    <text x="216" y="59" fill="#f1f5f9" font-size="11" font-weight="600" font-family="system-ui, -apple-system, sans-serif">78</text>
-    <text x="12" y="82" fill="#94a3b8" font-size="11" font-family="system-ui, -apple-system, sans-serif">Successful logins</text>
-    <rect x="130" y="70" width="210" height="16" rx="4" fill="#334155"/>
-    <rect x="130" y="70" width="22" height="16" rx="4" fill="url(#greenBar)"/>
-    <text x="160" y="83" fill="#f1f5f9" font-size="11" font-weight="600" font-family="system-ui, -apple-system, sans-serif">22</text>
-    <text x="12" y="106" fill="#94a3b8" font-size="11" font-family="system-ui, -apple-system, sans-serif">GitHub / Email</text>
-    <rect x="130" y="94" width="123" height="16" rx="4" fill="url(#blueBar)"/>
-    <rect x="253" y="94" width="87" height="16" rx="4" fill="url(#purpleBar)"/>
-    <text x="191" y="107" text-anchor="middle" fill="#f1f5f9" font-size="9" font-weight="600" font-family="system-ui, -apple-system, sans-serif">64 (58.7%)</text>
-    <text x="296" y="107" text-anchor="middle" fill="#f1f5f9" font-size="9" font-weight="600" font-family="system-ui, -apple-system, sans-serif">45 (41.3%)</text>
-  </g>
-  <g transform="translate(410, 315)">
-    <text x="0" y="0" fill="#22d3ee" font-size="13" font-weight="600" font-family="system-ui, -apple-system, sans-serif">EMAIL VERIFICATION</text>
-    <rect x="0" y="10" width="360" height="130" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1"/>
-    <rect x="15" y="22" width="160" height="50" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
-    <text x="95" y="46" text-anchor="middle" fill="#f1f5f9" font-size="22" font-weight="700" font-family="system-ui, -apple-system, sans-serif">22</text>
-    <text x="95" y="64" text-anchor="middle" fill="#94a3b8" font-size="10" font-family="system-ui, -apple-system, sans-serif">Emails sent</text>
-    <rect x="185" y="22" width="160" height="50" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
-    <text x="265" y="46" text-anchor="middle" fill="#f1f5f9" font-size="22" font-weight="700" font-family="system-ui, -apple-system, sans-serif">9</text>
-    <text x="265" y="64" text-anchor="middle" fill="#94a3b8" font-size="10" font-family="system-ui, -apple-system, sans-serif">Verified (40.9%)</text>
-    <rect x="15" y="82" width="330" height="36" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
-    <text x="180" y="98" text-anchor="middle" fill="#94a3b8" font-size="10" font-family="system-ui, -apple-system, sans-serif">4 already-responded events  |  22 feedback resumes</text>
-    <text x="180" y="112" text-anchor="middle" fill="#64748b" font-size="9" font-family="system-ui, -apple-system, sans-serif">Low verification rate — investigate email delivery</text>
-  </g>
-  <g transform="translate(30, 465)">
-    <text x="0" y="0" fill="#fb923c" font-size="13" font-weight="600" font-family="system-ui, -apple-system, sans-serif">IMPROVEMENT OPPORTUNITIES</text>
-    <rect x="0" y="10" width="740" height="90" rx="8" fill="#1e293b" stroke="#f97316" stroke-width="1" stroke-opacity="0.4"/>
-    <rect x="15" y="24" width="230" height="62" rx="8" fill="#0f172a" stroke="#ef4444" stroke-width="1.5"/>
-    <text x="130" y="48" text-anchor="middle" fill="#ef4444" font-size="24" font-weight="700" font-family="system-ui, -apple-system, sans-serif">41.8%</text>
-    <text x="130" y="64" text-anchor="middle" fill="#94a3b8" font-size="10" font-family="system-ui, -apple-system, sans-serif">Feedback submission error rate</text>
-    <text x="130" y="78" text-anchor="middle" fill="#64748b" font-size="9" font-family="system-ui, -apple-system, sans-serif">33 errors / 79 attempts</text>
-    <rect x="255" y="24" width="230" height="62" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
-    <text x="370" y="48" text-anchor="middle" fill="#f1f5f9" font-size="16" font-weight="700" font-family="system-ui, -apple-system, sans-serif">28 / 9 / 2 / 0</text>
-    <text x="370" y="64" text-anchor="middle" fill="#94a3b8" font-size="10" font-family="system-ui, -apple-system, sans-serif">Share UI / clicked / post-copied / link-copied</text>
-    <text x="370" y="78" text-anchor="middle" fill="#64748b" font-size="9" font-family="system-ui, -apple-system, sans-serif">Sharing feature has low adoption</text>
-    <rect x="495" y="24" width="230" height="62" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
-    <text x="610" y="48" text-anchor="middle" fill="#f1f5f9" font-size="24" font-weight="700" font-family="system-ui, -apple-system, sans-serif">45</text>
-    <text x="610" y="64" text-anchor="middle" fill="#94a3b8" font-size="10" font-family="system-ui, -apple-system, sans-serif">Feedback form views</text>
-    <text x="610" y="78" text-anchor="middle" fill="#64748b" font-size="9" font-family="system-ui, -apple-system, sans-serif">103 feedback starts recorded</text>
-  </g>
-  <text x="400" y="580" text-anchor="middle" fill="#64748b" font-size="10" font-family="system-ui, -apple-system, sans-serif">Event counts are not unique-user counts. Reporting period not specified.</text>
-  <text x="400" y="596" text-anchor="middle" fill="#64748b" font-size="10" font-family="system-ui, -apple-system, sans-serif">Critique — Ask one question. Get real answers. — https://critique.page</text>
+
+  <line x1="60" y1="230" x2="740" y2="230" stroke="#334155" stroke-width="0.5"/>
+
+  <text x="400" y="255" text-anchor="middle" fill="#64748b" font-size="9" font-family="system-ui, -apple-system, sans-serif">Event counts, not unique-user conversion rates. Reporting period not specified.</text>
+  <text x="400" y="272" text-anchor="middle" fill="#64748b" font-size="9" font-family="system-ui, -apple-system, sans-serif">Live dashboard: https://critique.page/api/analytics/dashboard</text>
+  <text x="400" y="290" text-anchor="middle" fill="#64748b" font-size="9" font-family="system-ui, -apple-system, sans-serif">Critique — Ask one question. Get real answers. — https://critique.page</text>
 </svg>
