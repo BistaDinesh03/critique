@@ -73,6 +73,20 @@ class CacheControlMiddleware(BaseHTTPMiddleware):
             if settings.HSTS_PRELOAD:
                 hsts_val += "; preload"
             response.headers.setdefault("Strict-Transport-Security", hsts_val)
+        csp = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline'; "
+            "style-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data: https:; "
+            "font-src 'self' data:; "
+            "connect-src 'self'; "
+            "frame-ancestors 'none'; "
+            "frame-src 'none'; "
+            "object-src 'none'; "
+            "base-uri 'self'; "
+            "form-action 'self'"
+        )
+        response.headers.setdefault("Content-Security-Policy", csp)
         return response
 
 
