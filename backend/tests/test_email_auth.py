@@ -87,7 +87,7 @@ def test_start_valid_email_returns_ok_and_creates_token(client, fake_email):
     try:
         r = client.post("/auth/email/start", json={"email": email, "return_to": "/project/1?resume=feedback"})
         assert r.status_code == 200
-        assert r.json() == {"ok": True}
+        assert r.json() == {"ok": True, "sent": True}
         assert len(fake_email) == 1
         assert fake_email[0]["to"] == [email]
 
@@ -109,7 +109,7 @@ def test_start_malformed_email_returns_ok_but_no_token(client, fake_email):
     try:
         r = client.post("/auth/email/start", json={"email": email})
         assert r.status_code == 200
-        assert r.json() == {"ok": True}
+        assert r.json() == {"ok": True, "sent": False}
         assert len(fake_email) == 0
 
         db = SessionLocal()
@@ -138,7 +138,7 @@ def test_start_unsafe_return_to_is_dropped(client, fake_email, return_to):
     try:
         r = client.post("/auth/email/start", json={"email": email, "return_to": return_to})
         assert r.status_code == 200
-        assert r.json() == {"ok": True}
+        assert r.json() == {"ok": True, "sent": True}
 
         db = SessionLocal()
         try:
@@ -193,7 +193,7 @@ def test_start_anti_enumeration_existing_vs_new(client, fake_email):
         r1 = client.post("/auth/email/start", json={"email": existing_email})
         r2 = client.post("/auth/email/start", json={"email": new_email})
         assert r1.status_code == r2.status_code == 200
-        assert r1.json() == r2.json() == {"ok": True}
+        assert r1.json() == r2.json() == {"ok": True, "sent": True}
     finally:
         _cleanup_tokens_by_email(existing_email)
         _cleanup_tokens_by_email(new_email)
@@ -230,7 +230,7 @@ def test_start_cooldown_blocks_second_request_within_window(client, fake_email):
 
         r2 = client.post("/auth/email/start", json={"email": email})
         assert r2.status_code == 200
-        assert r2.json() == {"ok": True}
+        assert r2.json() == {"ok": True, "sent": False}
         # Second request returned ok but did not send.
         assert len(fake_email) == 1
 
@@ -259,7 +259,7 @@ def test_start_survives_email_send_failure(client, monkeypatch):
     try:
         r = client.post("/auth/email/start", json={"email": email})
         assert r.status_code == 200
-        assert r.json() == {"ok": True}
+        assert r.json() == {"ok": True, "sent": False}
     finally:
         _cleanup_tokens_by_email(email)
 
@@ -284,19 +284,19 @@ def test_start_send_failure_clears_cooldown_for_immediate_retry(client, monkeypa
         # First attempt fails provider send
         r1 = client.post("/auth/email/start", json={"email": email})
         assert r1.status_code == 200
-        assert r1.json() == {"ok": True}
+        assert r1.json() == {"ok": True, "sent": False}
         assert call_count == 1
 
         # Second attempt immediately after MUST call send_login_link again (cooldown cleared)
         r2 = client.post("/auth/email/start", json={"email": email})
         assert r2.status_code == 200
-        assert r2.json() == {"ok": True}
+        assert r2.json() == {"ok": True, "sent": True}
         assert call_count == 2
 
         # Third attempt immediately after SHOULD be blocked by cooldown (successful send initiated cooldown)
         r3 = client.post("/auth/email/start", json={"email": email})
         assert r3.status_code == 200
-        assert r3.json() == {"ok": True}
+        assert r3.json() == {"ok": True, "sent": False}
         assert call_count == 2  # Not called because cooldown is now active
     finally:
         _cleanup_tokens_by_email(email)
