@@ -9,6 +9,7 @@ Requires Node.js on PATH; guarded by the frontend_render marker.
 """
 
 import json
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -72,6 +73,13 @@ def test_404_page_has_heading_and_destination_links():
     assert 'href="/discover"' in html
     assert "Back to home" in html
     assert "Explore projects" in html
+
+
+def test_404_skip_link_targets_focusable_main():
+    html = (FRONTEND_DIR / "404.html").read_text(encoding="utf-8")
+    assert re.search(r'<body>\s*<a href="#main-content" class="skip-link">', html)
+    assert re.search(r'<main\b[^>]*\bid="main-content"[^>]*\btabindex="-1"', html)
+    assert html.count('id="main-content"') == 1
 
 
 def test_navbar_toggle_opens_and_closes_menu(tmp_path):
