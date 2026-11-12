@@ -965,6 +965,7 @@
                     window.CritiqueAnalytics.trackEvent('feedback_submit_error', projectId);
                     msg.className = 'alert alert-error';
                     msg.setAttribute('role', 'alert');
+                    saveFeedbackDraft();
                     msg.textContent = data.detail || 'Failed to submit.';
                 }
             } catch (e) {
@@ -972,6 +973,7 @@
                 console.error('Submit error:', e);
                 msg.className = 'alert alert-error';
                 msg.setAttribute('role', 'alert');
+                saveFeedbackDraft();
                 msg.textContent = 'Network error: ' + e.message;
             } finally {
                 if (!finished && !gated) btn.disabled = false;
