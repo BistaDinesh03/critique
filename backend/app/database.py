@@ -83,19 +83,25 @@ def _migrate_postgresql():
             conn.execute(text("ALTER TABLE users ADD COLUMN email VARCHAR(320)"))
             conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_users_email ON users (email)"))
     
-    # Check responses table - make user_id nullable for guest submissions
-    try:
-        with engine.begin() as conn:
-            conn.execute(text("ALTER TABLE responses ALTER COLUMN user_id DROP NOT NULL"))
-    except Exception as exc:
-        # Log the error but don't crash. This can happen if:
-        # - The column is already nullable
-        # - The database doesn't support ALTER COLUMN (e.g., SQLite)
-        # - Insufficient permissions
-        import logging
-        logging.getLogger(__name__).debug(
-            "Could not make responses.user_id nullable (may already be nullable): %s", exc
-        )
+    # Check responses table - make user_id nullable for guest submissions.
+    # This is a required migration: guest feedback submission depends on it.
+    response_cols = {c["name"]: c for c in inspector.get_columns("responses")}
+    user_id_col = response_cols.get("user_id")
+    if user_id_col is not None and not user_id_col.get("nullable", True):
+        # Column exists and is NOT NULL - migrate it.
+        try:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE responses ALTER COLUMN user_id DROP NOT NULL"))
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).error(
+                "FAILED to make responses.user_id nullable for guest submissions: %s", exc
+            )
+            raise RuntimeError(
+                "Database migration failed: could not make responses.user_id nullable. "
+                "Guest feedback submission requires a nullable user_id column. "
+                "See logs for details."
+            ) from exc
 
     # Check projects table
     project_cols = {c["name"] for c in inspector.get_columns("projects")}
@@ -132,7 +138,4 @@ def init_db():
         except Exception:
             pass  # Columns may already exist
     else:
-        try:
-            _migrate_postgresql()
-        except Exception:
-            pass  # Columns may already exist
+        _migrate_postgresql()
