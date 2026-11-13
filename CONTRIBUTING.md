@@ -175,9 +175,9 @@ matches what you know, or deliberately stretch into something new.
 
 For a verified list of work that is actually available, use
 [docs/contributor-opportunities.md](docs/contributor-opportunities.md). Every issue
-on that page is open, unassigned, and not attached to an open pull request, and the
-page states the date it was last checked against the tracker. It is the only list
-you should act on.
+on that page is open, unassigned, not claimed in a comment, and not attached to an
+open pull request, and the page states the date it was last checked against the
+tracker. It is the only list you should act on.
 
 [docs/issue-roadmap.md](docs/issue-roadmap.md) also exists, but it is a **dated
 historical record** from 2026-10-17 — many of its rows have since shipped. Read it

@@ -6,10 +6,10 @@ it — comment on the issue and it is yours.
 
 **Last verified against the live tracker:** 2026-11-13.
 
-At a glance: **167 open issues**, of which **70 are claimable here** (19 in
+At a glance: **166 open issues**, of which **70 are claimable here** (19 in
 *Start here*, 51 in *Other open work*), **34 are in progress** (6 assigned, 3
 claimed in comments, 27 linked to an open pull request — 2 are both), and the
-other **63 are deliberately not listed** — see
+other **62 are deliberately not listed** — see
 [How this list is kept accurate](#how-this-list-is-kept-accurate).
 
 - For general contribution guidelines, see [CONTRIBUTING.md](../CONTRIBUTING.md).
@@ -205,10 +205,10 @@ and not linked to an open pull request at the time this page was last verified.
 Issues are removed from this page when they are claimed, fixed, or blocked — not
 when they become inconvenient.
 
-The 63 open issues that are not listed here fall into five groups and are left out
+The 62 open issues that are not listed here fall into five groups and are left out
 on purpose:
 
-- **53 future or speculative ideas** that have no current demand signal. They are
+- **52 future or speculative ideas** that have no current demand signal. They are
   open, but recommending them would waste a newcomer's time.
 - **4 that need a scope rewrite** before anyone can act on them.
 - **4 resolved or awaiting a merge**, including this page's own documentation change.

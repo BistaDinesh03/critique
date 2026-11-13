@@ -6,8 +6,8 @@
 > written. Many of the rows below have since shipped, been superseded, or been
 > closed — the status column is **not** maintained.
 >
-> For work that is actually open, unassigned, and free of an open pull request,
-> use **[contributor-opportunities.md](contributor-opportunities.md)**. That page
+> For work that is actually open, unassigned, unclaimed, and free of an open pull
+> request, use **[contributor-opportunities.md](contributor-opportunities.md)**. That page
 > is verified against the live tracker and is the only list you should act on.
 >
 > Live tracker: https://github.com/BistaDinesh03/critique/issues
