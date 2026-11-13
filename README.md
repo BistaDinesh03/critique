@@ -402,13 +402,13 @@ conversion rates.
 
 Live dashboard: https://critique.page/api/analytics/dashboard
 
-> **Two snapshots exist, and they differ.** This figure and the
-> [HTML analytics report](docs/analytics-snapshot.html) were supplied at
-> different times and do not carry the same totals. Neither supplied a
-> reporting period, so neither can be dated or reconciled here. Both datasets
-> are left exactly as supplied — this is tracked in
-> [issue #23](https://github.com/BistaDinesh03/critique/issues/23)
-> for a proper resolution.
+> **Two snapshots exist, and they differ.** The figure shown above is
+> `docs/analytics-snapshot.svg`. The
+> [HTML analytics report](docs/analytics-snapshot.html) is the detailed view of
+> a *separate* snapshot, supplied at a different time. The two do not carry the
+> same totals, and neither supplied a reporting period, so neither can be dated.
+> Neither supersedes the other: both are left exactly as supplied and neither is
+> presented as current.
 
 ## Contributing
 

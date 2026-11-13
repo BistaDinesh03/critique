@@ -1,6 +1,16 @@
 # Critique issue roadmap
 
-> **Note:** This document is a dated snapshot prepared on 2026-10-17 and re-verified on 2026-11-04. For live tracker state and available tasks, always consult the [live issue tracker](https://github.com/BistaDinesh03/critique/issues).
+> ⚠️ **This document is a historical record, not a task list.**
+>
+> It was written on 2026-10-17 as a plan for 50 issues, and it is preserved as
+> written. Many of the rows below have since shipped, been superseded, or been
+> closed — the status column is **not** maintained.
+>
+> For work that is actually open, unassigned, unclaimed, and free of an open pull
+> request, use **[contributor-opportunities.md](contributor-opportunities.md)**. That page
+> is verified against the live tracker and is the only list you should act on.
+>
+> Live tracker: https://github.com/BistaDinesh03/critique/issues
 
 A curated plan of **50 distinct issues**, originally prepared and validated against the live issue tracker and the current code on `BistaDinesh03/critique`.
 
