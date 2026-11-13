@@ -173,13 +173,40 @@ Issues are also labeled by area — `frontend`, `backend`, `tests`,
 `accessibility`, `security`, `performance` — so you can filter to work that
 matches what you know, or deliberately stretch into something new.
 
-A curated plan of 50 issues lives in
-[docs/issue-roadmap.md](docs/issue-roadmap.md). Each entry states its
-difficulty, the problem it solves, and which files it touches. As a prepared
-roadmap, row statuses may lag behind the live tracker, so always verify on
-the [live issue tracker](https://github.com/BistaDinesh03/critique/issues) that an
-issue is open before beginning work. If you are looking for something concrete,
-start there.
+For a verified list of work that is actually available, use
+[docs/contributor-opportunities.md](docs/contributor-opportunities.md). Every issue
+on that page is open, unassigned, and not attached to an open pull request, and the
+page states the date it was last checked against the tracker. It is the only list
+you should act on.
+
+[docs/issue-roadmap.md](docs/issue-roadmap.md) also exists, but it is a **dated
+historical record** from 2026-10-17 — many of its rows have since shipped. Read it
+for context, not for a task.
+
+### Triage, labels and issue lifecycle
+
+So that this page stays trustworthy, issues follow a simple lifecycle:
+
+- **Open and unclaimed** — the issue is real, nobody is on it. Comment to claim it.
+- **Assigned** — someone is working on it. The assignee is shown on the issue.
+- **Blocked** — an open pull request or an unresolved design question stands in the
+  way. Comment and ask before starting; the blocker may be resolvable.
+- **Closed as resolved** — the behaviour shipped. The closing comment names the file
+  and test that prove it.
+- **Closed as duplicate** — an earlier issue covers the same work. The closing
+  comment links the canonical issue, which stays open.
+- **Closed as not planned** — the idea is out of scope or has no scoped path right
+  now. This is not a judgement on the idea; it can be reopened with a concrete use
+  case.
+
+Two conventions matter when you pick up work:
+
+1. **The tracker is a queue, not a wishlist.** An issue is only created when someone
+   intends to work on it. Broad ideas belong in
+   [issue #1](https://github.com/BistaDinesh03/critique/issues/1) or Discussions first.
+2. **`good first issue` means small, unblocked, and unclaimed.** If an issue carrying
+   that label is assigned or has an open pull request, the label is wrong — say so and
+   it will be removed.
 
 ## How we work together on Critique
 
