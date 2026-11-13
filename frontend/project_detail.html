@@ -698,6 +698,9 @@
                         var id = parseInt(items[i] && items[i].id, 10);
                         if (!isNaN(id) && id !== own) {
                             link.href = '/project/' + id;
+                            if (items[i].title) {
+                                link.title = 'Review ' + items[i].title;
+                            }
                             return;
                         }
                     }
