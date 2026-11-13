@@ -132,9 +132,11 @@ def project_form(source):
 
 
 @pytest.mark.parametrize("question", [
-    "Is it immediately clear what my app does?",
-    "What would stop you from trying this product?",
-    "Is the next step on this page easy to find?",
+    "Is the main purpose of this website clear within the first 5 seconds?",
+    "Which part of this onboarding flow feels confusing?",
+    "Does my portfolio communicate my skills and experience clearly?",
+    "Is the navigation easy to understand?",
+    "Would you understand what this product offers and who it is for?",
 ])
 def test_question_example_fills_focuses_and_saves_without_submitting(tmp_path, question):
     result = run(tmp_path, "index.html", [
@@ -144,7 +146,7 @@ def test_question_example_fills_focuses_and_saves_without_submitting(tmp_path, q
         {"evaluate": "document.getElementById('question-examples').children.map(b => b.type)", "as": "types"},
     ])
     assert result["values"]["question"] == question
-    assert result["values"]["types"] == ["button", "button", "button"]
+    assert result["values"]["types"] == ["button", "button", "button", "button", "button"]
     assert result["focused"]["id"] == "question"
     assert json.loads(result["storage"]["session"]["critique_project_draft"])["question"] == question
     assert posts(result) == []
@@ -153,7 +155,7 @@ def test_question_example_fills_focuses_and_saves_without_submitting(tmp_path, q
 def test_selected_question_can_be_edited_and_saved(tmp_path):
     result = run(tmp_path, "index.html", [
         {"fn": "renderQuestionExamples"},
-        {"clickCreatedContaining": "Is it immediately clear what my app does?"},
+        {"clickCreatedContaining": "Is the main purpose of this website clear within the first 5 seconds?"},
         {"evaluate": "document.getElementById('question').value = 'Is the export button easy to find?'; saveProjectDraft();"},
     ])
     draft = json.loads(result["storage"]["session"]["critique_project_draft"])
