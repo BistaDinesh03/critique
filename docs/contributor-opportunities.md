@@ -43,16 +43,19 @@ You should be able to read the issue and start without asking anything.
 | [#178](https://github.com/BistaDinesh03/critique/issues/178) | Pin the three Actions to full commit SHAs and stop persisting the token into `.git` | YAML, security |
 | [#220](https://github.com/BistaDinesh03/critique/issues/220) | Stop one person from creating two user rows by signing in with GitHub *and* a magic link | Python, data model |
 | [#277](https://github.com/BistaDinesh03/critique/issues/277) | Add keyword search to Discover, with the query reflected in the URL and a real no-results state | Python, FastAPI, JS |
+| [#141](https://github.com/BistaDinesh03/critique/issues/141) | Turn `GET /auth/logout` into a CSRF-protected POST and update every page | Python, frontend |
+| [#158](https://github.com/BistaDinesh03/critique/issues/158) | Fix rate-limit keying: unconditional `CF-Connecting-IP` trust and the shared-bucket fallback | Python, HTTP |
+| [#162](https://github.com/BistaDinesh03/critique/issues/162) | Stop link prefetchers from consuming the single-use email verification token | Python, auth |
+| [#179](https://github.com/BistaDinesh03/critique/issues/179) | Add an account deletion path that erases the user row, projects, tokens, and authored feedback | Python, data model, frontend |
+
+Every issue above carries the `intermediate` label. The difficulty shown here is
+taken from the tracker, so if a label looks wrong, say so on the issue.
 
 ### Advanced
 
 | Issue | What you'll build | Skills |
 |-------|-------------------|--------|
 | [#94](https://github.com/BistaDinesh03/critique/issues/94) | Server-side session invalidation, so logout ends the session beyond the current browser | Python, auth |
-| [#141](https://github.com/BistaDinesh03/critique/issues/141) | Turn `GET /auth/logout` into a CSRF-protected POST and update every page | Python, frontend |
-| [#158](https://github.com/BistaDinesh03/critique/issues/158) | Fix rate-limit keying: unconditional `CF-Connecting-IP` trust and the shared-bucket fallback | Python, HTTP |
-| [#162](https://github.com/BistaDinesh03/critique/issues/162) | Stop link prefetchers from consuming the single-use email verification token | Python, auth |
-| [#179](https://github.com/BistaDinesh03/critique/issues/179) | Add an account deletion path that erases the user row, projects, tokens, and authored feedback | Python, data model, frontend |
 | [#249](https://github.com/BistaDinesh03/critique/issues/249) | Bound magic-link email volume, which is currently limited only by a per-address cooldown | Python, security |
 | [#272](https://github.com/BistaDinesh03/critique/issues/272) | Stop acknowledging analytics events with HTTP 200 when the database write failed | Python |
 
