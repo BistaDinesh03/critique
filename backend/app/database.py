@@ -83,6 +83,13 @@ def _migrate_postgresql():
             conn.execute(text("ALTER TABLE users ADD COLUMN email VARCHAR(320)"))
             conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_users_email ON users (email)"))
     
+    # Check responses table - make user_id nullable for guest submissions
+    try:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE responses ALTER COLUMN user_id DROP NOT NULL"))
+    except Exception:
+        pass  # Already nullable or not supported
+
     # Check projects table
     project_cols = {c["name"] for c in inspector.get_columns("projects")}
     with engine.begin() as conn:

@@ -1,10 +1,11 @@
-﻿from datetime import datetime, timezone
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from app.database import get_db, in_int64_range
 from app.models import Project, Question, Response, User
 from app.schemas import ResponseCreate, ResponseOut, ResponseOwnerOut
 from app.auth import get_current_user, get_current_user_optional
+from typing import Optional
 from app.csrf import require_csrf
 from app.rate_limit import rate_limit
 from app.ip_hash import hash_ip as _hash_ip
@@ -23,11 +24,11 @@ def create_response(
     response_data: ResponseCreate,
     request: Request,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: Optional[User] = Depends(get_current_user_optional),
     _: None = Depends(require_csrf),
     __: None = Depends(rate_limit("response_submit")),
 ):
-    """Submit a structured response. Requires authentication and CSRF."""
+    """Submit a structured response. Supports guest and authenticated submissions."""
     if not in_int64_range(project_id):
         raise HTTPException(status_code=404, detail="Project not found")
     project = db.query(Project).filter(Project.id == project_id).first()
@@ -46,20 +47,36 @@ def create_response(
     client_ip = request.client.host if request.client else "unknown"
     ip_hash = hash_ip(client_ip)
 
-    existing = (
-        db.query(Response)
-        .filter(Response.question_id == question.id, Response.user_id == user.id)
-        .first()
-    )
-    if existing:
-        raise HTTPException(status_code=409, detail="You have already responded to this question")
+    # Duplicate check: authenticated users can only respond once per question.
+    # Guest submissions are deduplicated by IP hash within a short window.
+    if user is not None:
+        existing = (
+            db.query(Response)
+            .filter(Response.question_id == question.id, Response.user_id == user.id)
+            .first()
+        )
+        if existing:
+            raise HTTPException(status_code=409, detail="You have already responded to this question")
+    else:
+        # Guest dedup: check if same IP hash already responded recently
+        recent_guest = (
+            db.query(Response)
+            .filter(
+                Response.question_id == question.id,
+                Response.user_id.is_(None),
+                Response.ip_hash == ip_hash,
+            )
+            .first()
+        )
+        if recent_guest:
+            raise HTTPException(status_code=409, detail="You have already responded to this question")
 
     response = Response(
         clarity=response_data.clarity,
         would_use=response_data.would_use,
         suggestion=response_data.suggestion,
         question_id=question.id,
-        user_id=user.id,
+        user_id=user.id if user is not None else None,
         ip_hash=ip_hash,
     )
     db.add(response)
@@ -68,9 +85,10 @@ def create_response(
     project.feedback_count = (project.feedback_count or 0) + 1
     project.last_feedback_at = datetime.now(timezone.utc)
 
-    # Increment user feedback counters
-    user.feedback_given_count = (user.feedback_given_count or 0) + 1
-    user.feedback_score = (user.feedback_score or 0) + 1
+    # Increment user feedback counters (only for authenticated users)
+    if user is not None:
+        user.feedback_given_count = (user.feedback_given_count or 0) + 1
+        user.feedback_score = (user.feedback_score or 0) + 1
 
     db.commit()
     db.refresh(response)
