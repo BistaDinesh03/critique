@@ -87,8 +87,15 @@ def _migrate_postgresql():
     try:
         with engine.begin() as conn:
             conn.execute(text("ALTER TABLE responses ALTER COLUMN user_id DROP NOT NULL"))
-    except Exception:
-        pass  # Already nullable or not supported
+    except Exception as exc:
+        # Log the error but don't crash. This can happen if:
+        # - The column is already nullable
+        # - The database doesn't support ALTER COLUMN (e.g., SQLite)
+        # - Insufficient permissions
+        import logging
+        logging.getLogger(__name__).debug(
+            "Could not make responses.user_id nullable (may already be nullable): %s", exc
+        )
 
     # Check projects table
     project_cols = {c["name"] for c in inspector.get_columns("projects")}

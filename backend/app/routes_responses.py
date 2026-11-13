@@ -1,11 +1,12 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from app.database import get_db, in_int64_range
 from app.models import Project, Question, Response, User
 from app.schemas import ResponseCreate, ResponseOut, ResponseOwnerOut
 from app.auth import get_current_user, get_current_user_optional
-from typing import Optional
 from app.csrf import require_csrf
 from app.rate_limit import rate_limit
 from app.ip_hash import hash_ip as _hash_ip
@@ -58,13 +59,17 @@ def create_response(
         if existing:
             raise HTTPException(status_code=409, detail="You have already responded to this question")
     else:
-        # Guest dedup: check if same IP hash already responded recently
+        # Guest dedup: block only if the same IP hash responded within the
+        # last hour. This prevents rapid duplicate submissions while reducing
+        # false positives for shared IPs (offices, VPNs, etc.).
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=1)
         recent_guest = (
             db.query(Response)
             .filter(
                 Response.question_id == question.id,
                 Response.user_id.is_(None),
                 Response.ip_hash == ip_hash,
+                Response.created_at >= cutoff,
             )
             .first()
         )
