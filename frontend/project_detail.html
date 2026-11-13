@@ -684,7 +684,7 @@
         // real project waiting for an answer. It starts at the real project
         // list and is upgraded as soon as the feed answers -- no invented
         // content, and a fetch failure simply leaves the honest fallback.
-        function attachNextProjectLink(link) {
+        function attachNextProjectLink(link, label) {
             if (!link) return;
             link.href = '/discover';
             fetch('/api/projects/?page=1&page_size=6')
@@ -698,6 +698,9 @@
                         var id = parseInt(items[i] && items[i].id, 10);
                         if (!isNaN(id) && id !== own) {
                             link.href = '/project/' + id;
+                            if (label && items[i].title) {
+                                link.textContent = label + ' ' + items[i].title + ' \u2192';
+                            }
                             return;
                         }
                     }
@@ -714,7 +717,7 @@
             link.id = 'help-another-builder';
             link.textContent = 'Help another builder \u2192';
             container.appendChild(link);
-            attachNextProjectLink(link);
+            attachNextProjectLink(link, 'Help');
 
             var badgeLink = document.createElement('a');
             badgeLink.id = 'project-badge-link';

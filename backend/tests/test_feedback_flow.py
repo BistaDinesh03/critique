@@ -127,7 +127,7 @@ def help_links(result):
     return [
         m
         for m in result["createdMeta"]
-        if m.get("text") and "Help another builder" in str(m["text"])
+        if m.get("id") == "help-another-builder"
     ]
 
 
@@ -247,6 +247,8 @@ def test_success_offers_the_next_real_project_and_keeps_the_confirmation(tmp_pat
     assert links, f"no next-step link built: {result['createdMeta']}"
     # Points at a *different* real project, never back at the answered one.
     assert links[0]["href"] == "/project/2"
+    # When a project title is available, the link text shows it.
+    assert links[0]["text"] == "Help Biohome \u2192"
 
     # Confirms live README badge link is offered for viral project promotion
     badge_links = [m for m in result["createdMeta"] if m.get("id") == "project-badge-link"]
