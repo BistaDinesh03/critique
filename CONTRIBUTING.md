@@ -111,6 +111,15 @@ Critique intentionally avoids complexity. Before adding anything, ask:
 - Comment only where useful
 - No dead code
 
+### Database changes
+
+Critique has no migration framework. Schema changes to existing tables are
+applied at startup by `backend/app/database.py`, and they must follow a strict
+contract: guarded on `inspect()`, idempotent, additive, applied on both SQLite
+and PostgreSQL, and loud on failure. Read
+[docs/database-migrations.md](docs/database-migrations.md) before changing a
+model.
+
 ### Testing
 
 - Run all tests before submitting
