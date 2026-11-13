@@ -444,6 +444,7 @@
             // What is being reviewed is stated before anything is asked of the
             // visitor, so the answer is given with the context in view.
             if (p.description) { html += '<p class="project-summary">' + escapeHtml(p.description) + '</p>'; }
+            if (p.url) { html += '<p class="project-link"><a href="' + escapeHtml(p.url) + '" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size:var(--text-xs);padding:var(--space-1) var(--space-3);">Visit project &rarr;</a></p>'; }
             if (q) {
                 html += '<div class="question-block"><div class="question-label">The Maker\'s Question</div><div class="question-text">' + escapeHtml(q.text) + '</div></div>';
                 html += '<div class="eyebrow">Your feedback</div>';
@@ -708,7 +709,7 @@
             if (!container) return;
             container.className = 'alert alert-success';
             container.setAttribute('role', 'status');
-            container.textContent = 'Thank you! Your feedback has been submitted. ';
+            container.textContent = 'Thanks for helping this builder! Your feedback has been submitted successfully. ';
             var link = document.createElement('a');
             link.id = 'help-another-builder';
             link.textContent = 'Help another builder \u2192';

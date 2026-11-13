@@ -241,7 +241,7 @@ def test_success_offers_the_next_real_project_and_keeps_the_confirmation(tmp_pat
 
     assert len(events(result, "feedback_submit")) == 1
     assert events(result, "feedback_submit_error") == []
-    assert "Thank you! Your feedback has been submitted." in result["ids"]["message"]
+    assert "Thanks for helping this builder! Your feedback has been submitted successfully." in result["ids"]["message"]
 
     links = help_links(result)
     assert links, f"no next-step link built: {result['createdMeta']}"
@@ -301,7 +301,7 @@ def test_reload_after_success_shows_recorded_state_not_the_form(tmp_path):
     )
 
     thanks = result["ids"].get("feedback-thanks", "")
-    assert "Thank you! Your feedback has been submitted." in thanks
+    assert "Thanks for helping this builder! Your feedback has been submitted successfully." in thanks
     links = help_links(result)
     assert links, f"no next-step link built: {result['createdMeta']}"
     assert links[0]["href"] == "/project/2"
@@ -486,7 +486,7 @@ def test_returning_from_github_continues_the_submission(tmp_path):
     assert events(result, "feedback_submit_error") == []
     assert len(events(result, "feedback_resume")) == 1
     assert len(events(result, "login_success")) == 1
-    assert "Thank you! Your feedback has been submitted." in result["ids"]["message"]
+    assert "Thanks for helping this builder! Your feedback has been submitted successfully." in result["ids"]["message"]
     assert "critique_responded_1" in result["storage"]["session"]
 
 
@@ -516,7 +516,7 @@ def test_returning_from_the_email_link_continues_the_submission(tmp_path):
     assert len(events(result, "feedback_resume")) == 1
     assert len(events(result, "feedback_submit")) == 1
     assert events(result, "feedback_submit_error") == []
-    assert "Thank you! Your feedback has been submitted." in result["ids"]["message"]
+    assert "Thanks for helping this builder! Your feedback has been submitted successfully." in result["ids"]["message"]
 
 
 def test_an_incomplete_draft_is_not_sent_automatically(tmp_path):
