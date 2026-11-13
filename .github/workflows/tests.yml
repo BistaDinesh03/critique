@@ -37,3 +37,23 @@ jobs:
           # enough for the test's contract (the authorize URL must carry
           # whatever is configured). Push runs to main receive the real value.
           GITHUB_CLIENT_ID: ${{ vars.OAUTH_CLIENT_ID || 'ci-test-client-id' }}
+
+  production-deps:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install production dependencies
+        run: pip install -r backend/requirements.txt
+      - name: Verify PostgreSQL driver import
+        run: |
+          python -c "import psycopg; print('psycopg', psycopg.__version__)"
+          python -c "from sqlalchemy import create_engine; e = create_engine('postgresql+psycopg://user:pass@localhost/db'); print('dialect OK', e.dialect.driver)"
+      - name: Run production dependency smoke tests
+        working-directory: backend
+        env:
+          GITHUB_CLIENT_ID: ci-test-client-id
+          DATABASE_URL: "sqlite:///./smoke_test.db"
+        run: python -m pytest tests/test_production_deps.py -q
