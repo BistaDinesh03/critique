@@ -157,14 +157,11 @@ def test_suggestion_length_validation(auth_client):
     cleanup_database()
 
 
-def test_anonymous_submit_with_valid_csrf_gets_401_gate(auth_client):
-    """The sign-in gate a signed-out visitor hits, reproduced exactly.
+def test_anonymous_submit_with_valid_csrf_succeeds_as_guest(auth_client):
+    """An anonymous visitor can submit feedback without an account.
 
-    The frontend always sends the CSRF token it was issued with the page, so
-    the only status an anonymous visitor can get from a feedback submit is
-    401 (auth runs before any of the real failure modes). That response is
-    the designed login gate -- it must not be reported to analytics as a
-    feedback submission error.
+    The endpoint now supports guest submissions: an unauthenticated request
+    with a valid CSRF token creates a guest response (user_id is null).
     """
     from fastapi.testclient import TestClient
     from app.main import app
@@ -175,8 +172,7 @@ def test_anonymous_submit_with_valid_csrf_gets_401_gate(auth_client):
     create_resp = create_test_project(auth_client)
     project_id = create_resp.json()["project"]["id"]
 
-    # Drop the fixture's auth override so the request goes through the real
-    # gate, exactly like a visitor with no session cookie.
+    # Drop the fixture's auth override so the request goes through as a guest.
     app.dependency_overrides.pop(get_current_user, None)
     app.dependency_overrides.pop(get_current_user_optional, None)
     anon = TestClient(app)
@@ -189,7 +185,26 @@ def test_anonymous_submit_with_valid_csrf_gets_401_gate(auth_client):
             f"/api/projects/{project_id}/responses",
             json={"clarity": "very_clear", "would_use": "yes"},
         )
-        assert response.status_code == 401
+        assert response.status_code == 201
+        data = response.json()
+        assert data["clarity"] == "very_clear"
+        assert data["would_use"] == "yes"
+
+        # Verify guest response is stored with null user_id
+        from app.database import SessionLocal
+        from app.models import Response
+        db = SessionLocal()
+        try:
+            resp = db.query(Response).filter(Response.question_id == 1).first()
+            # Find the question for this project
+            from app.models import Question
+            q = db.query(Question).filter(Question.project_id == project_id).first()
+            resp = db.query(Response).filter(Response.question_id == q.id).first()
+            assert resp is not None
+            assert resp.user_id is None
+            assert resp.ip_hash is not None
+        finally:
+            db.close()
     finally:
         cleanup_database()
 

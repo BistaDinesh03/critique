@@ -83,6 +83,52 @@ def _migrate_postgresql():
             conn.execute(text("ALTER TABLE users ADD COLUMN email VARCHAR(320)"))
             conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_users_email ON users (email)"))
     
+    # Check responses table - make user_id nullable for guest submissions.
+    # This is a required migration: guest feedback submission depends on it.
+    try:
+        response_cols = {c["name"]: c for c in inspector.get_columns("responses")}
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).error(
+            "FAILED to inspect responses table: %s", exc
+        )
+        raise RuntimeError(
+            "Database migration failed: could not inspect responses table. "
+            "Guest feedback submission requires a responses table with a user_id column."
+        ) from exc
+
+    user_id_col = response_cols.get("user_id")
+    if user_id_col is None:
+        # The responses table exists but user_id column is missing.
+        # This indicates an incompatible schema - fail loudly.
+        import logging
+        logging.getLogger(__name__).error(
+            "responses.user_id column is missing. "
+            "Expected schema: responses(user_id INTEGER, nullable=True). "
+            "Run migrations or recreate the table."
+        )
+        raise RuntimeError(
+            "Database migration failed: responses.user_id column is missing. "
+            "Guest feedback submission requires this column. "
+            "The table may need to be recreated or migrated manually."
+        )
+
+    if not user_id_col.get("nullable", True):
+        # Column exists and is NOT NULL - migrate it.
+        try:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE responses ALTER COLUMN user_id DROP NOT NULL"))
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).error(
+                "FAILED to make responses.user_id nullable for guest submissions: %s", exc
+            )
+            raise RuntimeError(
+                "Database migration failed: could not make responses.user_id nullable. "
+                "Guest feedback submission requires a nullable user_id column. "
+                "See logs for details."
+            ) from exc
+
     # Check projects table
     project_cols = {c["name"] for c in inspector.get_columns("projects")}
     with engine.begin() as conn:
@@ -118,7 +164,4 @@ def init_db():
         except Exception:
             pass  # Columns may already exist
     else:
-        try:
-            _migrate_postgresql()
-        except Exception:
-            pass  # Columns may already exist
+        _migrate_postgresql()
