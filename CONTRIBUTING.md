@@ -169,9 +169,9 @@ are a good place to start. Got a question about the codebase or an approach?
 Ask in [issue #1](https://github.com/BistaDinesh03/critique/issues/1) before
 starting — no question is too small.
 
-Issues are also labeled by area — `frontend`, `backend`, `tests`,
-`accessibility`, `security`, `performance` — so you can filter to work that
-matches what you know, or deliberately stretch into something new.
+Issues are also labeled by **area** and by **difficulty**, so you can filter for
+work that matches what you know — or deliberately stretch into something new.
+Both are documented in [The label taxonomy](#the-label-taxonomy) below.
 
 For a verified list of work that is actually available, use
 [docs/contributor-opportunities.md](docs/contributor-opportunities.md). Every issue
@@ -207,6 +207,56 @@ Two conventions matter when you pick up work:
 2. **`good first issue` means small, unblocked, and unclaimed.** If an issue carrying
    that label is assigned or has an open pull request, the label is wrong — say so and
    it will be removed.
+
+#### The label taxonomy
+
+Labels answer two questions: *what is this about*, and *how hard is it*.
+
+**Area labels** say which part of the codebase an issue touches.
+
+| Label | Meaning |
+|-------|---------|
+| `frontend` | UI, styling and browser-side behaviour |
+| `backend` | Server-side, API and database work |
+| `tests` | Test coverage, harnesses and CI checks |
+| `security` | Hardening, vulnerabilities and privacy |
+| `performance` | Speed, caching and resource use |
+| `accessibility` | Barrier affecting people with disabilities |
+| `documentation` | Improvements or additions to documentation |
+
+Some issues also carry an `area:*` label — for example `area: growth` or
+`area: feedback` — recording which part of the product plan the issue came from.
+Area labels describe *place*. They say nothing about difficulty.
+
+**Difficulty labels** say how much context a change needs.
+
+| Label | Meaning | Roughly |
+|-------|---------|---------|
+| `beginner` | Small, well-scoped first contribution | one file and one test |
+| `intermediate` | Requires cross-component work or design judgment | a few files, an existing pattern to follow |
+| `advanced` | Deep work: concurrency, migrations, performance, observability | a design decision plus new tests |
+
+An issue should carry exactly one difficulty label. If one is missing or looks
+wrong, say so in the issue and it will be corrected — the label is a promise
+about scope, and a broken promise costs a contributor a weekend.
+
+Other labels you will see: `good first issue` (small, unblocked, unclaimed),
+`help wanted` (a contribution would be welcome), `bug`, `enhancement`,
+`duplicate`, and the automation labels (`dependencies`, `python`,
+`github_actions`).
+
+#### Choosing work that fits
+
+1. Decide how much time you have. A `beginner` issue is an evening; an
+   `advanced` one is a project.
+2. Filter by the area you know, or by the area you want to learn.
+3. Check nothing blocks it: no assignee, no open pull request, and no
+   claim comment.
+   [docs/contributor-opportunities.md](docs/contributor-opportunities.md) has
+   already done this check for you.
+4. Comment on the issue with your plan before writing code. For anything past
+   `beginner`, the maintainer would rather agree on the approach first than
+   review a large PR in the wrong direction.
 
 ## How we work together on Critique
 
