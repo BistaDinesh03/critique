@@ -136,6 +136,10 @@ model.
 
 For a step-by-step example of claiming an issue, working in a fork, running relevant checks, and opening a pull request, see the [first-contributor walkthrough](docs/first-contributors.md).
 
+Changes that affect layout should also run the visual regression suite.
+[docs/visual-regression.md](docs/visual-regression.md) explains what the
+baselines cover and how to update them when a visual change is intentional.
+
 ## Welcome to new contributors
 
 Thanks for your interest in contributing to Critique!
@@ -361,6 +365,9 @@ For the project-specific review checklist, see the [Maintainer Pull Request Revi
 - Be kind and constructive
 - Assume good intentions
 - Focus on the work, not the person
+
+All participation in this project is covered by the
+[Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Reporting a security issue
 

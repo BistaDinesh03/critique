@@ -6,12 +6,13 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thank you for suggesting a feature or improvement!
+        Thank you for suggesting a feature or improvement! Please search
+        existing issues first so the same idea is not filed twice.
   - type: textarea
     id: problem
     attributes:
       label: Problem or Motivation
-      description: Is your feature request related to a problem? Please describe.
+      description: What user problem does this solve? Describe the situation, not just the solution.
     validations:
       required: true
   - type: textarea
@@ -26,5 +27,22 @@ body:
     attributes:
       label: Alternatives Considered
       description: A description of any alternative solutions or features you've considered.
+    validations:
+      required: false
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: How will we know this is done? List the observable outcomes.
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: false
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Screenshots, links, or related issues.
     validations:
       required: false
