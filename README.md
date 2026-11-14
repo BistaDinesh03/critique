@@ -451,7 +451,6 @@ A short snapshot of currently open, unclaimed starting points:
 | [#143](https://github.com/BistaDinesh03/critique/issues/143) | Add a scheduled weekly run of the test suite | Beginner | `tests`, `good first issue` |
 | [#765](https://github.com/BistaDinesh03/critique/issues/765) | Make the skip link move focus to the main landmark on every page | Beginner | `accessibility`, `frontend`, `good first issue` |
 | [#772](https://github.com/BistaDinesh03/critique/issues/772) | Document a single-project API response example | Beginner | `documentation`, `good first issue` |
-| [#773](https://github.com/BistaDinesh03/critique/issues/773) | Render the footer copyright year dynamically instead of hard-coding 2026 | Beginner | `bug`, `frontend`, `good first issue` |
 
 This table is a snapshot and will go stale. Check the
 [verified list](docs/contributor-opportunities.md) or the
