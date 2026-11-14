@@ -426,35 +426,37 @@ product feedback are welcome. A good place to start is an issue labeled
 [first-contributor walkthrough](docs/first-contributors.md) shows how to take
 one issue from claiming it to opening a pull request.
 [SECURITY.md](SECURITY.md) explains how to report vulnerabilities.
+Participation is covered by [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
-**Looking for something to work on?** Start with the curated shortlist below,
-or the roadmap in [docs/issue-roadmap.md](docs/issue-roadmap.md) — a curated
-starting point with problem statements, scope, acceptance criteria, difficulty,
-and relevant files spelled out for each. (As a prepared roadmap, row statuses
-may lag behind the [live issue tracker](https://github.com/BistaDinesh03/critique/issues),
-so always check tracker availability before starting). Issues are also labeled by
+**Looking for something to work on?** Use the
+[contributor opportunities list](docs/contributor-opportunities.md). It is
+checked against the live tracker and only lists issues that are open,
+unassigned, not claimed in a comment, and not attached to an open pull request,
+so anything on it is genuinely available. The older
+[docs/issue-roadmap.md](docs/issue-roadmap.md) is a dated historical record from
+2026-10-17 — read it for context, not for a task. Issues are also labeled by
 area (`frontend`, `backend`, `tests`, `accessibility`, `security`, `performance`),
 and questions are welcome in [issue #1](https://github.com/BistaDinesh03/critique/issues/1)
 before you begin.
 
 ### Good issues to contribute
 
-These ten issues are selected as the best starting points for new and returning
-contributors. Claim one by commenting on the issue; a maintainer will confirm
-availability.
+A short snapshot of currently open, unclaimed starting points:
 
 | # | Issue | Difficulty | Labels |
 |---|-------|------------|--------|
-| [#191](https://github.com/BistaDinesh03/critique/issues/191) | "Project URL" and "Short description" labeled (required) but enforced nowhere | Beginner | `bug`, `frontend`, `good first issue` |
-| [#266](https://github.com/BistaDinesh03/critique/issues/266) | Share copy events recorded even when the clipboard write fails | Beginner | `bug`, `frontend`, `good first issue` |
-| [#279](https://github.com/BistaDinesh03/critique/issues/279) | Suggestion textarea has no `maxlength` while the API caps suggestions at 2000 chars | Beginner | `bug`, `frontend` |
-| [#225](https://github.com/BistaDinesh03/critique/issues/225) | `frontend/index.html` dumps the raw API error body on project submit failure | Beginner | `bug`, `frontend`, `good first issue` |
-| [#192](https://github.com/BistaDinesh03/critique/issues/192) | `GET /auth/email/verify` with a missing `token` returns framework 422 JSON | Beginner | `bug`, `backend`, `good first issue` |
-| [#268](https://github.com/BistaDinesh03/critique/issues/268) | An expired or forged OAuth state returns a raw JSON 400 with no way back | Intermediate | `bug`, `backend` |
+| [#77](https://github.com/BistaDinesh03/critique/issues/77) | Add a `<noscript>` notice to the pages that render their content with `fetch()` | Beginner | `frontend`, `good first issue` |
+| [#21](https://github.com/BistaDinesh03/critique/issues/21) | Add `pytest-cov`, document the command, and surface coverage in CI | Beginner | `tests`, `good first issue` |
+| [#18](https://github.com/BistaDinesh03/critique/issues/18) | Add a question issue template that points at GitHub Discussions | Beginner | `documentation`, `good first issue` |
 | [#143](https://github.com/BistaDinesh03/critique/issues/143) | Add a scheduled weekly run of the test suite | Beginner | `tests`, `good first issue` |
-| [#276](https://github.com/BistaDinesh03/critique/issues/276) | Toasts auto-dismiss on a fixed timer with no pause/hover/keyboard dismiss (WCAG 2.2.1) | Beginner | `accessibility`, `frontend`, `good first issue` |
-| [#195](https://github.com/BistaDinesh03/critique/issues/195) | README/CONTRIBUTING route newcomers to a stale roadmap | Beginner | `documentation`, `good first issue` |
-| [#248](https://github.com/BistaDinesh03/critique/issues/248) | `_sanitized_env` keeps `HOME`/`APPDATA`/`USERPROFILE`, leaking secrets to PR test code | Advanced | `security` |
+| [#765](https://github.com/BistaDinesh03/critique/issues/765) | Make the skip link move focus to the main landmark on every page | Beginner | `accessibility`, `frontend`, `good first issue` |
+| [#772](https://github.com/BistaDinesh03/critique/issues/772) | Document a single-project API response example | Beginner | `documentation`, `good first issue` |
+| [#773](https://github.com/BistaDinesh03/critique/issues/773) | Render the footer copyright year dynamically instead of hard-coding 2026 | Beginner | `bug`, `frontend`, `good first issue` |
+
+This table is a snapshot and will go stale. Check the
+[verified list](docs/contributor-opportunities.md) or the
+[live issue tracker](https://github.com/BistaDinesh03/critique/issues) before
+starting.
 
 Contributors are also encouraged to spend a little time using Critique
 itself — submitting a project or giving feedback — before their first pull

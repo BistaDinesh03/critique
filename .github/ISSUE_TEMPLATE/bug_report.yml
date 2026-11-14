@@ -6,7 +6,12 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to report an issue!
+        Thanks for taking the time to report an issue! Please search existing
+        issues first so the same bug is not filed twice.
+
+        Do **not** report security vulnerabilities here — follow
+        [SECURITY.md](https://github.com/BistaDinesh03/critique/blob/main/SECURITY.md)
+        instead.
   - type: textarea
     id: description
     attributes:
@@ -18,7 +23,7 @@ body:
     id: reproduction
     attributes:
       label: Steps to Reproduce
-      description: Steps to reproduce the behavior.
+      description: Steps to reproduce the behavior, with the exact page or URL.
       placeholder: |
         1. Go to '...'
         2. Click on '....'
@@ -34,9 +39,28 @@ body:
     validations:
       required: true
   - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What happened instead. Include the exact error text or a screenshot description if there is one.
+    validations:
+      required: false
+  - type: dropdown
+    id: account
+    attributes:
+      label: Account type
+      description: How were you signed in when you saw the bug?
+      options:
+        - GitHub
+        - Email magic link
+        - Anonymous (not signed in)
+        - Not applicable
+    validations:
+      required: false
+  - type: textarea
     id: context
     attributes:
       label: Context / Environment
-      description: Browser, OS version, or relevant environment details.
+      description: Browser, OS version, device, and any other relevant environment details.
     validations:
       required: false
