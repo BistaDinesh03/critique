@@ -19,6 +19,9 @@
     --success: #16a34a;
     --success-bg: #f0fdf4;
     --success-border: #86efac;
+    --success-text: #166534;
+    --danger-text: #991b1b;
+    --warning-text: #92400e;
     --warning: #d97706;
     --warning-bg: #fffbeb;
     --warning-border: #fcd34d;
@@ -80,6 +83,9 @@
         --success: #22c55e;
         --success-bg: #064e3b;
         --success-border: #059669;
+    --success-text: #bbf7d0;
+    --danger-text: #fecaca;
+    --warning-text: #fde68a;
         --warning: #f59e0b;
         --warning-bg: #78350f;
         --warning-border: #d97706;
@@ -518,19 +524,21 @@ img {
 .alert-success {
     background: var(--success-bg);
     border: 1px solid var(--success-border);
-    color: #166534;
+    border-left: 4px solid var(--success);
+    color: var(--success-text);
+    padding: var(--space-4) var(--space-5);
 }
 
 .alert-error {
     background: var(--danger-bg);
     border: 1px solid var(--danger-border);
-    color: #991b1b;
+    color: var(--danger-text);
 }
 
 .alert-warning {
     background: var(--warning-bg);
     border: 1px solid var(--warning-border);
-    color: #92400e;
+    color: var(--warning-text);
 }
 
 /* Full-width status banner for auth failures the backend reports through a
@@ -1925,7 +1933,7 @@ img {
     font-family: inherit;
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
-    background: #ffffff;
+    background: var(--surface);
     color: var(--text-primary);
     box-sizing: border-box;
 }
