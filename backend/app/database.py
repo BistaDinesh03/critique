@@ -187,6 +187,9 @@ def _make_responses_user_id_nullable_sqlite():
 
     try:
         with engine.begin() as conn:
+            # Defensive: a previous failed run should not have left this behind,
+            # but dropping it first makes the rebuild re-runnable.
+            conn.execute(text("DROP TABLE IF EXISTS responses_new"))
             conn.execute(text(
                 "CREATE TABLE responses_new ("
                 "id INTEGER PRIMARY KEY, "
@@ -207,13 +210,10 @@ def _make_responses_user_id_nullable_sqlite():
                 ))
             conn.execute(text("DROP TABLE responses"))
             conn.execute(text("ALTER TABLE responses_new RENAME TO responses"))
+            # Recreate exactly the indexes a fresh `create_all` produces, so a
+            # rebuilt legacy table matches a fresh one.
             conn.execute(text(
-                "CREATE INDEX IF NOT EXISTS ix_responses_question_id "
-                "ON responses (question_id)"
-            ))
-            conn.execute(text(
-                "CREATE INDEX IF NOT EXISTS ix_responses_user_id "
-                "ON responses (user_id)"
+                "CREATE INDEX IF NOT EXISTS ix_responses_id ON responses (id)"
             ))
     except Exception as exc:
         logging.getLogger(__name__).error(
