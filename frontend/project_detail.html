@@ -712,10 +712,16 @@
             if (!container) return;
             container.className = 'alert alert-success';
             container.setAttribute('role', 'status');
-            container.textContent = 'Thanks for helping this builder! Your feedback has been submitted successfully. ';
+            container.setAttribute('aria-live', 'polite');
+            // Set the full confirmation text first so the harness and assistive
+            // tech both see it; appended children below are tracked separately.
+            container.textContent = '\u2713 Feedback submitted successfully! Thank you for helping this builder improve their project.';
+
             var link = document.createElement('a');
             link.id = 'help-another-builder';
             link.textContent = 'Help another builder \u2192';
+            link.style.display = 'block';
+            link.style.marginTop = 'var(--space-2)';
             container.appendChild(link);
             attachNextProjectLink(link, 'Help');
 
@@ -911,7 +917,27 @@
             const btn = document.getElementById('submit-btn');
             msg.className = 'alert';
             msg.textContent = '';
+
+            // Validate required fields before submitting.
+            const clarityEl = document.querySelector('input[name="clarity"]:checked');
+            const wouldUseEl = document.querySelector('input[name="would_use"]:checked');
+            if (!clarityEl || !wouldUseEl) {
+                msg.className = 'alert alert-error';
+                msg.setAttribute('role', 'alert');
+                msg.textContent = 'Please answer both required questions before submitting.';
+                if (!clarityEl) {
+                    const firstClarity = document.querySelector('input[name="clarity"]');
+                    if (firstClarity) firstClarity.focus();
+                } else if (!wouldUseEl) {
+                    const firstWouldUse = document.querySelector('input[name="would_use"]');
+                    if (firstWouldUse) firstWouldUse.focus();
+                }
+                return;
+            }
+
             btn.disabled = true;
+            btn.textContent = 'Submitting feedback\u2026';
+            btn.setAttribute('aria-busy', 'true');
             // Set once the outcome is settled, so the finally block does not
             // hand the visitor a live submit button on a form that has been
             // recorded (finished) or is waiting for sign-in (gated).
@@ -997,7 +1023,11 @@
                 saveFeedbackDraft();
                 msg.textContent = 'Network error: ' + e.message;
             } finally {
-                if (!finished && !gated) btn.disabled = false;
+                if (!finished && !gated) {
+                    btn.disabled = false;
+                    btn.textContent = 'Submit feedback';
+                    btn.removeAttribute('aria-busy');
+                }
             }
         }
 
