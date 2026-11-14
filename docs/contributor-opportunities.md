@@ -6,10 +6,10 @@ it — comment on the issue and it is yours.
 
 **Last verified against the live tracker:** 2026-11-13.
 
-At a glance: **166 open issues**, of which **70 are claimable here** (19 in
-*Start here*, 51 in *Other open work*), **34 are in progress** (6 assigned, 3
+At a glance: **162 open issues**, of which **70 are claimable here** (20 in
+*Start here*, 50 in *Other open work*), **34 are in progress** (6 assigned, 3
 claimed in comments, 27 linked to an open pull request — 2 are both), and the
-other **62 are deliberately not listed** — see
+other **58 are deliberately not listed** — see
 [How this list is kept accurate](#how-this-list-is-kept-accurate).
 
 - For general contribution guidelines, see [CONTRIBUTING.md](../CONTRIBUTING.md).
@@ -28,6 +28,7 @@ You should be able to read the issue and start without asking anything.
 |-------|-------------------|--------|
 | [#77](https://github.com/BistaDinesh03/critique/issues/77) | Add a `<noscript>` notice to the five pages that render their content with `fetch()` | HTML |
 | [#21](https://github.com/BistaDinesh03/critique/issues/21) | Add `pytest-cov`, document the command, and surface coverage in CI | pytest, YAML |
+| [#18](https://github.com/BistaDinesh03/critique/issues/18) | Add `.github/ISSUE_TEMPLATE/question.md` that points questions at GitHub Discussions | Markdown |
 | [#143](https://github.com/BistaDinesh03/critique/issues/143) | Add a weekly `schedule:` to the test workflow to catch dependency drift | YAML |
 
 ### Intermediate
@@ -43,10 +44,6 @@ You should be able to read the issue and start without asking anything.
 | [#178](https://github.com/BistaDinesh03/critique/issues/178) | Pin the three Actions to full commit SHAs and stop persisting the token into `.git` | YAML, security |
 | [#220](https://github.com/BistaDinesh03/critique/issues/220) | Stop one person from creating two user rows by signing in with GitHub *and* a magic link | Python, data model |
 | [#277](https://github.com/BistaDinesh03/critique/issues/277) | Add keyword search to Discover, with the query reflected in the URL and a real no-results state | Python, FastAPI, JS |
-| [#141](https://github.com/BistaDinesh03/critique/issues/141) | Turn `GET /auth/logout` into a CSRF-protected POST and update every page | Python, frontend |
-| [#158](https://github.com/BistaDinesh03/critique/issues/158) | Fix rate-limit keying: unconditional `CF-Connecting-IP` trust and the shared-bucket fallback | Python, HTTP |
-| [#162](https://github.com/BistaDinesh03/critique/issues/162) | Stop link prefetchers from consuming the single-use email verification token | Python, auth |
-| [#179](https://github.com/BistaDinesh03/critique/issues/179) | Add an account deletion path that erases the user row, projects, tokens, and authored feedback | Python, data model, frontend |
 
 Every issue above carries the `intermediate` label. The difficulty shown here is
 taken from the tracker, so if a label looks wrong, say so on the issue.
@@ -56,6 +53,10 @@ taken from the tracker, so if a label looks wrong, say so on the issue.
 | Issue | What you'll build | Skills |
 |-------|-------------------|--------|
 | [#94](https://github.com/BistaDinesh03/critique/issues/94) | Server-side session invalidation, so logout ends the session beyond the current browser | Python, auth |
+| [#141](https://github.com/BistaDinesh03/critique/issues/141) | Turn `GET /auth/logout` into a CSRF-protected POST and update every page | Python, frontend |
+| [#158](https://github.com/BistaDinesh03/critique/issues/158) | Fix rate-limit keying: unconditional `CF-Connecting-IP` trust and the shared-bucket fallback | Python, HTTP |
+| [#162](https://github.com/BistaDinesh03/critique/issues/162) | Stop link prefetchers from consuming the single-use email verification token | Python, auth |
+| [#179](https://github.com/BistaDinesh03/critique/issues/179) | Add an account deletion path that erases the user row, projects, tokens, and authored feedback | Python, data model, frontend |
 | [#249](https://github.com/BistaDinesh03/critique/issues/249) | Bound magic-link email volume, which is currently limited only by a per-address cooldown | Python, security |
 | [#272](https://github.com/BistaDinesh03/critique/issues/272) | Stop acknowledging analytics events with HTTP 200 when the database write failed | Python |
 
@@ -180,7 +181,6 @@ touch more of the codebase, or need a design decision first. Nothing here is cla
 - [#203](https://github.com/BistaDinesh03/critique/issues/203) — Reconcile `render.yaml` (provisions a Render Postgres) with the README and the Neon `DATABASE_URL`
 - [#697](https://github.com/BistaDinesh03/critique/issues/697) — Add a development setup verification script
 - [#703](https://github.com/BistaDinesh03/critique/issues/703) — Add a "good first issue" labelling guide for maintainers
-- [#18](https://github.com/BistaDinesh03/critique/issues/18) — Add a question issue template. Needs a decision first: the issue asks for a template that routes to issue #1, but `.github/ISSUE_TEMPLATE/config.yml` currently routes questions to Discussions
 
 ### Product
 
@@ -208,13 +208,12 @@ and not linked to an open pull request at the time this page was last verified.
 Issues are removed from this page when they are claimed, fixed, or blocked — not
 when they become inconvenient.
 
-The 62 open issues that are not listed here fall into five groups and are left out
+The 58 open issues that are not listed here fall into four groups and are left out
 on purpose:
 
 - **52 future or speculative ideas** that have no current demand signal. They are
   open, but recommending them would waste a newcomer's time.
 - **4 that need a scope rewrite** before anyone can act on them.
-- **4 resolved or awaiting a merge**, including this page's own documentation change.
 - **1 rejected duplicate.**
 - **1 discussion thread** — [issue #1](https://github.com/BistaDinesh03/critique/issues/1),
   which is where questions go, not a task.
