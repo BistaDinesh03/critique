@@ -444,7 +444,7 @@
             // What is being reviewed is stated before anything is asked of the
             // visitor, so the answer is given with the context in view.
             if (p.description) { html += '<p class="project-summary">' + escapeHtml(p.description) + '</p>'; }
-            if (p.url) { html += '<p class="project-link"><a href="' + escapeHtml(p.url) + '" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size:var(--text-xs);padding:var(--space-1) var(--space-3);">Visit project &rarr;</a></p>'; }
+            if (p.url) { html += '<p class="project-link"><a href="' + escapeHtml(p.url) + '" target="_blank" rel="noopener noreferrer" class="btn btn-secondary visit-project-btn">Visit project \u2192</a></p>'; }
             if (q) {
                 html += '<div class="question-block"><div class="question-label">The Maker\'s Question</div><div class="question-text">' + escapeHtml(q.text) + '</div></div>';
                 html += '<div class="eyebrow">Your feedback</div>';
@@ -477,7 +477,6 @@
                     const altText = 'Screenshot of ' + escapeHtml(projectTitle);
                     details += '<img class="project-screenshot" src="' + escapeHtml(p.image_url) + '" alt="' + altText + '" loading="lazy" onerror="this.style.display=\'none\'">';
                 }
-                if (p.url) { details += '<a href="' + escapeHtml(p.url) + '" target="_blank" rel="noopener" class="project-url">' + escapeHtml(p.url) + '</a>'; }
                 if (details) { html += '<div class="eyebrow">About this project</div><div class="project-header" style="margin-top: var(--space-5);">' + details + '</div>'; }
                 if (responses.length > 0) {
                     html += '<div class="eyebrow">Responses</div>';
@@ -978,6 +977,8 @@
                     finished = true;
                     markFeedbackSubmitted();
                     disableResponseForm();
+                    const doneBtn = document.getElementById('submit-btn');
+                    if (doneBtn) doneBtn.style.display = 'none';
                     showFeedbackSuccessNextStep(msg);
                 } else if (response.status === 401) {
                     // The designed sign-in gate, not a failed submission: the
