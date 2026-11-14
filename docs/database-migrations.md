@@ -17,8 +17,13 @@ a migration framework are discussed in
 1. `Base.metadata.create_all(bind=engine)` creates any table that does not exist
    yet, from the SQLAlchemy models in `backend/app/models.py`.
 2. Then one dialect-specific function runs:
-   - **SQLite** (`_migrate_sqlite`) — currently adds `users.email` and its unique
-     index if missing.
+   - **SQLite** (`_migrate_sqlite`) — mirrors `_migrate_postgresql` for the
+     columns SQLite can express: `users` (feedback_given_count,
+     feedback_helpful_count, feedback_score, email + unique index), `projects`
+     (feedback_count, last_feedback_at, last_served_at, discover_impressions),
+     and `responses.user_id` nullability (via a table rebuild, since SQLite
+     cannot `ALTER COLUMN ... DROP NOT NULL`). Every statement is guarded on
+     `inspect()` and raises on a genuine failure.
    - **PostgreSQL / anything non-SQLite** (`_migrate_postgresql`) — adds the
      `users` counter/email columns, the `projects` counter/timestamp columns, and
      makes `responses.user_id` nullable for guest feedback.
@@ -95,5 +100,8 @@ becomes true:
 Until then the startup approach is deliberate: it is smaller, has no dependencies,
 and is easy to audit. [Issue #707](https://github.com/BistaDinesh03/critique/issues/707)
 tracks the decision and the trade-offs, and
-[#82](https://github.com/BistaDinesh03/critique/issues/82) tracks the SQLite path
-currently swallowing failures instead of raising, which breaks rule 4 above.
+[#82](https://github.com/BistaDinesh03/critique/issues/82) has now been
+remediated in PR #761: the SQLite path mirrors the PostgreSQL path, adds the
+missing columns, makes `responses.user_id` nullable via a table rebuild, and
+raises on genuine failures instead of swallowing them. With that, rules 1-4
+hold on both dialects.
