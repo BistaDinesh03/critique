@@ -236,7 +236,7 @@ def test_loading_state_never_resolves_by_staying_on_a_spinner(tmp_path):
         assert busy_ids == [], f"{page} left {busy_ids} marked busy after a failure"
 
 
-def test_community_proof_placeholder_resolves_to_real_members(tmp_path):
+def test_social_proof_placeholder_resolves_to_real_avatars(tmp_path):
     result = run(
         tmp_path,
         "index.html",
@@ -247,31 +247,23 @@ def test_community_proof_placeholder_resolves_to_real_members(tmp_path):
                 "body": {
                     "total_builders": 2,
                     "total_projects": 1,
-                    "public_members": [
-                        {
-                            "username": "HarshYeole",
-                            "avatar_url": "https://avatars.githubusercontent.com/u/1?v=4",
-                        }
+                    "builders": [
+                        {"username": "alice", "avatar_url": "https://avatars.githubusercontent.com/u/1?v=4"},
                     ],
                 },
             }
         },
     )
-    assert result["flags"]["community-proof"]["ariaBusy"] == "false"
-    assert result["flags"]["community-proof"]["display"] == "flex"
-    assert result["flags"]["member-row"]["hidden"] is False
-    assert "@HarshYeole" in result["ids"]["member-row"]
+    assert result["flags"]["social-proof"]["ariaBusy"] == "false"
+    assert result["flags"]["social-proof"]["display"] == "flex"
+    assert 'src="https://avatars.githubusercontent.com/u/1?v=4"' in result["ids"]["avatar-stack"]
 
 
-def test_community_proof_placeholder_is_hidden_when_stats_fail(tmp_path):
-    """No members may be invented: failure empties and hides the section."""
+def test_social_proof_placeholder_is_hidden_when_stats_fail(tmp_path):
+    """No social proof may be invented: failure hides the row, it does not spin."""
     result = run(tmp_path, "index.html", [{"fn": "loadSocialProof", "args": []}])
-    assert result["flags"]["community-proof"]["ariaBusy"] == "false"
-    assert result["flags"]["community-proof"]["display"] == "none"
-    assert result["flags"]["member-row"]["hidden"] is True
-    assert result["ids"]["member-row"].strip() == ""
-    # No headcount sentence is invented on failure.
-    assert "Join" not in result["ids"]["member-row"]
+    assert result["flags"]["social-proof"]["ariaBusy"] == "false"
+    assert result["flags"]["social-proof"]["display"] == "none"
 
 
 def test_homepage_real_activity_reflects_global_stats(tmp_path):

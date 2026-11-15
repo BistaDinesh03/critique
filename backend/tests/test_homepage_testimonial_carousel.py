@@ -707,12 +707,13 @@ def test_render_harness_is_error_free_and_homepage_features_survive(tmp_path):
     assert result["errors"] == []
 
     src = source()
-    # The community row (a separate feature) is untouched.
-    assert 'id="member-row"' in src
+    # Social-proof avatar stack (a separate feature) is present.
+    assert 'id="avatar-stack"' in src
     assert "loadSocialProof" in src
-    # Members come from /api/stats, but no account total is ever displayed.
-    assert "public_members" in src
+    # Real avatars come from /api/stats; no headcount or +N bubble remains.
+    assert "isSafeAvatarSrc" in src
     assert not re.search(r"Join\s+\d+\s+builders", src)
+    assert "avatar-more" not in src
     # Login-gated project submission still present.
     assert "showProjectInlineLoginPrompt" in src
     # Issue #229: The test tag is count-free so it cannot drift.

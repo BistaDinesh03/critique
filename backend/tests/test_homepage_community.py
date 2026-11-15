@@ -1,13 +1,11 @@
-"""Homepage community proof: real, named members -- never a headcount.
+"""Homepage social proof: real, named members -- no headcount.
 
-The hero's community row introduces actual Critique members who have a public
-GitHub login and a public avatar. It must never show a total account count or a
-"+N" filler, and it must degrade to fewer members -- or none -- rather than
-inventing people.
+The hero's social-proof row keeps its original overlapping-avatar design. It
+shows only real, publicly displayable avatars from /api/stats, never a total
+member count or a "+N" bubble, and never invents people.
 
 These tests run the page's real JavaScript in the Node rendering harness and
-assert on the markup it produces, plus a couple of source-level guards that the
-copy can never drift back to a number.
+assert on the markup it produces, plus a few source-level guards.
 """
 
 import json
@@ -30,8 +28,9 @@ pytestmark = [
     ),
 ]
 
-HEADLINE = "Real people. Real things being built."
-SUPPORTING = "Meet builders sharing their projects and helping each other improve."
+PRIMARY = "Real builders. Real projects. Honest feedback."
+SUPPORTING = "Discover what people are building and help each other make it better."
+LINK = "Explore their projects"
 
 GITHUB_1 = "https://avatars.githubusercontent.com/u/109844087?v=4"
 GITHUB_2 = "https://avatars.githubusercontent.com/u/69650536?v=4"
@@ -45,7 +44,7 @@ def run(tmp_path, calls, fetch=None, read=None):
     scenario = {
         "page": (FRONTEND_DIR / "index.html").as_posix(),
         "calls": calls,
-        "read": read or {"byId": "member-row"},
+        "read": read or {"byId": "avatar-stack"},
         "fetch": fetch or {},
         "location": "/",
     }
@@ -81,7 +80,7 @@ def stats(**overrides):
         "total_projects": 14,
         "total_questions": 14,
         "total_responses": 43,
-        "public_members": [
+        "builders": [
             {"username": "HarshYeole", "avatar_url": GITHUB_1},
             {"username": "DennisKutt", "avatar_url": GITHUB_2},
         ],
@@ -91,88 +90,61 @@ def stats(**overrides):
 
 
 # ---------------------------------------------------------------------------
-# Static copy and layout
+# Static copy, layout and source guards
 # ---------------------------------------------------------------------------
 
 
-def test_headline_and_supporting_copy():
+def test_primary_and_supporting_copy():
     src = source()
-    assert HEADLINE in src
+    assert PRIMARY in src
     assert SUPPORTING in src
 
 
-def test_explore_cta_points_at_project_discovery():
+def test_explore_link_points_at_project_discovery():
     src = source()
-    assert re.search(r'class="community-explore" href="/discover"', src)
+    assert re.search(r'class="social-proof-link" href="/discover"', src)
+    assert LINK in src
 
 
-def test_source_never_contains_a_builder_count_or_plus_n():
+def test_source_keeps_original_avatar_design_and_removes_counts():
     src = source()
+    assert 'class="social-proof"' in src
+    assert 'id="avatar-stack"' in src
+    assert "avatar-skeleton" in src
     assert not re.search(r"Join\s+\d+\s+builders", src)
-    assert "already using Critique" not in src
     assert "avatar-more" not in src
-    assert not re.search(r'class="avatar-stack"', src)
+    assert not re.search(r'class="community-proof"', src)
+    assert not re.search(r'class="member-chip"', src)
 
 
-def test_community_row_ships_as_a_loading_placeholder():
+def test_original_avatar_sizes_are_preserved():
     src = source()
-    # The section announces its busy state; the row starts as skeletons so the
-    # hero does not jump, and it is not a claim of anything yet.
-    assert 'id="community-proof"' in src
-    assert re.search(r'id="community-proof"[^>]*aria-busy="true"', src)
-    assert "member-chip-skeleton" in src
+    assert "width: 32px;" in src
+    assert "height: 32px;" in src
+    assert "margin-left: -8px;" in src
 
 
 # ---------------------------------------------------------------------------
-# Real members render as name + avatar
+# Real avatars render; synthetic / unsafe ones do not
 # ---------------------------------------------------------------------------
 
 
-def test_named_members_render_with_their_public_avatars(tmp_path):
+def test_real_avatars_render_from_builders(tmp_path):
     result = load(tmp_path)
-    html = result["ids"]["member-row"]
+    html = result["ids"]["avatar-stack"]
 
-    assert html.count('class="member-chip"') == 2
+    assert html.count("<img") == 2
     assert f'src="{GITHUB_1}"' in html
     assert f'src="{GITHUB_2}"' in html
-    assert "@HarshYeole" in html
-    assert "@DennisKutt" in html
-    assert result["flags"]["member-row"]["hidden"] is False
-    assert result["flags"]["community-proof"]["display"] == "flex"
-    assert result["flags"]["community-proof"]["ariaBusy"] == "false"
+    assert result["flags"]["social-proof"]["display"] == "flex"
+    assert result["flags"]["social-proof"]["ariaBusy"] == "false"
 
 
-def test_member_avatars_are_not_fake_profile_links(tmp_path):
-    """There are no public profile routes, so avatars are not links."""
-    result = load(tmp_path)
-    html = result["ids"]["member-row"]
-    assert "<a" not in html
-
-
-def test_avatar_images_are_decorative_and_sized(tmp_path):
-    result = load(tmp_path)
-    html = result["ids"]["member-row"]
-    assert 'alt=""' in html
-    assert 'width="26"' in html and 'height="26"' in html
-
-
-def test_the_total_builder_count_is_never_rendered(tmp_path):
-    result = load(tmp_path, stats(total_builders=1337))
-    html = result["ids"]["member-row"]
-    assert "1337" not in html
-    assert "Join" not in html
-
-
-# ---------------------------------------------------------------------------
-# Only genuine public profiles; never invented people
-# ---------------------------------------------------------------------------
-
-
-def test_email_signups_and_unsafe_avatars_are_excluded(tmp_path):
+def test_unsafe_and_missing_avatars_are_skipped(tmp_path):
     result = load(
         tmp_path,
         stats(
-            public_members=[
+            builders=[
                 {"username": "email_deadbeefdeadbeef", "avatar_url": None},
                 {"username": "alice", "avatar_url": "http://evil.example/a.png"},
                 {"username": "bob", "avatar_url": "javascript:alert(1)"},
@@ -180,70 +152,35 @@ def test_email_signups_and_unsafe_avatars_are_excluded(tmp_path):
             ]
         ),
     )
-    html = result["ids"]["member-row"]
+    html = result["ids"]["avatar-stack"]
 
-    assert html.count('class="member-chip"') == 1
-    assert "@carol" in html
+    assert html.count("<img") == 1
+    assert f'src="{GITHUB_1}"' in html
     assert "email_" not in html
     assert "evil.example" not in html
     assert "alice" not in html and "bob" not in html
 
 
-def test_falls_back_to_builders_when_public_members_is_absent(tmp_path):
-    body = stats()
-    body.pop("public_members")
-    body["builders"] = [
-        {"username": "email_deadbeefdeadbeef", "avatar_url": None},
-        {"username": "HarshYeole", "avatar_url": GITHUB_1},
-    ]
-    result = load(tmp_path, body)
-    html = result["ids"]["member-row"]
-
-    assert html.count('class="member-chip"') == 1
-    assert "@HarshYeole" in html
-    assert "email_" not in html
-
-
-def test_a_short_list_is_shown_gracefully(tmp_path):
-    result = load(
-        tmp_path,
-        stats(public_members=[{"username": "HarshYeole", "avatar_url": GITHUB_1}]),
-    )
-    html = result["ids"]["member-row"]
-    assert html.count('class="member-chip"') == 1
-    assert "avatar-more" not in html
-    assert result["flags"]["member-row"]["hidden"] is False
-    assert result["flags"]["community-proof"]["display"] == "flex"
-
-
-def test_the_row_is_capped_at_six_members(tmp_path):
-    roster = [
-        {"username": f"builder{i}", "avatar_url": f"https://avatars.githubusercontent.com/u/{i}?v=4"}
-        for i in range(8)
-    ]
-    result = load(tmp_path, stats(public_members=roster))
-    html = result["ids"]["member-row"]
-    assert html.count('class="member-chip"') == 6
-    assert "avatar-more" not in html
-
-
-def test_no_public_members_hides_the_row_without_inventing_people(tmp_path):
-    result = load(tmp_path, stats(public_members=[]))
-    html = result["ids"]["member-row"]
+def test_no_real_avatars_hides_the_row_without_inventing_people(tmp_path):
+    result = load(tmp_path, stats(builders=[]))
+    html = result["ids"]["avatar-stack"]
 
     assert html.strip() == ""
-    assert result["flags"]["member-row"]["hidden"] is True
-    assert result["flags"]["community-proof"]["display"] == "none"
-    assert result["flags"]["community-proof"]["ariaBusy"] == "false"
-    assert "Join" not in html
-    assert "@" not in html
+    assert result["flags"]["social-proof"]["display"] == "none"
+    assert result["flags"]["social-proof"]["ariaBusy"] == "false"
 
 
-def test_a_failed_request_leaves_no_placeholder_or_invented_members(tmp_path):
+def test_a_failed_request_leaves_no_placeholder_or_invented_avatars(tmp_path):
     result = run(tmp_path, [{"fn": "loadSocialProof", "args": []}])
-    html = result["ids"]["member-row"]
+    html = result["ids"]["avatar-stack"]
 
     assert html.strip() == ""
-    assert result["flags"]["member-row"]["hidden"] is True
-    assert result["flags"]["community-proof"]["display"] == "none"
-    assert result["flags"]["community-proof"]["ariaBusy"] == "false"
+    assert result["flags"]["social-proof"]["display"] == "none"
+    assert result["flags"]["social-proof"]["ariaBusy"] == "false"
+
+
+def test_avatars_are_not_profile_links(tmp_path):
+    """There are no public profile routes, so avatars are not anchors."""
+    result = load(tmp_path)
+    html = result["ids"]["avatar-stack"]
+    assert "<a" not in html

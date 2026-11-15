@@ -102,109 +102,97 @@
             line-height: 1.5;
         }
 
-        /* Community proof: a small, count-free row of real, named members
-           under the hero. Names and faces only -- no totals, no "+N". */
-        .community-proof {
+        .social-proof {
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: var(--space-3);
-            max-width: 620px;
+            max-width: 560px;
             margin: var(--space-6) auto 0;
             padding-top: var(--space-5);
             border-top: 1px solid var(--border);
         }
 
-        .community-proof-title {
-            font-size: var(--text-lg);
-            font-weight: 600;
-            letter-spacing: -0.01em;
-            color: var(--text-primary);
-            text-align: center;
-        }
-
-        .community-proof-sub {
-            font-size: var(--text-sm);
-            color: var(--text-secondary);
-            text-align: center;
-            max-width: 460px;
-            line-height: 1.5;
-        }
-
-        .member-row {
+        .avatar-stack {
             display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: var(--space-2);
-            margin: 0;
-            padding: 0;
-            list-style: none;
+            align-items: center;
         }
 
-        /* Author `display: flex` would otherwise win over the UA [hidden]
-           rule, so state it here explicitly. */
-        .member-row[hidden] {
-            display: none;
+        .avatar-stack img,
+        .avatar-stack .avatar-fallback {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 2px solid var(--surface);
+            margin-left: -8px;
+            box-sizing: border-box;
         }
 
-        .member-chip {
+        .avatar-stack > :first-child {
+            margin-left: 0;
+        }
+
+        .avatar-stack img {
+            object-fit: cover;
+        }
+
+        .avatar-stack .avatar-fallback {
             display: inline-flex;
             align-items: center;
-            gap: var(--space-2);
-            max-width: 100%;
-            min-width: 0;
-            padding: 3px var(--space-3) 3px 3px;
-            border: 1px solid var(--border);
-            border-radius: 999px;
-            background: var(--surface);
-        }
-
-        .member-avatar {
-            display: inline-flex;
-            flex: none;
-            width: 26px;
-            height: 26px;
-            border-radius: 50%;
+            justify-content: center;
             overflow: hidden;
             background: var(--surface-muted);
         }
 
-        .member-avatar img {
+        .avatar-stack .avatar-fallback svg {
             display: block;
             width: 100%;
             height: 100%;
-            object-fit: cover;
         }
 
-        .member-name {
-            min-width: 0;
-            font-size: var(--text-xs);
-            font-weight: 600;
-            color: var(--text-secondary);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        /* Skeletons mirror the final chips so the hero does not jump while
-           /api/stats is in flight. Pure CSS: no extra request. */
-        .member-chip-skeleton .member-name {
-            width: 58px;
-            height: 10px;
-            border-radius: 4px;
-        }
-
-        .community-explore {
-            display: inline-flex;
-            align-items: center;
-            gap: var(--space-1);
+        .social-proof-text {
             font-size: var(--text-sm);
+            color: var(--text-secondary);
+            font-weight: 500;
+            text-align: center;
+        }
+
+        .social-proof-sub {
+            font-size: var(--text-xs);
+            color: var(--text-secondary);
+            text-align: center;
+        }
+
+        /* Placeholder for the trust row while /api/stats is in flight. It has
+           the same footprint as the real avatar row and text line, so the hero
+           does not jump when the data arrives. Pure CSS: no extra request. */
+        .social-proof-skeleton-line {
+            display: block;
+            width: 230px;
+            max-width: 70vw;
+            height: 12px;
+            margin: 0 auto;
+        }
+
+        .avatar-skeleton {
+            display: inline-block;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 2px solid var(--surface);
+            margin-left: -8px;
+            box-sizing: border-box;
+        }
+
+        /* Compact link under the social-proof copy. */
+        .social-proof-link {
+            font-size: var(--text-xs);
             font-weight: 600;
             color: var(--accent);
             text-decoration: none;
         }
 
-        .community-explore:hover {
+        .social-proof-link:hover {
             color: var(--accent-hover);
             text-decoration: underline;
         }
@@ -1193,8 +1181,6 @@
             .hero h1 { font-size: var(--text-2xl); }
             .hero .subheadline { font-size: var(--text-lg); }
             .hero-actions { margin-bottom: var(--space-3); }
-            .community-proof { margin-top: var(--space-5); }
-            .member-chip { padding-right: var(--space-2); }
         }
     </style>
 </head>
@@ -1246,16 +1232,12 @@
             </div>
             <p class="hero-note">No account needed to browse &mdash; you&rsquo;ll sign in when you post.</p>
 
-            <section class="community-proof" id="community-proof" aria-busy="true" aria-labelledby="community-proof-title">
-                <h2 class="community-proof-title" id="community-proof-title">Real people. Real things being built.</h2>
-                <p class="community-proof-sub">Meet builders sharing their projects and helping each other improve.</p>
-                <ul class="member-row" id="member-row" aria-label="Critique members">
-                    <li class="member-chip member-chip-skeleton" aria-hidden="true"><span class="member-avatar skeleton"></span><span class="member-name skeleton"></span></li>
-                    <li class="member-chip member-chip-skeleton" aria-hidden="true"><span class="member-avatar skeleton"></span><span class="member-name skeleton"></span></li>
-                    <li class="member-chip member-chip-skeleton" aria-hidden="true"><span class="member-avatar skeleton"></span><span class="member-name skeleton"></span></li>
-                </ul>
-                <a class="community-explore" href="/discover">Explore their projects &rarr;</a>
-            </section>
+            <div class="social-proof" id="social-proof" aria-busy="true">
+                <div class="avatar-stack" id="avatar-stack" aria-hidden="true"><span class="avatar-skeleton skeleton"></span><span class="avatar-skeleton skeleton"></span><span class="avatar-skeleton skeleton"></span><span class="avatar-skeleton skeleton"></span></div>
+                <p class="social-proof-text" id="social-proof-text">Real builders. Real projects. Honest feedback.</p>
+                <p class="social-proof-sub">Discover what people are building and help each other make it better.</p>
+                <a class="social-proof-link" href="/discover">Explore their projects &rarr;</a>
+            </div>
         </section>
 
         <section class="stats-grid" id="real-activity" style="display:none;">
@@ -2082,32 +2064,8 @@
             }
         }
 
-        // A member is worth showing only when we have a real, public identity:
-        // a GitHub username and a plain https avatar. Email sign-ins carry a
-        // keyed placeholder username (email_...) and no image, so they are
-        // deliberately left out of a row that introduces people by name and
-        // face. Nothing is generated here: no invented names or avatars.
-        function isPublicMember(member) {
-            if (!member || typeof member !== 'object') return false;
-            var username = member.username;
-            if (typeof username !== 'string' || !username) return false;
-            if (username.indexOf('email_') === 0) return false;
-            return isSafeAvatarSrc(member.avatar_url);
-        }
-
-        function publicMembers(data) {
-            // `public_members` is the explicit list from /api/stats. If an
-            // older response only carries `builders`, filtering it yields the
-            // same honest subset instead of showing placeholders.
-            var source = Array.isArray(data.public_members)
-                ? data.public_members
-                : (Array.isArray(data.builders) ? data.builders : []);
-            return source.filter(isPublicMember);
-        }
-
         async function loadSocialProof() {
-            const proofContainer = document.getElementById('community-proof');
-            const memberRow = document.getElementById('member-row');
+            const proofContainer = document.getElementById('social-proof');
             let resolved = false;
             try {
                 const response = await fetch('/api/stats');
@@ -2115,28 +2073,24 @@
                 const data = await response.json();
                 resolved = true;
 
-                // A small row of genuine, publicly identifiable members. Six
-                // is the ceiling; if fewer exist we show only those, and if
-                // none exist we show none -- never a placeholder person.
-                const members = publicMembers(data).slice(0, 6);
-                if (members.length) {
-                    memberRow.innerHTML = members.map(function(m) {
-                        return '<li class="member-chip">' +
-                            '<span class="member-avatar" aria-hidden="true">' +
-                            '<img src="' + escapeHtml(m.avatar_url) + '" alt="" width="26" height="26" loading="lazy" decoding="async">' +
-                            '</span>' +
-                            '<span class="member-name">@' + escapeHtml(m.username) + '</span>' +
-                            '</li>';
-                    }).join('');
-                    memberRow.hidden = false;
-                    proofContainer.style.display = 'flex';
-                } else {
-                    // Never fill the gap with invented people: with nobody to
-                    // introduce, the whole section stays out of the page.
-                    memberRow.innerHTML = '';
-                    memberRow.hidden = true;
-                    proofContainer.style.display = 'none';
-                }
+                const avatarStack = document.getElementById('avatar-stack');
+
+                // Only real, publicly displayable avatars are shown. Synthetic
+                // email accounts carry no image and are skipped rather than
+                // rendered as generated placeholders presented as people.
+                let avatarsHtml = '';
+                const shown = (data.builders || []).slice(0, 4);
+                shown.forEach(function(b) {
+                    var avatarUrl = b.avatar_url;
+                    if (avatarUrl && isSafeAvatarSrc(avatarUrl)) {
+                        avatarsHtml += '<img src="' + escapeHtml(avatarUrl) + '" alt="" width="32" height="32" decoding="async">';
+                    }
+                });
+                avatarStack.innerHTML = avatarsHtml;
+
+                // Nothing to show yet: hide the row, exactly as it behaved
+                // before the placeholder existed.
+                proofContainer.style.display = avatarsHtml ? 'flex' : 'none';
 
                 const statProjects = document.getElementById('stat-projects');
                 if (statProjects) statProjects.textContent = data.total_projects || 0;
@@ -2149,18 +2103,13 @@
                     realActivity.style.display = (data.total_projects || 0) > 0 ? 'grid' : 'none';
                 }
             } catch (e) {
-                // Silently fail - community proof is enhancement
+                // Silently fail - social proof is enhancement
             } finally {
                 // A placeholder must never be the final state: on success the
-                // real members are rendered, otherwise the row is emptied and
-                // the section is hidden rather than left as grey blocks.
-                if (memberRow && !resolved) {
-                    memberRow.innerHTML = '';
-                    memberRow.hidden = true;
-                }
-                if (proofContainer) {
-                    if (!resolved) proofContainer.style.display = 'none';
-                    proofContainer.setAttribute('aria-busy', 'false');
+                // real row is in place, otherwise the block is hidden.
+                proofContainer.setAttribute('aria-busy', 'false');
+                if (!resolved) {
+                    proofContainer.style.display = 'none';
                 }
             }
         }
