@@ -164,6 +164,31 @@ def test_stats_avatar_list_never_claims_more_users_than_exist(db):
         db.commit()
 
 
+def test_total_builders_counts_github_and_email_registrations(db):
+    """The social-proof count is the number of unique registered accounts:
+    both GitHub OAuth and email magic-link sign-ups, with no avatar dependence."""
+    gh = User(
+        github_id=_unique_github_id(),
+        username=_unique_username("gh_count_"),
+        avatar_url="https://avatars.githubusercontent.com/u/1?v=4",
+    )
+    email = User(username=_unique_username("email_count_"), avatar_url=None)
+    db.add_all([gh, email])
+    db.commit()
+    try:
+        body = client.get("/api/stats").json()
+        # Count is independent of how many avatars are visible.
+        assert body["total_builders"] >= 2
+        # Both registration types are present in the recent-builders list.
+        names = {b["username"] for b in body["builders"]}
+        assert gh.username in names
+        assert email.username in names
+    finally:
+        db.delete(gh)
+        db.delete(email)
+        db.commit()
+
+
 # ---------------------------------------------------------------------------
 # Named public members (the homepage community row)
 # ---------------------------------------------------------------------------

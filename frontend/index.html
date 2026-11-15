@@ -184,6 +184,23 @@
             box-sizing: border-box;
         }
 
+        /* "+N" bubble for builders who are not pictured. */
+        .avatar-stack .avatar-more {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            margin-left: -8px;
+            box-sizing: border-box;
+            border-radius: 50%;
+            border: 2px solid var(--surface);
+            background: var(--surface-muted);
+            color: var(--text-secondary);
+            font-size: 11px;
+            font-weight: 600;
+        }
+
         /* Compact link under the social-proof copy. */
         .social-proof-link {
             font-size: var(--text-xs);
@@ -1234,9 +1251,9 @@
 
             <div class="social-proof" id="social-proof" aria-busy="true">
                 <div class="avatar-stack" id="avatar-stack" aria-hidden="true"><span class="avatar-skeleton skeleton"></span><span class="avatar-skeleton skeleton"></span><span class="avatar-skeleton skeleton"></span><span class="avatar-skeleton skeleton"></span></div>
-                <p class="social-proof-text" id="social-proof-text">Real builders. Real projects. Honest feedback.</p>
-                <p class="social-proof-sub">Discover what people are building and help each other make it better.</p>
-                <a class="social-proof-link" href="/discover">Explore their projects &rarr;</a>
+                <p class="social-proof-text" id="social-proof-text"><span class="skeleton social-proof-skeleton-line"></span></p>
+                <p class="social-proof-sub" id="social-proof-sub"></p>
+                <a class="social-proof-link" id="social-proof-link" href="/discover" style="display:none">Explore their projects &rarr;</a>
             </div>
         </section>
 
@@ -2066,6 +2083,10 @@
 
         async function loadSocialProof() {
             const proofContainer = document.getElementById('social-proof');
+            const avatarStack = document.getElementById('avatar-stack');
+            const proofText = document.getElementById('social-proof-text');
+            const proofSub = document.getElementById('social-proof-sub');
+            const proofLink = document.getElementById('social-proof-link');
             let resolved = false;
             try {
                 const response = await fetch('/api/stats');
@@ -2073,24 +2094,51 @@
                 const data = await response.json();
                 resolved = true;
 
-                const avatarStack = document.getElementById('avatar-stack');
+                const total = (typeof data.total_builders === 'number') ? data.total_builders : 0;
+                const stateB = total >= 50;
 
                 // Only real, publicly displayable avatars are shown. Synthetic
                 // email accounts carry no image and are skipped rather than
-                // rendered as generated placeholders presented as people.
+                // rendered as generated placeholders presented as people. The
+                // count never depends on how many avatars are visible.
                 let avatarsHtml = '';
+                let shownCount = 0;
                 const shown = (data.builders || []).slice(0, 4);
                 shown.forEach(function(b) {
                     var avatarUrl = b.avatar_url;
                     if (avatarUrl && isSafeAvatarSrc(avatarUrl)) {
                         avatarsHtml += '<img src="' + escapeHtml(avatarUrl) + '" alt="" width="32" height="32" decoding="async">';
+                        shownCount++;
                     }
                 });
+
+                // STATE B restores the original +N bubble for the users who are
+                // not pictured. +N is based on the real total, not the avatar
+                // count, so it stays accurate even when few avatars are shown.
+                if (stateB) {
+                    const remaining = total - shownCount;
+                    if (remaining > 0) {
+                        avatarsHtml += '<span class="avatar-more">+' + remaining + '</span>';
+                    }
+                }
                 avatarStack.innerHTML = avatarsHtml;
 
-                // Nothing to show yet: hide the row, exactly as it behaved
-                // before the placeholder existed.
-                proofContainer.style.display = avatarsHtml ? 'flex' : 'none';
+                if (stateB) {
+                    proofText.textContent = 'Join ' + total + ' builders already using Critique';
+                    proofSub.textContent = 'Real builders \u00b7 Real projects \u00b7 Human feedback';
+                    if (proofLink) proofLink.style.display = 'none';
+                } else {
+                    proofText.textContent = 'Real builders. Real projects. Honest feedback.';
+                    proofSub.textContent = 'Discover what people are building and help each other make it better.';
+                    if (proofLink) proofLink.style.display = '';
+                }
+
+                // STATE A with no real avatars: hide the row, as before.
+                if (!stateB && shownCount === 0) {
+                    proofContainer.style.display = 'none';
+                } else {
+                    proofContainer.style.display = 'flex';
+                }
 
                 const statProjects = document.getElementById('stat-projects');
                 if (statProjects) statProjects.textContent = data.total_projects || 0;
