@@ -2139,10 +2139,8 @@
                 avatarStack.innerHTML = avatarsHtml;
 
                 const total = data.total_builders || 0;
-                if (total === 1) {
-                    proofText.textContent = 'Join 1+ developers sharing projects and helping each other grow.';
-                } else if (total > 1) {
-                    proofText.textContent = 'Join ' + total + '+ developers sharing projects and helping each other grow.';
+                if (total > 0) {
+                    proofText.textContent = 'Join ' + total + ' members on Critique.';
                 } else {
                     proofText.textContent = 'Be one of the first developers to share a project on Critique';
                 }

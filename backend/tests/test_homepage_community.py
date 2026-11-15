@@ -110,7 +110,7 @@ def test_no_hardcoded_count_in_source():
 
 def test_new_wording_present_in_source():
     src = source()
-    assert "developers sharing projects and helping each other grow." in src
+    assert "members on Critique." in src
     assert "Discover real projects. Share thoughtful feedback. Build better together." in src
 
 
@@ -130,7 +130,7 @@ def test_headline_uses_dynamic_count(tmp_path):
     for total in (1, 2, 14, 49, 50, 65, 100):
         result = load(tmp_path, total)
         text = result["ids"]["social-proof-text"]
-        assert text == f"Join {total}+ developers sharing projects and helping each other grow.", (total, text)
+        assert text == f"Join {total} members on Critique.", (total, text)
 
 
 def test_plus_n_calculation(tmp_path):
