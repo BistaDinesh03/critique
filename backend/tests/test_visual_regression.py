@@ -134,13 +134,11 @@ def test_homepage_screenshot_regression():
                         actual.rename(path)
                         print(f"Created baseline: {path}")
                     else:
-                        actual.unlink(missing_ok=True)
                         raise AssertionError(
                             f"homepage {w}px: missing baseline screenshot {path.name}. "
                             "Run with GENERATE_VISUAL_BASELINES=1 to create it intentionally."
                         )
                 elif result:
-                    actual.unlink(missing_ok=True)
                     raise AssertionError(f"homepage {w}px: {result}")
                 else:
                     actual.unlink(missing_ok=True)
@@ -258,16 +256,35 @@ def _auth_snapshot(page, state, width):
             actual.replace(path)
             print(f"Created baseline: {path}")
         else:
-            actual.unlink(missing_ok=True)
             raise AssertionError(
                 f"{state} {width}px: missing baseline screenshot {path.name}. "
                 "Run with GENERATE_VISUAL_BASELINES=1 to create it intentionally."
             )
     elif result:
-        actual.unlink(missing_ok=True)
         raise AssertionError(f"{state} {width}px: {result}")
     else:
         actual.unlink(missing_ok=True)
+
+
+def test_auth_snapshot_keeps_failed_image_for_ci_artifacts(tmp_path, monkeypatch):
+    monkeypatch.setattr(sys.modules[__name__], "BASELINE_DIR", tmp_path)
+    monkeypatch.setattr(
+        sys.modules[__name__],
+        "_compare_images",
+        lambda *_: "diff_ratio 1.0 > 0.15",
+    )
+
+    class FakePage:
+        def evaluate(self, _script):
+            return False
+
+        def screenshot(self, *, path, **_kwargs):
+            Path(path).write_bytes(b"actual screenshot")
+
+    with pytest.raises(AssertionError, match="diff_ratio 1.0"):
+        _auth_snapshot(FakePage(), "email_recovered", 496)
+
+    assert (tmp_path / "auth_email_recovered_496_actual.png").exists()
 
 
 @pytest.mark.parametrize("width", VIEWPORTS)
