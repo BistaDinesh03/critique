@@ -59,6 +59,124 @@ function detachChildren(el) {
 // field), so the harness records it instead of throwing the call away.
 let focusedElement = null;
 
+// ------------------------------------------------------------------
+// innerHTML hydration
+//
+// Assigning innerHTML parses the markup far enough to make the created
+// elements real children: ids are registered, classes are set, and
+// void tags are honoured. That is what lets document.getElementById and
+// querySelectorAll('input, textarea, button') see the markup a page
+// built (issue #238) instead of fabricating answers that always succeed.
+// ------------------------------------------------------------------
+let harnessElements = null;
+
+const VOID_TAGS = new Set(['img', 'br', 'hr', 'meta', 'link', 'input']);
+
+function matchesSimpleSelector(el, part) {
+  if (!el) return false;
+  if (part.startsWith('.')) {
+    return !!(el.classList && el.classList.contains(part.slice(1)));
+  }
+  if (part.startsWith('#')) {
+    return el.id === part.slice(1);
+  }
+  return (
+    el.tagName &&
+    el.tagName.toLowerCase() === part.toLowerCase()
+  );
+}
+
+function queryHydrated(scope, selector) {
+  const out = [];
+  const parts = String(selector || '')
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (!parts.length) return out;
+  const walk = (node) => {
+    (node.children || []).forEach((child) => {
+      for (const part of parts) {
+        if (matchesSimpleSelector(child, part)) {
+          if (out.indexOf(child) === -1) out.push(child);
+          break;
+        }
+      }
+      walk(child);
+    });
+  };
+  if (scope) walk(scope);
+  return out;
+}
+
+function hydrateElement(parent, html) {
+  const source = String(html || '');
+  if (!source) return;
+  const stack = [parent];
+  const tagRe = /<(\/?)([a-zA-Z][a-zA-Z0-9-]*)([^<>]*)>/g;
+  let m;
+  while ((m = tagRe.exec(source)) !== null) {
+    const closing = m[1] === '/';
+    const tagName = m[2].toLowerCase();
+    const attrText = m[3] || '';
+    if (closing) {
+      // Pop back to the matching open tag; ignore unmatched closers.
+      for (let i = stack.length - 1; i > 0; i -= 1) {
+        if (stack[i].tagName && stack[i].tagName.toLowerCase() === tagName) {
+          stack.length = i;
+          break;
+        }
+      }
+      continue;
+    }
+    const child = makeElement(tagName);
+    const attrRe =
+      /([a-zA-Z-][a-zA-Z0-9-]*)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g;
+    let attr;
+    while ((attr = attrRe.exec(attrText)) !== null) {
+      const name = attr[1].toLowerCase();
+      const value =
+        attr[2] !== undefined
+          ? attr[2]
+          : attr[3] !== undefined
+            ? attr[3]
+            : attr[4] !== undefined
+              ? attr[4]
+              : '';
+      if (name === 'id') {
+        child.id = value || '';
+        if (value && harnessElements) {
+          // A hydrated element is the real thing: prefer it if a test asked
+          // for this id before the markup was parsed.
+          harnessElements.set(value, child);
+        }
+      } else if (name === 'class') {
+        child.className = value;
+      } else if (name === 'disabled') {
+        child.disabled = true;
+      } else if (name === 'checked') {
+        child.checked = true;
+      } else if (name === 'value') {
+        child.value = value;
+      } else if (name === 'name') {
+        child.name = value;
+      } else if (name === 'placeholder') {
+        child.placeholder = value;
+      } else if (name === 'type') {
+        child.type = value;
+      } else if (name === 'maxlength') {
+        child.maxLength = Number(value) || 0;
+      } else {
+        child.setAttribute(name, value);
+      }
+    }
+    const stackTop = stack[stack.length - 1];
+    stackTop.appendChild(child);
+    if (!VOID_TAGS.has(tagName) && !/\/\s*>$/.test(m[0])) {
+      stack.push(child);
+    }
+  }
+}
+
 function makeElement(tagName, created) {
   const state = { html: null, text: '' };
   // Classes are real state: pages open and close UI by toggling a class (the
@@ -171,11 +289,12 @@ function makeElement(tagName, created) {
     dispatchEvent() {
       return true;
     },
-    querySelector() {
-      return null;
+    querySelector(sel) {
+      const found = queryHydrated(el, sel);
+      return found.length ? found[0] : null;
     },
-    querySelectorAll() {
-      return [];
+    querySelectorAll(sel) {
+      return queryHydrated(el, sel);
     },
     focus() { focusedElement = el; },
     blur() {},
@@ -216,6 +335,7 @@ function makeElement(tagName, created) {
         // children, so the old ones leave the document (their click targets are
         // detached by the time outer listeners run).
         detachChildren(el);
+        hydrateElement(el, state.html);
       },
     },
     textContent: {
@@ -362,6 +482,7 @@ async function main() {
   const errors = [];
   const created = [];
   const elements = new Map();
+  harnessElements = elements;
 
   const documentHandlers = [];
 
@@ -415,20 +536,32 @@ async function main() {
     querySelector(sel) {
       // Narrow but real: the only attribute selectors any page uses are on the
       // feedback form's radios, whose group state has no element object here.
-      // Every other selector keeps the old not-found behaviour.
       const m = /^input\[name="([^"]+)"\](?:\[value="([^"]*)"\])?(:checked)?$/.exec(String(sel || ''));
-      if (!m) return null;
-      const name = m[1];
-      const value = m[2];
-      if (m[3] === ':checked') {
-        if (!checkedInputs.has(name)) return null;
-        return inputProxy(name, checkedInputs.get(name));
+      if (m) {
+        const name = m[1];
+        const value = m[2];
+        if (m[3] === ':checked') {
+          if (!checkedInputs.has(name)) return null;
+          return inputProxy(name, checkedInputs.get(name));
+        }
+        if (value !== undefined) return inputProxy(name, value);
+        return checkedInputs.has(name) ? inputProxy(name, checkedInputs.get(name)) : null;
       }
-      if (value !== undefined) return inputProxy(name, value);
-      return checkedInputs.has(name) ? inputProxy(name, checkedInputs.get(name)) : null;
+      const found = documentStub.body ? queryHydrated(documentStub.body, sel) : [];
+      return found.length ? found[0] : null;
     },
-    querySelectorAll() {
-      return [];
+    querySelectorAll(sel) {
+      const m = /^input\[name="([^"]+)"\](?:\[value="([^"]*)"\])?(:checked)?$/.exec(String(sel || ''));
+      if (m) {
+        const name = m[1];
+        const value = m[2];
+        if (m[3] === ':checked') {
+          return checkedInputs.has(name) ? [inputProxy(name, checkedInputs.get(name))] : [];
+        }
+        if (value !== undefined) return [inputProxy(name, value)];
+        return checkedInputs.has(name) ? [inputProxy(name, checkedInputs.get(name))] : [];
+      }
+      return documentStub.body ? queryHydrated(documentStub.body, sel) : [];
     },
     addEventListener(type, fn) {
       documentHandlers.push({ type, fn });

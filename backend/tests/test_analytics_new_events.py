@@ -16,9 +16,14 @@ from app.rate_limit import reset_rate_limits
 def cleanup_database():
     db = SessionLocal()
     try:
+        # Delete in dependency order so foreign keys can be enforced.
+        from app.models import AnalyticsEvent, ProjectView, Question, Response
         db.query(AnalyticsEvent).delete()
-        db.query(User).delete()
+        db.query(ProjectView).delete()
+        db.query(Response).delete()
+        db.query(Question).delete()
         db.query(Project).delete()
+        db.query(User).delete()
         db.commit()
     finally:
         db.close()
@@ -38,7 +43,7 @@ def test_feedback_submit_attempt_accepted():
     cleanup_database()
     client = TestClient(app)
 
-    r = _post_event(client, "feedback_submit_attempt", project_id=1)
+    r = _post_event(client, "feedback_submit_attempt")
     assert r.status_code == 200
     assert r.json()["ok"] is True
 
@@ -56,7 +61,7 @@ def test_feedback_submit_error_accepted():
     cleanup_database()
     client = TestClient(app)
 
-    r = _post_event(client, "feedback_submit_error", project_id=1)
+    r = _post_event(client, "feedback_submit_error")
     assert r.status_code == 200
     assert r.json()["ok"] is True
 
@@ -82,7 +87,7 @@ def test_new_auth_events_accepted():
         "email_verification_success",
     ]
     for n in names:
-        r = _post_event(client, n, project_id=1)
+        r = _post_event(client, n)
         assert r.status_code == 200, f"{n} was rejected"
         assert r.json()["ok"] is True
 
@@ -106,7 +111,7 @@ def test_feedback_form_viewed_accepted():
     cleanup_database()
     client = TestClient(app)
 
-    r = _post_event(client, "feedback_form_viewed", project_id=1)
+    r = _post_event(client, "feedback_form_viewed")
     assert r.status_code == 200, f"{r.status_code}: {r.text}"
     assert r.json()["ok"] is True
 
