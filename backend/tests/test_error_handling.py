@@ -1,4 +1,4 @@
-﻿"""Error handling regressions (frontend harness).
+"""Error handling regressions (frontend harness).
 
 Covers the #296-class bug: raw browser exception text must never be
 rendered into the DOM, and the draft must survive a network failure.

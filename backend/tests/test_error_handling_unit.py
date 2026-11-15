@@ -1,4 +1,4 @@
-﻿"""Error handling regressions (no DOM / Node needed).
+"""Error handling regressions (no DOM / Node needed).
 
 Covers backend surfaces that must never expose internal details or raw
 exception text to production visitors.
