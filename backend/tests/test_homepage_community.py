@@ -29,7 +29,7 @@ pytestmark = [
 
 STATE_A_PRIMARY = "Real builders. Real projects. Honest feedback."
 STATE_A_SUPPORTING = "Discover what people are building and help each other make it better."
-STATE_B_HEADLINE = "Join {n} builders already using Critique"
+STATE_B_HEADLINE = "Join {n} members already on Critique"
 STATE_B_SUPPORTING = "Real builders \u00b7 Real projects \u00b7 Human feedback"
 
 GITHUB_1 = "https://avatars.githubusercontent.com/u/109844087?v=4"
@@ -171,7 +171,7 @@ def test_state_b_headline_and_supporting_copy(tmp_path):
         text = result["ids"]["social-proof-text"]
         sub = result["ids"]["social-proof-sub"]
 
-        assert text == f"Join {total} builders already using Critique", (total, text)
+        assert text == f"Join {total} members already on Critique", (total, text)
         assert sub == STATE_B_SUPPORTING, (total, sub)
 
 
@@ -225,7 +225,7 @@ def test_threshold_boundary_49_vs_50(tmp_path):
     assert r49["ids"]["social-proof-text"] == STATE_A_PRIMARY
     assert "avatar-more" not in r49["ids"]["avatar-stack"]
 
-    assert r50["ids"]["social-proof-text"] == "Join 50 builders already using Critique"
+    assert r50["ids"]["social-proof-text"] == "Join 50 members already on Critique"
     assert "avatar-more" in r50["ids"]["avatar-stack"]
 
 
