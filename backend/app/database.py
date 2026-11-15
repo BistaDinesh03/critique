@@ -1,6 +1,6 @@
 import os
 from contextlib import contextmanager
-from sqlalchemy import create_engine, inspect, text
+from sqlalchemy import create_engine, event, inspect, text
 from sqlalchemy.orm import sessionmaker, declarative_base
 from app.config import settings
 
@@ -24,6 +24,12 @@ if settings.DATABASE_URL.startswith("sqlite"):
         settings.DATABASE_URL,
         **get_engine_kwargs(settings.DATABASE_URL),
     )
+
+    @event.listens_for(engine, "connect")
+    def _enable_sqlite_foreign_keys(dbapi_conn, connection_record):
+        cursor = dbapi_conn.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
 else:
     engine = create_engine(
         settings.DATABASE_URL,
