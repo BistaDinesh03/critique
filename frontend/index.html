@@ -201,19 +201,6 @@
             font-weight: 600;
         }
 
-        /* Compact link under the social-proof copy. */
-        .social-proof-link {
-            font-size: var(--text-xs);
-            font-weight: 600;
-            color: var(--accent);
-            text-decoration: none;
-        }
-
-        .social-proof-link:hover {
-            color: var(--accent-hover);
-            text-decoration: underline;
-        }
-
         .trust-row {
             display: flex;
             gap: var(--space-6);
@@ -1252,8 +1239,9 @@
             <div class="social-proof" id="social-proof" aria-busy="true">
                 <div class="avatar-stack" id="avatar-stack" aria-hidden="true"><span class="avatar-skeleton skeleton"></span><span class="avatar-skeleton skeleton"></span><span class="avatar-skeleton skeleton"></span><span class="avatar-skeleton skeleton"></span></div>
                 <p class="social-proof-text" id="social-proof-text"><span class="skeleton social-proof-skeleton-line"></span></p>
-                <p class="social-proof-sub" id="social-proof-sub"></p>
-                <a class="social-proof-link" id="social-proof-link" href="/discover" style="display:none">Explore their projects &rarr;</a>
+                <p class="social-proof-sub">
+                    Discover real projects. Share thoughtful feedback. Build better together.
+                </p>
             </div>
         </section>
 
@@ -2081,12 +2069,48 @@
             }
         }
 
+        // Deterministic local avatar for builders without an image (email
+        // sign-ins). Generated in-page: no external avatar service, nothing
+        // derived from an email address, and stable across page loads.
+        function fallbackAvatarSeed(value) {
+            var str = String(value || '');
+            var hash = 2166136261;
+            for (var i = 0; i < str.length; i++) {
+                hash ^= str.charCodeAt(i);
+                hash = Math.imul(hash, 16777619);
+            }
+            return hash >>> 0;
+        }
+
+        function fallbackAvatarSvg(seedValue) {
+            var palette = ['#2563eb', '#0f766e', '#7c3aed', '#b45309', '#0369a1', '#15803d'];
+            var state = (fallbackAvatarSeed(seedValue) | 1) >>> 0;
+            function next() {
+                state = (state + 0x6D2B79F5) >>> 0;
+                var t = state;
+                t = Math.imul(t ^ (t >>> 15), t | 1);
+                t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+                return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+            }
+            var fill = palette[Math.floor(next() * palette.length)];
+            var cells = '';
+            for (var row = 0; row < 5; row++) {
+                for (var col = 0; col < 3; col++) {
+                    if (next() < 0.45) {
+                        cells += '<rect x="' + col + '" y="' + row + '" width="1" height="1"/>';
+                        if (col < 2) {
+                            cells += '<rect x="' + (4 - col) + '" y="' + row + '" width="1" height="1"/>';
+                        }
+                    }
+                }
+            }
+            return '<svg viewBox="0 0 5 5" width="32" height="32" focusable="false" aria-hidden="true">' +
+                '<rect width="5" height="5" fill="#eef2f7"/>' +
+                '<g fill="' + fill + '">' + cells + '</g></svg>';
+        }
+
         async function loadSocialProof() {
             const proofContainer = document.getElementById('social-proof');
-            const avatarStack = document.getElementById('avatar-stack');
-            const proofText = document.getElementById('social-proof-text');
-            const proofSub = document.getElementById('social-proof-sub');
-            const proofLink = document.getElementById('social-proof-link');
             let resolved = false;
             try {
                 const response = await fetch('/api/stats');
@@ -2094,51 +2118,34 @@
                 const data = await response.json();
                 resolved = true;
 
-                const total = (typeof data.total_builders === 'number') ? data.total_builders : 0;
-                const stateB = total >= 50;
+                const avatarStack = document.getElementById('avatar-stack');
+                const proofText = document.getElementById('social-proof-text');
 
-                // Only real, publicly displayable avatars are shown. Synthetic
-                // email accounts carry no image and are skipped rather than
-                // rendered as generated placeholders presented as people. The
-                // count never depends on how many avatars are visible.
                 let avatarsHtml = '';
-                let shownCount = 0;
                 const shown = (data.builders || []).slice(0, 4);
                 shown.forEach(function(b) {
                     var avatarUrl = b.avatar_url;
+                    var seedValue = b.username || '';
                     if (avatarUrl && isSafeAvatarSrc(avatarUrl)) {
                         avatarsHtml += '<img src="' + escapeHtml(avatarUrl) + '" alt="" width="32" height="32" decoding="async">';
-                        shownCount++;
+                    } else {
+                        avatarsHtml += '<span class="avatar-fallback">' + fallbackAvatarSvg(seedValue) + '</span>';
                     }
                 });
-
-                // STATE B restores the original +N bubble for the users who are
-                // not pictured. +N is based on the real total, not the avatar
-                // count, so it stays accurate even when few avatars are shown.
-                if (stateB) {
-                    const remaining = total - shownCount;
-                    if (remaining > 0) {
-                        avatarsHtml += '<span class="avatar-more">+' + remaining + '</span>';
-                    }
+                const remaining = (data.total_builders || 0) - shown.length;
+                if (remaining > 0) {
+                    avatarsHtml += '<span class="avatar-more">+' + remaining + '</span>';
                 }
                 avatarStack.innerHTML = avatarsHtml;
 
-                if (stateB) {
-                    proofText.textContent = 'Join ' + total + ' members already on Critique';
-                    proofSub.textContent = 'Real builders \u00b7 Real projects \u00b7 Human feedback';
-                    if (proofLink) proofLink.style.display = 'none';
+                const total = data.total_builders || 0;
+                if (total > 0) {
+                    proofText.textContent = 'Join ' + total + ' members on Critique.';
                 } else {
-                    proofText.textContent = 'Real builders. Real projects. Honest feedback.';
-                    proofSub.textContent = 'Discover what people are building and help each other make it better.';
-                    if (proofLink) proofLink.style.display = '';
+                    proofText.textContent = 'Be one of the first developers to share a project on Critique';
                 }
 
-                // STATE A with no real avatars: hide the row, as before.
-                if (!stateB && shownCount === 0) {
-                    proofContainer.style.display = 'none';
-                } else {
-                    proofContainer.style.display = 'flex';
-                }
+                proofContainer.style.display = total > 0 ? 'flex' : 'none';
 
                 const statProjects = document.getElementById('stat-projects');
                 if (statProjects) statProjects.textContent = data.total_projects || 0;
@@ -2153,14 +2160,13 @@
             } catch (e) {
                 // Silently fail - social proof is enhancement
             } finally {
-                // A placeholder must never be the final state: on success the
-                // real row is in place, otherwise the block is hidden.
                 proofContainer.setAttribute('aria-busy', 'false');
                 if (!resolved) {
                     proofContainer.style.display = 'none';
                 }
             }
         }
+
     </script>
     <script src="/static/ui.js"></script>
     <script src="/static/analytics.js"></script>
