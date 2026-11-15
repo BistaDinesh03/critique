@@ -406,6 +406,12 @@ function makeFetch(routes) {
     // A route can also be a list of responses consumed in order, which models
     // a first send followed by a rejected resend.
     if (Array.isArray(spec)) spec = spec.length > 1 ? spec.shift() : spec[0];
+    // A scenario may simulate the server never being reached (offline, DNS
+    // failure, browser refusing the request) with a rejected promise.
+    if (spec && spec.networkError) {
+      const error = new Error(spec.message || 'Failed to fetch');
+      return Promise.reject(error);
+    }
     // A scenario can leave a request in flight to observe the sending state.
     if (spec.pending) return new Promise(() => {});
     const status = spec.status || 200;
