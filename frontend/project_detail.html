@@ -1022,7 +1022,7 @@
                 msg.className = 'alert alert-error';
                 msg.setAttribute('role', 'alert');
                 saveFeedbackDraft();
-                msg.textContent = 'Network error: ' + e.message;
+                msg.textContent = 'Network error. Your answers are saved — please try again.';
             } finally {
                 if (!finished && !gated) {
                     btn.disabled = false;
