@@ -349,7 +349,7 @@ Critique está diseñado pensando en la seguridad y la privacidad:
 | **Comentarios escritos privados** | Las sugerencias se devuelven solo al dueño del proyecto |
 | **Manejo seguro de redirecciones** | Los valores `return_to` del inicio de sesión se validan contra una lista de rutas locales |
 | **Secretos por entorno** | Las credenciales provienen de variables de entorno y nunca se guardan en el repositorio |
-| **Analítica mínima** | Eventos validados contra una lista permitida en el servidor; sin scripts de terceros; sin direcciones IP en bruto (solo hashes SHA-256 para detectar duplicados) |
+| **Analítica mínima** | Eventos validados contra una lista permitida en el servidor; sin scripts de terceros; sin direcciones IP en bruto (solo resúmenes HMAC-SHA-256 con clave para detectar duplicados, estables mientras no cambie `SECRET_KEY`) |
 
 [SECURITY.md](SECURITY.md) enumera el comportamiento completo y explica cómo
 reportar una vulnerabilidad.

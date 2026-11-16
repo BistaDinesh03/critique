@@ -163,10 +163,36 @@ def test_project_without_a_question_reports_zero():
     assert ">0</text>" in response.text
 
 
-def test_format_count_abbreviates_large_numbers():
-    """1000 and above render as 1k+ so the badge keeps a fixed width."""
+def test_format_count_renders_exact_numbers_below_a_thousand():
     assert format_count(0) == "0"
     assert format_count(1) == "1"
     assert format_count(999) == "999"
-    assert format_count(1000) == "1k+"
-    assert format_count(5000) == "1k+"
+
+
+def test_format_count_shows_one_decimal_in_k_up_to_ten_thousand():
+    assert format_count(1000) == "1k"
+    assert format_count(1050) == "1.1k"
+    assert format_count(1950) == "1.9k"
+    assert format_count(5000) == "5k"
+    assert format_count(9999) == "10k"
+
+
+def test_format_count_shows_whole_thousands_up_to_a_million():
+    assert format_count(10_000) == "10k"
+    assert format_count(12_345) == "12k"
+    assert format_count(99_999) == "99k"
+    assert format_count(999_999) == "999k"
+
+
+def test_format_count_shows_millions():
+    assert format_count(1_000_000) == "1m"
+    assert format_count(1_250_000) == "1.2m"
+
+
+def test_badge_formats_thousands_in_the_svg():
+    with badge_for_existing_project(response_count=1000) as project_id:
+        response = get_badge(project_id)
+
+    assert response.status_code == 200
+    assert ">1k</text>" in response.text
+    assert ">1k+</text>" not in response.text

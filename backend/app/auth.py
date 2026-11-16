@@ -1,8 +1,9 @@
-﻿import httpx
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.responses import RedirectResponse, JSONResponse
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from app.config import settings
 from app.database import get_db
 from app.models import User
@@ -70,6 +71,12 @@ def _email_cooldown_check_and_set(normalized_email: str) -> bool:
     _EMAIL_COOLDOWN[normalized_email] = now
     _EMAIL_COOLDOWN.move_to_end(normalized_email)
     return False
+
+
+def _clear_email_cooldown(normalized_email: str) -> None:
+    """Clear cooldown entry for an address when email send failed (fixes #314)."""
+    _EMAIL_COOLDOWN.pop(normalized_email, None)
+
 
 serializer = URLSafeTimedSerializer(settings.SECRET_KEY, salt="session")
 
@@ -274,6 +281,15 @@ def github_login(
 # consent screen. There is no flash-message system, so the callback reports the
 # outcome through the query string and the homepage turns it into a banner.
 AUTH_CANCELLED_INDICATOR = "/?auth=cancelled"
+AUTH_EXPIRED_INDICATOR = "/?auth=expired"
+
+
+def _oauth_expired_response() -> RedirectResponse:
+    """Friendly outcome for an expired, invalid, or replayed OAuth state."""
+    response = RedirectResponse(AUTH_EXPIRED_INDICATOR, status_code=302)
+    response.delete_cookie(RETURN_TO_COOKIE_NAME)
+    response.delete_cookie(OAUTH_STATE_COOKIE_NAME)
+    return response
 
 
 def _oauth_cancelled_response(remaining: list) -> RedirectResponse:
@@ -318,6 +334,9 @@ async def github_callback(
     # forged, or replayed states are rejected outright.
     pending = _load_pending_states(request.cookies.get(OAUTH_STATE_COOKIE_NAME))
     if not _state_is_valid(pending, state):
+        accept = request.headers.get("accept", "")
+        if "text/html" in accept:
+            return _oauth_expired_response()
         raise HTTPException(status_code=400, detail="Invalid or missing OAuth state")
 
     # Single-use: this state is dropped from the browser's pending list on the
@@ -332,34 +351,41 @@ async def github_callback(
     if error or not code:
         return _oauth_cancelled_response(remaining)
 
-    async with httpx.AsyncClient() as client:
-        token_response = await client.post(
-            "https://github.com/login/oauth/access_token",
-            json={
-                "client_id": settings.GITHUB_CLIENT_ID,
-                "client_secret": settings.GITHUB_CLIENT_SECRET,
-                "code": code,
-                "redirect_uri": settings.GITHUB_REDIRECT_URI,
-            },
-            headers={"Accept": "application/json"},
+    def _auth_failed():
+        failure = JSONResponse(
+            status_code=400, content={"detail": "GitHub authentication failed"}
         )
-        token_data = token_response.json()
-        access_token = token_data.get("access_token")
+        _set_pending_states_cookie(failure, remaining)
+        return failure
 
-        if not access_token:
-            # Same status and body as the previous HTTPException, but it also
-            # persists consumption of the accepted state.
-            failure = JSONResponse(
-                status_code=400, content={"detail": "GitHub authentication failed"}
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            token_response = await client.post(
+                "https://github.com/login/oauth/access_token",
+                json={
+                    "client_id": settings.GITHUB_CLIENT_ID,
+                    "client_secret": settings.GITHUB_CLIENT_SECRET,
+                    "code": code,
+                    "redirect_uri": settings.GITHUB_REDIRECT_URI,
+                },
+                headers={"Accept": "application/json"},
             )
-            _set_pending_states_cookie(failure, remaining)
-            return failure
+            token_data = token_response.json()
+            if not isinstance(token_data, dict):
+                return _auth_failed()
+            access_token = token_data.get("access_token")
+            if not access_token:
+                return _auth_failed()
 
-        user_response = await client.get(
-            "https://api.github.com/user",
-            headers={"Authorization": f"Bearer {access_token}"},
-        )
-        github_user = user_response.json()
+            user_response = await client.get(
+                "https://api.github.com/user",
+                headers={"Authorization": f"Bearer {access_token}"},
+            )
+            github_user = user_response.json()
+            if not isinstance(github_user, dict) or "id" not in github_user:
+                return _auth_failed()
+    except (httpx.RequestError, ValueError, KeyError):
+        return _auth_failed()
 
     user = db.query(User).filter(User.github_id == github_user["id"]).first()
     if not user:
@@ -369,8 +395,33 @@ async def github_callback(
             avatar_url=github_user.get("avatar_url"),
         )
         db.add(user)
-        db.commit()
-        db.refresh(user)
+        try:
+            db.commit()
+            db.refresh(user)
+        except IntegrityError:
+            db.rollback()
+            failure = JSONResponse(
+                status_code=400, content={"detail": "GitHub authentication failed"}
+            )
+            _set_pending_states_cookie(failure, remaining)
+            return failure
+    else:
+        new_username = github_user.get("login")
+        new_avatar_url = github_user.get("avatar_url")
+        if new_username and (user.username != new_username or user.avatar_url != new_avatar_url):
+            existing_conflict = (
+                db.query(User)
+                .filter(User.username == new_username, User.id != user.id)
+                .first()
+            )
+            if not existing_conflict:
+                user.username = new_username
+            user.avatar_url = new_avatar_url
+            try:
+                db.commit()
+                db.refresh(user)
+            except IntegrityError:
+                db.rollback()
 
     session_token = create_session_token(user.id)
     csrf_token = generate_csrf_token()
@@ -410,7 +461,7 @@ def logout():
 @router.get("/check")
 def check_auth(user: User = Depends(get_current_user)):
     """Check if the current user is authenticated."""
-    return {"authenticated": True, "username": user.username}
+    return {"authenticated": True, "username": user.username, "id": user.id}
 
 
 @router.get("/csrf-token")
@@ -489,6 +540,7 @@ def email_start(
     if payload.return_to and _is_safe_return_path(payload.return_to):
         return_to = payload.return_to
 
+    sent = False
     if _is_plausible_email(normalized) and not cooldown_active:
         raw_token = secrets.token_urlsafe(32)
         token_hash = _hash_token(raw_token)
@@ -509,17 +561,21 @@ def email_start(
 
         # Send. Failure is swallowed intentionally; the response is identical either way.
         try:
-            send_login_link(normalized, raw_token)
-        except Exception:
-            pass
+            dispatched = send_login_link(normalized, raw_token)
+            if dispatched:
+                sent = True
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning("Failed to send login link to %s: %s", normalized, e)
+            _clear_email_cooldown(normalized)
 
     # Generic response regardless of whether email exists, is valid, or is on cooldown.
-    return {"ok": True}
+    return {"ok": True, "sent": sent}
 
 
 @router.get("/email/verify")
 def email_verify(
-    token: str,
+    token: Optional[str] = None,
     db: Session = Depends(get_db),
     _: None = Depends(rate_limit("email_login_verify")),
 ):
@@ -555,10 +611,11 @@ def email_verify(
     # Find or create the user.
     user = db.query(User).filter(User.email == normalized_email).first()
     if not user:
-        # Synthetic username derived from SHA-256 of normalized email.
+        # Synthetic username derived from HMAC-SHA256 of normalized email keyed with SECRET_KEY.
         # "email_" prefix cannot collide with GitHub logins (GitHub usernames
-        # may only contain alphanumerics and hyphens).
-        synthetic = "email_" + hashlib.sha256(normalized_email.encode("utf-8")).hexdigest()[:16]
+        # may only contain alphanumerics and hyphens). Keyed to prevent account-existence oracles (fixes #199).
+        secret = (settings.SECRET_KEY or "fallback_secret").encode("utf-8")
+        synthetic = "email_" + hmac.new(secret, normalized_email.encode("utf-8"), hashlib.sha256).hexdigest()[:16]
         user = User(
             email=normalized_email,
             username=synthetic,

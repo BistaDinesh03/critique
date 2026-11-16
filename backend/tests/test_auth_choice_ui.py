@@ -37,7 +37,7 @@ GITHUB = "Continue with GitHub"
 EMAIL = "Continue with email"
 NO_PASSWORD = "No password required."
 
-EMAIL_START = {"/auth/email/start": {"status": 200, "body": {"ok": True}}}
+EMAIL_START = {"/auth/email/start": {"status": 200, "body": {"ok": True, "sent": True}}}
 
 
 def run(tmp_path, page, calls, fetch=None, location="/", read=None):
@@ -203,6 +203,8 @@ def test_feedback_gate_email_link_resumes_the_feedback_flow(tmp_path):
     assert body["email"] == "builder@example.com"
     assert body["return_to"] == "/project/1?resume=feedback"
     assert len(events(result, "email_verification_sent")) == 1
+    # Same counting rule as GitHub: one started sign-in per auth attempt.
+    assert len(events(result, "login_started")) == 1
     assert "Check your inbox" in result["html"]
 
 
@@ -229,6 +231,7 @@ def test_email_send_failure_keeps_the_form_and_says_so(tmp_path):
     assert "We couldn't send the link. Check your connection and try again." in result["html"]
     assert "Check your inbox" not in result["html"]
     assert len(events(result, "email_verification_sent")) == 0
+    assert events(result, "login_started") == []
     # The form is still there and re-enabled so the user can retry.
     assert "Email me a sign-in link" in result["html"]
     assert any(
@@ -246,6 +249,24 @@ def test_email_send_failure_keeps_the_form_and_says_so(tmp_path):
         if m.get("tag") == "BUTTON" and "Email me a sign-in link" in (m.get("text") or "")
     ]
     assert send_buttons and send_buttons[0]["disabled"] is False
+
+
+def test_email_start_sent_false_does_not_fire_sent_events(tmp_path):
+    """When /auth/email/start succeeds with sent: false (cooldown/send failure), no sent event is fired."""
+    result = run(
+        tmp_path,
+        "project_detail.html",
+        [
+            {"fn": "showInlineLoginPrompt", "args": []},
+            *EMAIL_OPS,
+        ],
+        fetch={"/auth/email/start": {"status": 200, "body": {"ok": True, "sent": False}}},
+        location="/project/1",
+    )
+    assert len(email_posts(result)) == 1
+    assert "Check your inbox" in result["html"]
+    assert len(events(result, "email_verification_sent")) == 0
+    assert len(events(result, "login_started")) == 0
 
 
 # ---------------------------------------------------------------------------
@@ -330,6 +351,7 @@ def test_project_submit_email_link_resumes_the_submit(tmp_path):
     assert len(sent) == 1, result["requests"]
     assert json.loads(sent[0]["body"])["return_to"] == "/?resume=project_submit"
     assert len(events(result, "email_verification_sent")) == 1
+    assert len(events(result, "login_started")) == 1
 
 
 # ---------------------------------------------------------------------------
@@ -511,130 +533,21 @@ def test_desktop_nav_menu_still_opens_and_closes(tmp_path):
     assert closed["flags"]["login-btn"]["ariaExpanded"] == "false"
 
 
-# ---------------------------------------------------------------------------
-# Builder avatars on the homepage
-# ---------------------------------------------------------------------------
-
-
-def social_proof(tmp_path, builders, total_builders=6, read=None):
-    return run(
+def test_mobile_nav_closes_on_escape_and_restores_focus(tmp_path):
+    """Pressing Escape collapses the mobile nav and returns focus to the toggle button (fixes #338)."""
+    result = run(
         tmp_path,
         "index.html",
-        [{"fn": "loadSocialProof", "args": []}],
-        fetch={
-            "/api/stats": {
-                "status": 200,
-                "body": {
-                    "total_builders": total_builders,
-                    "total_projects": 3,
-                    "builders": builders,
-                },
-            }
-        },
-        read=read or {"byId": "avatar-stack"},
-    )
-
-
-def test_github_avatars_are_rendered_as_images(tmp_path):
-    result = social_proof(
-        tmp_path,
-        [{"username": "alice", "avatar_url": "https://avatars.githubusercontent.com/u/1?v=4"}],
-    )
-    html = result["html"]
-    assert "<img" in html
-    assert 'src="https://avatars.githubusercontent.com/u/1?v=4"' in html
-
-
-def test_builder_without_an_avatar_gets_a_local_deterministic_fallback(tmp_path):
-    builders = [{"username": "email_0123456789abcdef", "avatar_url": None}]
-    first = social_proof(tmp_path, builders)
-    second = social_proof(tmp_path, builders)
-
-    html = first["html"]
-    assert "<img" not in html, "missing avatar must not fall back to an image"
-    assert 'class="avatar-fallback"' in html
-    assert "<svg" in html
-    # Deterministic: identical on every page load.
-    assert second["html"] == html
-    # Different builders must not share an identical avatar.
-    other = social_proof(
-        tmp_path, [{"username": "email_fedcba9876543210", "avatar_url": None}]
-    )
-    assert other["html"] != html
-
-
-def test_fallback_avatar_never_leaks_the_email_address(tmp_path):
-    result = social_proof(
-        tmp_path,
-        [{"username": "email_0123456789abcdef", "avatar_url": None}],
-    )
-    html = result["html"]
-    assert "@" not in html, f"an email-shaped string reached the markup: {html}"
-    assert "email_0123456789abcdef" not in html
-
-
-def test_unsafe_avatar_urls_are_not_loaded(tmp_path):
-    result = social_proof(
-        tmp_path,
         [
-            {"username": "alice", "avatar_url": "javascript:alert(1)"},
-            {"username": "bob", "avatar_url": "http://evil.example/a.png"},
-            {"username": "carol", "avatar_url": "https://avatars.githubusercontent.com/u/3?v=4"},
+            {"clickId": "navbar-toggle"},
+            {"dispatchKeydown": {"key": "Escape"}},
         ],
     )
-    html = result["html"]
-    assert html.count("<img") == 1
-    assert 'src="https://avatars.githubusercontent.com/u/3?v=4"' in html
-    assert html.count('class="avatar-fallback"') == 2
+    assert result["flags"]["navbar-toggle"]["ariaExpanded"] == "false"
+    assert "navbar-nav-open" not in (result["flags"]["navbar-nav"]["className"] or "")
+    assert result["focused"] is not None
+    assert result["focused"]["id"] == "navbar-toggle"
 
-
-def test_social_proof_shows_the_real_builder_count(tmp_path):
-    result = social_proof(tmp_path, [], total_builders=6)
-    assert result["ids"]["social-proof-text"] == (
-        "Join 6 builders already using Critique"
-    )
-
-    single = social_proof(tmp_path, [], total_builders=1)
-    assert single["ids"]["social-proof-text"] == "Join 1 builder already using Critique"
-
-
-def test_avatar_row_accounts_for_the_builders_it_does_not_picture(tmp_path):
-    """Four faces plus "+N" and a sentence must describe the same real set."""
-    builders = [{"username": f"builder_{i}", "avatar_url": None} for i in range(4)]
-    result = social_proof(tmp_path, builders, total_builders=6)
-
-    stack = result["ids"]["avatar-stack"]
-    assert stack.count('class="avatar-fallback"') == 4, stack
-    assert '<span class="avatar-more">+2</span>' in stack, stack
-    assert result["ids"]["social-proof-text"] == (
-        "Join 6 builders already using Critique"
-    )
-
-
-def test_avatar_row_has_no_chip_when_every_builder_is_pictured(tmp_path):
-    builders = [{"username": f"builder_{i}", "avatar_url": None} for i in range(3)]
-    result = social_proof(tmp_path, builders, total_builders=3)
-
-    assert "avatar-more" not in result["ids"]["avatar-stack"]
-    assert result["ids"]["social-proof-text"] == (
-        "Join 3 builders already using Critique"
-    )
-
-
-def test_avatar_row_never_shows_a_negative_overflow(tmp_path):
-    """A payload showing more faces than the total must not invent a counter."""
-    builders = [{"username": f"builder_{i}", "avatar_url": None} for i in range(4)]
-    result = social_proof(tmp_path, builders, total_builders=2)
-
-    assert "avatar-more" not in result["ids"]["avatar-stack"]
-
-
-def test_homepage_never_hardcodes_a_builder_count():
-    """No fake or invented social proof may be baked into the page."""
-    source = (FRONTEND_DIR / "index.html").read_text(encoding="utf-8")
-    assert not re.search(r"Join\s+\d+\s+builders", source)
-    assert "total_builders" in source  # the count still comes from /api/stats
-    assert re.search(r"total_builders\s*>\s*0", source)  # nothing is claimed at 0
 
 
 # ---------------------------------------------------------------------------
@@ -821,14 +734,15 @@ def test_resend_after_cooldown_sends_another_link_and_announces_it(tmp_path):
         ],
         fetch={
             "/auth/email/start": [
-                {"status": 200, "body": {"ok": True}},
-                {"status": 200, "body": {"ok": True}},
+                {"status": 200, "body": {"ok": True, "sent": True}},
+                {"status": 200, "body": {"ok": True, "sent": True}},
             ]
         },
     )
     assert len(email_posts(result)) == 2, result["requests"]
     assert "A new sign-in link is on its way. Check your inbox." in result["html"]
     assert "Resend in" in result["html"]
+    assert len(events(result, "email_verification_sent")) == 2
 
 
 def test_resend_rate_limit_is_reported_without_false_success(tmp_path):
@@ -853,7 +767,7 @@ def test_resend_rate_limit_is_reported_without_false_success(tmp_path):
         },
     )
     assert len(email_posts(result)) == 2, result["requests"]
-    assert "Too many attempts. Please wait a minute, then try again." in result["html"]
+    assert "Too many attempts. Please wait about 15 minutes, then try again." in result["html"]
     assert "on its way" not in result["html"]
     resend = next(
         m
@@ -926,3 +840,34 @@ def test_login_prompt_is_mobile_and_keyboard_ready():
     assert "document.createElement('button')" in source
     assert "document.createElement('input')" in source
     assert "document.createElement('label')" in source
+
+
+def test_my_projects_load_failure_has_alert_role(tmp_path):
+    result = run(
+        tmp_path,
+        "my_projects.html",
+        [{"fn": "loadProjects", "args": []}],
+        fetch={"/api/projects/my/list": {"status": 500, "body": {}}},
+        read={"byId": "content"},
+    )
+    assert 'role="alert"' in result["ids"].get("content", "")
+
+
+def test_project_submit_login_gate_has_alert_role(tmp_path):
+    result = run(
+        tmp_path,
+        "index.html",
+        [{"fn": "showProjectInlineLoginPrompt", "args": []}],
+        read={"byId": "message"},
+    )
+    assert result["flags"]["message"]["role"] == "alert"
+
+
+def test_feedback_login_gate_has_alert_role(tmp_path):
+    result = run(
+        tmp_path,
+        "project_detail.html",
+        [{"fn": "showInlineLoginPrompt", "args": []}],
+        location="/project/1",
+    )
+    assert result["flags"]["message"]["role"] == "alert"

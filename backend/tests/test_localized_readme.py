@@ -119,6 +119,27 @@ def test_localized_readmes_cover_english_sections():
         )
 
 
+def test_localized_contributing_cover_english_sections():
+    """Localized CONTRIBUTING files keep the same H2 section count as the English file.
+
+    A translated CONTRIBUTING that silently drops a section drifts from the canonical
+    source; this keeps the heading structure aligned.
+    """
+    def h2_count(path: Path) -> int:
+        return sum(
+            1
+            for line in path.read_text(encoding="utf-8").splitlines()
+            if line.startswith("## ")
+        )
+
+    english = h2_count(ROOT / "CONTRIBUTING.md")
+    for _, contributing_name in LOCALIZED.values():
+        count = h2_count(ROOT / contributing_name)
+        assert count == english, (
+            f"{contributing_name} has {count} H2 sections, English has {english}"
+        )
+
+
 # --- Mutation tests: prove the checks above are not hardcoded success. ---
 
 

@@ -1,11 +1,16 @@
-﻿from app.database import init_db, SessionLocal
+import pytest
+
+from app.database import init_db, SessionLocal
 from app.models import Project, Question, Response, User
 
 
 def cleanup_database():
-    """Remove test data from database."""
     db = SessionLocal()
     try:
+        # Delete in dependency order so foreign keys can be enforced.
+        from app.models import AnalyticsEvent, ProjectView, Question, Response
+        db.query(AnalyticsEvent).delete()
+        db.query(ProjectView).delete()
         db.query(Response).delete()
         db.query(Question).delete()
         db.query(Project).delete()
@@ -87,8 +92,8 @@ def test_list_projects_with_pagination(auth_client):
         expected_titles = {f"Pagination Project {index}" for index in range(1, 5)}
         assert len(first_titles) == len(second_titles) == 2
         assert first_titles | second_titles == expected_titles
-        assert first_data["total"] == len(first_data["items"]) == 2
-        assert second_data["total"] == len(second_data["items"]) == 2
+        assert len(first_data["items"]) == len(second_data["items"]) == 2
+        assert first_data["total"] == second_data["total"] == 4
         assert first_data["page"] == 1 and second_data["page"] == 2
         assert first_data["page_size"] == second_data["page_size"] == 2
         assert first_data["total_pages"] == second_data["total_pages"] == 2
@@ -160,3 +165,134 @@ def test_unauthenticated_create_project():
     }
     response = client.post("/api/projects/", json=payload)
     assert response.status_code == 401
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("   ", None),
+        (" \n\t ", None),
+        (None, None),
+        ("  Find abandoned houses  ", "Find abandoned houses"),
+        ("Find abandoned houses", "Find abandoned houses"),
+    ],
+)
+def test_project_description_is_trimmed_or_dropped(auth_client, raw, expected):
+    """
+    Whitespace-only descriptions must not be stored.
+
+    ``max_length`` counts spaces, so ``"   "`` satisfies the length check
+    and would be persisted: the project then renders with a blank
+    description. Non-empty values keep their meaning but lose the padding.
+    """
+    cleanup_database()
+    payload = {
+        "project_data": {
+            "title": "Akiya Scout",
+            "description": raw,
+            "url": "https://akiya-scout.example.com",
+            "image_url": None,
+        },
+        "question_data": {"text": "Is this clear?"},
+    }
+    response = auth_client.post("/api/projects/", json=payload)
+    assert response.status_code == 201
+    assert response.json()["project"]["description"] == expected
+    cleanup_database()
+
+
+@pytest.mark.parametrize(
+    "invalid_url",
+    [
+        "https://",
+        "https:///path",
+        "http://",
+        "not-a-url",
+        "javascript:alert(1)",
+        "https://user:pass@example.com",
+        "https://example .com",
+    ],
+)
+def test_invalid_project_urls_rejected(auth_client, invalid_url):
+    cleanup_database()
+    payload = {
+        "project_data": {
+            "title": "URL Test",
+            "description": None,
+            "url": invalid_url,
+            "image_url": None,
+        },
+        "question_data": {"text": "Valid?"},
+    }
+    response = auth_client.post("/api/projects/", json=payload)
+    assert response.status_code == 422
+    cleanup_database()
+
+
+@pytest.mark.parametrize(
+    "valid_url",
+    [
+        "http://example.com",
+        "https://example.com",
+        "https://sub.domain.example.com/path?q=1",
+    ],
+)
+def test_valid_project_urls_accepted(auth_client, valid_url):
+    cleanup_database()
+    payload = {
+        "project_data": {
+            "title": "URL Test",
+            "description": None,
+            "url": valid_url,
+            "image_url": None,
+        },
+        "question_data": {"text": "Valid?"},
+    }
+    response = auth_client.post("/api/projects/", json=payload)
+    assert response.status_code == 201
+    assert response.json()["project"]["url"] == valid_url
+    cleanup_database()
+
+
+@pytest.mark.parametrize(
+    "invalid_image_url",
+    [
+        "http://example.com/screenshot.png",
+        "https://",
+        "https:///image.png",
+        "https://user:pass@example.com/x.png",
+        "data:image/png;base64,123",
+    ],
+)
+def test_invalid_image_urls_rejected(auth_client, invalid_image_url):
+    cleanup_database()
+    payload = {
+        "project_data": {
+            "title": "Image Test",
+            "description": None,
+            "url": "https://example.com",
+            "image_url": invalid_image_url,
+        },
+        "question_data": {"text": "Valid?"},
+    }
+    response = auth_client.post("/api/projects/", json=payload)
+    assert response.status_code == 422
+    cleanup_database()
+
+
+def test_valid_image_url_accepted(auth_client):
+    cleanup_database()
+    valid_img = "https://images.example.com/screenshot.png"
+    payload = {
+        "project_data": {
+            "title": "Image Test",
+            "description": None,
+            "url": "https://example.com",
+            "image_url": valid_img,
+        },
+        "question_data": {"text": "Valid?"},
+    }
+    response = auth_client.post("/api/projects/", json=payload)
+    assert response.status_code == 201
+    assert response.json()["project"]["image_url"] == valid_img
+    cleanup_database()

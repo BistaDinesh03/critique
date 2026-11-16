@@ -95,3 +95,16 @@ def test_fired_events_are_in_the_backend_allowlist():
         "discarded instead of recorded: "
         + "; ".join(f"{name} at {', '.join(fired[name])}" for name in invalid)
     )
+
+
+def test_track_requests_survive_a_navigating_click():
+    """Analytics fired on a link that leaves the page must not be cancelled.
+
+    The GitHub choice fires auth_method_selected_github and login_started in
+    the same click, then the browser follows the link to github.com. Without
+    ``keepalive`` the in-flight POSTs can be cancelled by that navigation,
+    which makes the two paired counts disagree for reasons the data cannot
+    show.
+    """
+    source = (ROOT / "static/analytics.js").read_text(encoding="utf-8-sig")
+    assert "keepalive: true" in source
