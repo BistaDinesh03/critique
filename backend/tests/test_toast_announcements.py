@@ -19,7 +19,14 @@ true
 """}
 READ = {'evaluate': "document.getElementById('toast-container').getAttribute('aria-live')", 'as': 'containerLive'}
 
-@pytest.mark.parametrize('status,role,message', [(500, 'alert', 'Could not delete. Try again.'), (204, 'status', 'Project deleted')])
+@pytest.mark.parametrize('status,role,message', [
+    (500, 'alert', "Couldn't reach the server. Try again."),
+    (401, 'alert', 'Session expired. Please sign in again.'),
+    (403, 'alert', 'You can only delete your own projects.'),
+    (404, 'status', 'This project was already deleted.'),
+    (429, 'alert', 'Too many delete requests. Please wait a minute, then try again.'),
+    (204, 'status', 'Project deleted'),
+])
 def test_delete_toast_announcement(tmp_path, status, role, message):
     result = run(tmp_path, 'my_projects.html', [SETUP, {'fn': 'deleteProject', 'args': [7, None]}, {'evaluate': 'new Promise(function(resolve){ setTimeout(resolve, 0); })'}, READ], fetch={'/api/projects/7': {'status': status}, '/api/projects/my/list': {'json': []}})
     toasts = [item for item in result['createdMeta'] if item.get('className', '').startswith('toast toast-')]
@@ -34,3 +41,12 @@ def test_info_toast_remains_status(tmp_path):
     assert len(toasts) == 1
     assert toasts[0]['role'] == 'status'
     assert result['values']['containerLive'] is None
+
+
+def test_toast_has_keyboard_dismiss_button(tmp_path):
+    """Toasts include a keyboard-operable dismiss button for WCAG 2.2.1 compliance (fixes #276)."""
+    result = run(tmp_path, 'my_projects.html', [SETUP, {'fn': 'CritiqueUI.showToast', 'args': ['Warning message', 'error']}, READ])
+    dismiss_buttons = [item for item in result['createdMeta'] if item.get('className') == 'toast-dismiss']
+    assert len(dismiss_buttons) == 1
+    assert dismiss_buttons[0].get('ariaLabel') == 'Dismiss notification'
+
