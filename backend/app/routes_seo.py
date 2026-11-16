@@ -1,4 +1,5 @@
 import html
+from datetime import date
 from fastapi import APIRouter, Depends
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
@@ -38,6 +39,8 @@ def robots_txt():
     content += "Disallow: /auth/\n"
     content += "Disallow: /health\n"
     content += "Disallow: /google8ffd0ae5f931d1e6.html\n"
+    content += "Disallow: /docs\n"
+    content += "Disallow: /redoc\n"
     content += "\n"
     content += "Sitemap: " + site_url() + "/sitemap.xml\n"
     return Response(content=content, media_type="text/plain")
@@ -45,14 +48,16 @@ def robots_txt():
 
 @router.get("/sitemap.xml", response_class=Response)
 def sitemap_xml(db: Session = Depends(get_db)):
-    projects = db.query(Project.id).order_by(Project.created_at.desc()).all()
+    projects = db.query(Project.id, Project.created_at).order_by(Project.created_at.desc()).all()
 
+    today = date.today().isoformat()
     urls = []
-    urls.append("  <url>\n    <loc>" + site_url() + "/</loc>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>")
-    urls.append("  <url>\n    <loc>" + site_url() + "/discover</loc>\n    <changefreq>daily</changefreq>\n    <priority>0.9</priority>\n  </url>")
+    urls.append("  <url>\n    <loc>" + site_url() + "/</loc>\n    <lastmod>" + today + "</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>")
+    urls.append("  <url>\n    <loc>" + site_url() + "/discover</loc>\n    <lastmod>" + today + "</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>0.9</priority>\n  </url>")
 
-    for (project_id,) in projects:
-        urls.append("  <url>\n    <loc>" + site_url() + "/project/" + str(project_id) + "</loc>\n    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>")
+    for project_id, created_at in projects:
+        lastmod = created_at.date().isoformat() if created_at else today
+        urls.append("  <url>\n    <loc>" + site_url() + "/project/" + str(project_id) + "</loc>\n    <lastmod>" + lastmod + "</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>")
 
     body = "\n".join(urls)
     xml = '<?xml version="1.0" encoding="UTF-8"?>\n'

@@ -276,8 +276,9 @@ def test_a_failed_submission_shows_no_success_and_no_share_state(tmp_path):
     )
 
     assert len(posts(result)) == 1
-    # The failure reports honestly and the share UI never appears.
-    assert "Error" in (result["ids"].get("message") or "")
+    # The failure reports honestly (the API's detail sentence, never raw JSON)
+    # and the share UI never appears.
+    assert (result["ids"].get("message") or "") == "Title is required"
     assert "Your project is live" not in " ".join(result["created"])
     assert not any(
         m.get("className") == "success-share" for m in result["createdMeta"]
@@ -436,6 +437,35 @@ def test_copy_project_link_copies_the_public_url(tmp_path):
     assert any(t == "Link copied" for t in texts(result))
 
 
+def test_failed_clipboard_write_does_not_track_share_copy_event(tmp_path):
+    """Failed clipboard writes must not record share_copy_link events (fixes #266)."""
+    reject_stub = {
+        "evaluate": "navigator.clipboard.writeText = function() { return Promise.reject(new Error('denied')); }; 'reject_installed'"
+    }
+    result = submitted_page(
+        tmp_path,
+        pre_calls=[reject_stub],
+        extra_calls=[{"clickCreatedContaining": "Copy link"}],
+    )
+    assert result["clipboard"] == []
+    assert events(result, "share_copy_link") == []
+
+
+def test_missing_clipboard_api_does_not_track_share_copy_event(tmp_path):
+    """Missing navigator.clipboard must not record share_copy_link events (fixes #266)."""
+    missing_stub = {
+        "evaluate": "delete navigator.clipboard; 'clipboard_deleted'"
+    }
+    result = submitted_page(
+        tmp_path,
+        pre_calls=[missing_stub],
+        extra_calls=[{"clickCreatedContaining": "Copy link"}],
+    )
+    assert result["clipboard"] == []
+    assert events(result, "share_copy_link") == []
+
+
+
 def test_copy_suggested_post_copies_the_current_edited_text(tmp_path):
     result = submitted_page(
         tmp_path,
@@ -568,6 +598,17 @@ MY_PROJECTS_LIST = [
         "response_count": 0,
     },
 ]
+
+
+def test_my_projects_cards_use_headings_directly_below_the_page_title(tmp_path):
+    project = {**MY_PROJECTS_LIST[0], "title": "Sentry <bot> & Log Lens"}
+    result = run(
+        tmp_path,
+        "my_projects.html",
+        [{"fn": "loadProjects", "args": []}, WAIT_FOR_RENDER],
+        fetch={MY_PROJECTS_URL: {"status": 200, "body": [project]}},
+    )
+    assert '<h2 class="project-title">Sentry &lt;bot&gt; &amp; Log Lens</h2>' in result["ids"]["content"]
 
 
 def test_card_share_rows_carry_the_project_they_belong_to(tmp_path):
@@ -1137,3 +1178,12 @@ def test_the_native_share_path_is_gated_on_the_api_existing():
     assert "err.code === 20" in source
     # Rendered only from a guard -- never unconditionally.
     assert "if (!nativeShareSupported()) return null;" in source
+
+
+def test_share_success_panel_live_region_contains_only_text():
+    """role='status' applies only to non-interactive announcement text (fixes #311)."""
+    source = (STATIC_DIR / "share.js").read_text(encoding="utf-8")
+    assert "announcement.setAttribute('role', 'status')" in source
+    assert "panel.setAttribute('role', 'status')" not in source
+    assert "success-announcement" in source
+

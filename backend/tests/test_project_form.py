@@ -124,8 +124,43 @@ def page_source(page):
 
 def project_form(source):
     """The markup between the form's tags, nothing else on the page."""
-    start = source.index('<form id="project-form">')
+    import re
+    match = re.search(r'<form[^>]*\bid="project-form"[^>]*>', source)
+    assert match, "no form with id=project-form"
+    start = match.start()
     return source[start:source.index("</form>", start)]
+
+
+@pytest.mark.parametrize("question", [
+    "Is the main purpose of this website clear within the first 5 seconds?",
+    "Which part of this onboarding flow feels confusing?",
+    "Does my portfolio communicate my skills and experience clearly?",
+    "Is the navigation easy to understand?",
+    "Would you understand what this product offers and who it is for?",
+])
+def test_question_example_fills_focuses_and_saves_without_submitting(tmp_path, question):
+    result = run(tmp_path, "index.html", [
+        {"fn": "renderQuestionExamples"},
+        {"clickCreatedContaining": question},
+        {"evaluate": "document.getElementById('question').value", "as": "question"},
+        {"evaluate": "document.getElementById('question-examples').children.map(b => b.type)", "as": "types"},
+    ])
+    assert result["values"]["question"] == question
+    assert result["values"]["types"] == ["button", "button", "button", "button", "button"]
+    assert result["focused"]["id"] == "question"
+    assert json.loads(result["storage"]["session"]["critique_project_draft"])["question"] == question
+    assert posts(result) == []
+
+
+def test_selected_question_can_be_edited_and_saved(tmp_path):
+    result = run(tmp_path, "index.html", [
+        {"fn": "renderQuestionExamples"},
+        {"clickCreatedContaining": "Is the main purpose of this website clear within the first 5 seconds?"},
+        {"evaluate": "document.getElementById('question').value = 'Is the export button easy to find?'; saveProjectDraft();"},
+    ])
+    draft = json.loads(result["storage"]["session"]["critique_project_draft"])
+    assert draft["question"] == "Is the export button easy to find?"
+    assert posts(result) == []
 
 
 def tag_with_id(html, field_id):
@@ -367,6 +402,59 @@ def test_a_stale_session_project_submission_keeps_the_draft(tmp_path):
     assert draft["title"] == "Akiya Scout"
     assert draft["question"] == "Is the price shown up front?"
     assert "Session expired." in result["ids"]["message"]
+
+
+def test_a_failed_project_submission_shows_the_detail_not_raw_json(tmp_path):
+    """The API's detail sentence is shown; the response body is never
+    stringified into the visitor's error message (#225)."""
+    result = run(
+        tmp_path,
+        "index.html",
+        FILL_PROJECT,
+        fetch={
+            HOMEPAGE_URL: {"status": 200, "body": {"total": 0, "items": []}},
+            SUBMIT_URL: {
+                "status": 400,
+                "body": {"detail": "Title is already taken"},
+            },
+        },
+    )
+
+    message = result["flags"]["message"]
+    assert "alert-error" in message["className"]
+    assert result["ids"]["message"] == "Title is already taken"
+    # No fragment of the raw response body reaches the visitor.
+    assert "detail" not in result["ids"]["message"]
+
+
+def test_a_validation_failure_falls_back_to_a_sentence_not_an_array(tmp_path):
+    """422 detail is a list of objects; stringifying it would dump JSON at the
+    visitor, so the fixed sentence is used instead (#225)."""
+    result = run(
+        tmp_path,
+        "index.html",
+        FILL_PROJECT,
+        fetch={
+            HOMEPAGE_URL: {"status": 200, "body": {"total": 0, "items": []}},
+            SUBMIT_URL: {
+                "status": 422,
+                "body": {
+                    "detail": [
+                        {
+                            "loc": ["body", "project_data", "title"],
+                            "msg": "Field required",
+                            "type": "value_error.missing",
+                        }
+                    ]
+                },
+            },
+        },
+    )
+
+    message = result["flags"]["message"]
+    assert "alert-error" in message["className"]
+    assert result["ids"]["message"] == "Failed to submit project. Please try again."
+    assert "value_error" not in result["ids"]["message"]
 
 
 # ---------------------------------------------------------------------------
