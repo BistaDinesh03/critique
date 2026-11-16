@@ -1,11 +1,14 @@
-﻿from app.database import SessionLocal
+from app.database import SessionLocal
 from app.models import Project, Question, Response, User
 
 
 def cleanup_database():
-    """Remove test data from database."""
     db = SessionLocal()
     try:
+        # Delete in dependency order so foreign keys can be enforced.
+        from app.models import AnalyticsEvent, ProjectView, Question, Response
+        db.query(AnalyticsEvent).delete()
+        db.query(ProjectView).delete()
         db.query(Response).delete()
         db.query(Question).delete()
         db.query(Project).delete()
@@ -74,10 +77,13 @@ def test_delete_other_users_project(auth_client):
     
     app.dependency_overrides[get_current_user] = lambda: fresh_second_user
     client2 = TestClient(app)
+    client2.cookies.set("critique_csrf", "ownership_test_csrf")
+    client2.headers["X-CSRF-Token"] = "ownership_test_csrf"
     
     try:
         response = client2.delete(f"/api/projects/{project_id}")
         assert response.status_code == 403, f"Expected 403, got {response.status_code}"
+        assert response.json()["detail"] == "You cannot delete this project"
     finally:
         app.dependency_overrides.clear()
     
