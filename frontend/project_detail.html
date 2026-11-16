@@ -729,6 +729,25 @@
             // tech both see it; appended children below are tracked separately.
             container.textContent = '\u2713 Feedback submitted successfully! Thank you for helping this builder improve their project.';
 
+            var dismissBtn = document.createElement('button');
+            dismissBtn.type = 'button';
+            dismissBtn.className = 'confirmation-dismiss-btn';
+            dismissBtn.setAttribute('aria-label', 'Dismiss confirmation');
+            dismissBtn.textContent = '\u00d7';
+            dismissBtn.style.cssText = 'float:right;background:none;border:none;font-size:1.25rem;cursor:pointer;color:inherit;padding:0 var(--space-1);line-height:1;';
+            dismissBtn.onclick = function() {
+                container.style.display = 'none';
+            };
+            container.appendChild(dismissBtn);
+
+            var discoverLink = document.createElement('a');
+            discoverLink.href = '/discover';
+            discoverLink.className = 'btn btn-secondary';
+            discoverLink.id = 'discover-more-projects';
+            discoverLink.textContent = 'Discover more projects';
+            discoverLink.style.cssText = 'margin: 0 var(--space-2); display: inline-block; font-size: 0.875rem; padding: 4px 10px;';
+            container.appendChild(discoverLink);
+
             var link = document.createElement('a');
             link.id = 'help-another-builder';
             link.textContent = 'Help another builder \u2192';

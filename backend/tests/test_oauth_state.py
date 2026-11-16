@@ -10,6 +10,7 @@ Design notes:
 """
 
 import uuid
+from http.cookies import SimpleCookie
 from urllib.parse import parse_qs, quote, urlparse
 
 import httpx
@@ -717,3 +718,22 @@ def test_github_callback_rename_to_existing_username_preserves_old_handle(client
         assert user.username == "original_handle"
     finally:
         db.close()
+
+
+@pytest.mark.parametrize("secure", [False, True])
+def test_github_callback_session_cookie_attributes(monkeypatch, github, secure):
+    monkeypatch.setattr(auth_module.settings, "SESSION_COOKIE_SECURE", secure)
+    client = TestClient(app, base_url="https://testserver", follow_redirects=False)
+    _, state, _ = start_login(client)
+    response = callback(client, state=state)
+    assert response.status_code in (302, 307)
+
+    cookie = SimpleCookie()
+    for header in response.headers.get_list("set-cookie"):
+        cookie.load(header)
+    assert auth_module.SESSION_COOKIE_NAME in cookie
+    session_cookie = cookie[auth_module.SESSION_COOKIE_NAME]
+    assert session_cookie["httponly"]
+    assert session_cookie["samesite"] == "lax"
+    assert bool(session_cookie["secure"]) is secure
+    assert session_cookie["path"] == "/"
