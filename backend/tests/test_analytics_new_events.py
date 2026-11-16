@@ -16,9 +16,14 @@ from app.rate_limit import reset_rate_limits
 def cleanup_database():
     db = SessionLocal()
     try:
+        # Delete in dependency order so foreign keys can be enforced.
+        from app.models import AnalyticsEvent, ProjectView, Question, Response
         db.query(AnalyticsEvent).delete()
-        db.query(User).delete()
+        db.query(ProjectView).delete()
+        db.query(Response).delete()
+        db.query(Question).delete()
         db.query(Project).delete()
+        db.query(User).delete()
         db.commit()
     finally:
         db.close()
@@ -38,7 +43,7 @@ def test_feedback_submit_attempt_accepted():
     cleanup_database()
     client = TestClient(app)
 
-    r = _post_event(client, "feedback_submit_attempt", project_id=1)
+    r = _post_event(client, "feedback_submit_attempt")
     assert r.status_code == 200
     assert r.json()["ok"] is True
 
@@ -56,7 +61,7 @@ def test_feedback_submit_error_accepted():
     cleanup_database()
     client = TestClient(app)
 
-    r = _post_event(client, "feedback_submit_error", project_id=1)
+    r = _post_event(client, "feedback_submit_error")
     assert r.status_code == 200
     assert r.json()["ok"] is True
 
@@ -82,7 +87,7 @@ def test_new_auth_events_accepted():
         "email_verification_success",
     ]
     for n in names:
-        r = _post_event(client, n, project_id=1)
+        r = _post_event(client, n)
         assert r.status_code == 200, f"{n} was rejected"
         assert r.json()["ok"] is True
 
@@ -106,7 +111,7 @@ def test_feedback_form_viewed_accepted():
     cleanup_database()
     client = TestClient(app)
 
-    r = _post_event(client, "feedback_form_viewed", project_id=1)
+    r = _post_event(client, "feedback_form_viewed")
     assert r.status_code == 200, f"{r.status_code}: {r.text}"
     assert r.json()["ok"] is True
 
@@ -161,6 +166,7 @@ def test_dashboard_reports_new_totals():
 
     # Seed events that the new totals will report.
     seed = {
+        "feedback_form_viewed": 4,
         "feedback_submit_attempt": 3,
         "feedback_submit_error": 1,
         "auth_method_selected_github": 2,
@@ -194,6 +200,7 @@ def test_dashboard_reports_new_totals():
         data = r.json()
 
         totals = data["totals"]
+        assert totals["feedback_form_viewed"] == 4
         assert totals["feedback_submit_attempts"] == 3
         assert totals["feedback_submit_errors"] == 1
         assert totals["auth_method_selected_github"] == 2
@@ -303,6 +310,7 @@ def test_dashboard_ratios_zero_denominator_safe():
 
         # Every total is present and zero.
         for key in [
+            "feedback_form_viewed",
             "feedback_submit_attempts",
             "feedback_submit_errors",
             "auth_method_selected_github",

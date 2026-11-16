@@ -236,7 +236,7 @@ def test_loading_state_never_resolves_by_staying_on_a_spinner(tmp_path):
         assert busy_ids == [], f"{page} left {busy_ids} marked busy after a failure"
 
 
-def test_social_proof_placeholder_resolves_to_the_real_row(tmp_path):
+def test_social_proof_placeholder_resolves_to_real_avatars(tmp_path):
     result = run(
         tmp_path,
         "index.html",
@@ -244,13 +244,19 @@ def test_social_proof_placeholder_resolves_to_the_real_row(tmp_path):
         fetch={
             "/api/stats": {
                 "status": 200,
-                "body": {"total_builders": 2, "total_projects": 1, "builders": []},
+                "body": {
+                    "total_builders": 2,
+                    "total_projects": 1,
+                    "builders": [
+                        {"username": "alice", "avatar_url": "https://avatars.githubusercontent.com/u/1?v=4"},
+                    ],
+                },
             }
         },
     )
     assert result["flags"]["social-proof"]["ariaBusy"] == "false"
     assert result["flags"]["social-proof"]["display"] == "flex"
-    assert result["ids"]["social-proof-text"] == "Join 2 builders already using Critique"
+    assert 'src="https://avatars.githubusercontent.com/u/1?v=4"' in result["ids"]["avatar-stack"]
 
 
 def test_social_proof_placeholder_is_hidden_when_stats_fail(tmp_path):
@@ -258,8 +264,53 @@ def test_social_proof_placeholder_is_hidden_when_stats_fail(tmp_path):
     result = run(tmp_path, "index.html", [{"fn": "loadSocialProof", "args": []}])
     assert result["flags"]["social-proof"]["ariaBusy"] == "false"
     assert result["flags"]["social-proof"]["display"] == "none"
-    # The placeholder stays silent: no builder sentence is invented on failure.
-    assert "Join" not in result["ids"]["social-proof-text"]
+
+
+def test_homepage_real_activity_reflects_global_stats(tmp_path):
+    """The homepage stats strip reflects platform-wide totals from /api/stats,
+    never the page-scoped project count from /api/projects/?page=1&page_size=6."""
+    result = run(
+        tmp_path,
+        "index.html",
+        [{"fn": "loadSocialProof", "args": []}],
+        fetch={
+            "/api/stats": {
+                "status": 200,
+                "body": {
+                    "total_builders": 5,
+                    "total_projects": 12,
+                    "total_questions": 10,
+                    "total_responses": 45,
+                    "builders": [],
+                },
+            }
+        },
+    )
+    assert result["ids"]["stat-projects"] == "12"
+    assert result["ids"]["stat-questions"] == "10"
+    assert result["ids"]["stat-responses"] == "45"
+    assert result["flags"]["real-activity"]["display"] == "grid"
+
+
+def test_homepage_real_activity_hidden_when_zero_projects(tmp_path):
+    result = run(
+        tmp_path,
+        "index.html",
+        [{"fn": "loadSocialProof", "args": []}],
+        fetch={
+            "/api/stats": {
+                "status": 200,
+                "body": {
+                    "total_builders": 0,
+                    "total_projects": 0,
+                    "total_questions": 0,
+                    "total_responses": 0,
+                    "builders": [],
+                },
+            }
+        },
+    )
+    assert result["flags"]["real-activity"]["display"] == "none"
 
 
 # ---------------------------------------------------------------------------

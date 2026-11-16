@@ -1,0 +1,4 @@
+Contact: https://github.com/BistaDinesh03/critique/security/advisories/new
+Expires: 2027-05-01T00:00:00.000Z
+Policy: https://github.com/BistaDinesh03/critique/blob/main/SECURITY.md
+Preferred-Languages: en
