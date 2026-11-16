@@ -145,6 +145,10 @@ def test_rate_limit_sliding_window_partial_reset(monkeypatch):
 def cleanup_database():
     db = SessionLocal()
     try:
+        # Delete in dependency order so foreign keys can be enforced.
+        from app.models import AnalyticsEvent, ProjectView, Question, Response
+        db.query(AnalyticsEvent).delete()
+        db.query(ProjectView).delete()
         db.query(Response).delete()
         db.query(Question).delete()
         db.query(Project).delete()

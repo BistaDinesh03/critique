@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.models import AnalyticsEvent
+from app.models import AnalyticsEvent, Project
 
 VISITOR_COOKIE_NAME = "critique_visitor"
 VISITOR_COOKIE_MAX_AGE = 60 * 60 * 24 * 365  # 1 year
@@ -46,6 +46,11 @@ def track_event(
     user_id: int = None,
     project_id: int = None,
 ) -> bool:
+    # Validate project_id refers to an existing project when provided.
+    if project_id is not None:
+        exists = db.query(Project.id).filter(Project.id == project_id).first()
+        if exists is None:
+            return False
     try:
         event = AnalyticsEvent(
             event_name=event_name,
