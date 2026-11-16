@@ -394,6 +394,15 @@
             } else {
                 document.getElementById('pagination').style.display = 'none';
             }
+
+            // Restore the feed position after a project-detail round trip.
+            try {
+                const savedScroll = sessionStorage.getItem('critique_discover_scroll');
+                if (savedScroll !== null) {
+                    sessionStorage.removeItem('critique_discover_scroll');
+                    window.scrollTo({ top: parseInt(savedScroll, 10), behavior: 'instant' });
+                }
+            } catch (e) {}
         }
 
         async function fetchWithRetry(url, options, maxRetries) {
@@ -471,11 +480,35 @@ async function loadProjects(page) {
             } catch (err) {}
         });
 
+        document.getElementById('project-list').addEventListener('click', function(e) {
+            const link = e.target.closest('a[href^="/project/"]');
+            if (link) {
+                try {
+                    sessionStorage.setItem('critique_discover_scroll', window.scrollY.toString());
+                    sessionStorage.setItem('critique_discover_page', currentPage.toString());
+                } catch (err) {}
+            }
+        });
+
         let initialPage = 1;
+        let hasUrlPage = false;
         try {
             const params = new URLSearchParams(window.location.search);
             const p = parseInt(params.get('page') || '1', 10);
-            if (!isNaN(p) && p >= 1) initialPage = p;
+            if (!isNaN(p) && p >= 1) {
+                initialPage = p;
+                hasUrlPage = params.has('page');
+            }
+        } catch (err) {}
+
+        if (!hasUrlPage) {
+            try {
+                const p = parseInt(sessionStorage.getItem('critique_discover_page') || '1', 10);
+                if (p > 0) initialPage = p;
+            } catch (err) {}
+        }
+        try {
+            sessionStorage.removeItem('critique_discover_page');
         } catch (err) {}
 
         loadProjects(initialPage);
