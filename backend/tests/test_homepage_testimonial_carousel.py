@@ -707,12 +707,13 @@ def test_render_harness_is_error_free_and_homepage_features_survive(tmp_path):
     assert result["errors"] == []
 
     src = source()
-    # Social-proof avatar stack (a separate feature) is untouched.
+    # Social-proof avatar stack (a separate feature) is present.
     assert 'id="avatar-stack"' in src
     assert "loadSocialProof" in src
-    # The dynamic builder count still comes from /api/stats.
-    assert "total_builders" in src
-    assert re.search(r"total_builders\s*>\s*0", src)
+    # Real avatars come from /api/stats; no hardcoded headcount remains.
+    # (The +N bubble class exists for the STATE B dynamic case.)
+    assert "isSafeAvatarSrc" in src
+    assert not re.search(r"Join\s+\d+\s+builders", src)
     # Login-gated project submission still present.
     assert "showProjectInlineLoginPrompt" in src
     # Issue #229: The test tag is count-free so it cannot drift.

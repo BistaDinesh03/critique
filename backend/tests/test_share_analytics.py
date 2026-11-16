@@ -17,7 +17,7 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app.database import SessionLocal
-from app.models import AnalyticsEvent, User
+from app.models import AnalyticsEvent, User, Project
 from app.rate_limit import reset_rate_limits
 from app.routes_analytics import VALID_EVENTS as BACKEND_EVENTS
 
@@ -34,11 +34,33 @@ SHARE_EVENTS = {
 def cleanup_database():
     db = SessionLocal()
     try:
+        # Delete in dependency order so foreign keys can be enforced.
+        from app.models import AnalyticsEvent, ProjectView, Question, Response
         db.query(AnalyticsEvent).delete()
+        db.query(ProjectView).delete()
+        db.query(Response).delete()
+        db.query(Question).delete()
+        db.query(Project).delete()
         db.query(User).delete()
         db.commit()
     finally:
         db.close()
+
+
+def _seed_project():
+    """Create a project the analytics endpoint will accept as existing."""
+    db = SessionLocal()
+    owner = User(github_id=4242424242, username="share_test_owner")
+    db.add(owner)
+    db.commit()
+    db.refresh(owner)
+    project = Project(title="Share Test Project", owner_id=owner.id)
+    db.add(project)
+    db.commit()
+    db.refresh(project)
+    project_id = project.id
+    db.close()
+    return project_id
 
 
 def frontend_events():
@@ -105,8 +127,9 @@ def test_share_events_are_accepted_and_recorded():
     cleanup_database()
     client = TestClient(app)
 
+    project_id = _seed_project()
     for name in sorted(SHARE_EVENTS):
-        r = _post_event(client, name, project_id=9)
+        r = _post_event(client, name, project_id=project_id)
         assert r.status_code == 200, f"{name} was rejected"
         assert r.json()["ok"] is True
 
@@ -158,9 +181,10 @@ def test_share_events_carry_no_personal_payload():
     reset_rate_limits()
     cleanup_database()
     client = TestClient(app)
+    project_id = _seed_project()
     r = client.post(
         "/api/analytics/track?event_name=share_copy_post"
-        "&project_id=9&email=someone@example.com&text=secret+post"
+        f"&project_id={project_id}&email=someone@example.com&text=secret+post"
     )
     assert r.status_code == 200
 
@@ -168,7 +192,7 @@ def test_share_events_carry_no_personal_payload():
     row = db.query(AnalyticsEvent).filter(
         AnalyticsEvent.event_name == "share_copy_post"
     ).one()
-    assert row.project_id == 9
+    assert row.project_id == project_id
     as_dict = {key: getattr(row, key) for key in columns}
     assert "someone@example.com" not in repr(as_dict)
     assert "secret post" not in repr(as_dict)
