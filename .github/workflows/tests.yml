@@ -14,7 +14,7 @@ jobs:
     # Normally task finishes in <2 min; a hang is a bug, so fail fast instead of waiting 6h.
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
@@ -41,7 +41,7 @@ jobs:
   production-deps:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
