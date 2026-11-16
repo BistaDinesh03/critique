@@ -1,5 +1,8 @@
+from http.cookies import SimpleCookie
+import pytest
 from fastapi.testclient import TestClient
 from app.main import app
+from app.config import settings
 from app.database import SessionLocal
 from app.models import Project, Question, Response, User
 from app.auth import get_current_user
@@ -242,3 +245,23 @@ def test_analytics_track_is_exempt_from_csrf():
     response = client.post("/api/analytics/track?event_name=page_view")
     assert response.status_code == 200
     assert response.json() == {"ok": True}
+
+
+@pytest.mark.parametrize("secure", [False, True])
+def test_csrf_cookie_attributes(monkeypatch, secure):
+    monkeypatch.setattr(settings, "SESSION_COOKIE_SECURE", secure)
+    cleanup_database()
+    client = TestClient(app)
+    response = client.get("/auth/csrf-token")
+    assert response.status_code == 200
+
+    cookie = SimpleCookie()
+    for header in response.headers.get_list("set-cookie"):
+        cookie.load(header)
+    assert CSRF_COOKIE_NAME in cookie
+    csrf_cookie = cookie[CSRF_COOKIE_NAME]
+    # Intentionally readable by JavaScript, not HttpOnly
+    assert not csrf_cookie["httponly"]
+    assert csrf_cookie["samesite"] == "lax"
+    assert bool(csrf_cookie["secure"]) is secure
+    assert csrf_cookie["path"] == "/"
