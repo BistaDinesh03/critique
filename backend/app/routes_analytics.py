@@ -1,4 +1,4 @@
-﻿from fastapi import APIRouter, Depends, Request, HTTPException
+from fastapi import APIRouter, Depends, Request, HTTPException
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -18,6 +18,7 @@ VALID_EVENTS = {
     "feedback_submit",
     "feedback_submit_attempt",
     "feedback_submit_error",
+    "feedback_already_responded",
     "project_submit",
     "login_prompt_shown",
     "login_started",
