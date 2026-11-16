@@ -255,6 +255,10 @@ def test_success_offers_the_next_real_project_and_keeps_the_confirmation(tmp_pat
     assert badge_links, f"no project badge link found in {result['createdMeta']}"
     assert badge_links[0]["href"] == "/badge/1.svg"
 
+    # Confirmation panel features: discover link and accessible dismiss button (fixes #331)
+    assert any("Discover more projects" in (m.get("text") or "") for m in result["createdMeta"])
+    assert any(m.get("ariaLabel") == "Dismiss confirmation" for m in result["createdMeta"])
+
     # The success state must not be wiped by a background reload.
     assert "critique_responded_1" in result["storage"]["session"]
     assert not any(r["url"] == "/api/projects/1" for r in result["requests"])
@@ -664,3 +668,31 @@ def test_feedback_draft_and_responded_keys_are_namespaced_per_account(tmp_path):
     assert result["values"]["userB_submittedKey"] == "critique_responded_user_456_1"
     assert result["values"]["anon_storageKey"] == "critique_feedback_1"
     assert result["values"]["anon_submittedKey"] == "critique_responded_1"
+
+
+# ---------------------------------------------------------------------------
+# Client-side validation before submission
+# ---------------------------------------------------------------------------
+
+
+def test_missing_required_selection_shows_validation_message(tmp_path):
+    """Submitting without both ratings never leaves the page or fires an attempt."""
+    fetch = {
+        "/api/projects/1/responses": {"status": 201, "body": {}},
+        "/api/projects/1": {"status": 200, "body": PROJECT},
+    }
+    result = run(
+        tmp_path,
+        "project_detail.html",
+        [{"submitId": "response-form"}, {"evaluate": "document.getElementById('submit-btn').disabled", "as": "btn_disabled"}],
+        fetch=fetch,
+        location="/project/1",
+    )
+
+    assert "Please answer both required questions before submitting." in result["ids"]["message"]
+    # No attempt event and no request were produced.
+    assert events(result, "feedback_submit_attempt") == []
+    posts = [r for r in result["requests"] if r["method"] == "POST" and r["url"].endswith("/responses")]
+    assert posts == []
+    # Button stays enabled so the visitor can fix and retry.
+    assert result["values"]["btn_disabled"] is False

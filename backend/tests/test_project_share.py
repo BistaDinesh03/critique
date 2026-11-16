@@ -276,9 +276,9 @@ def test_a_failed_submission_shows_no_success_and_no_share_state(tmp_path):
     )
 
     assert len(posts(result)) == 1
-    # The failure reports honestly (server detail or friendly fallback)
+    # The failure reports honestly (the API's detail sentence, never raw JSON)
     # and the share UI never appears.
-    assert "Title is required" in (result["ids"].get("message") or "")
+    assert (result["ids"].get("message") or "") == "Title is required"
     assert "Your project is live" not in " ".join(result["created"])
     assert not any(
         m.get("className") == "success-share" for m in result["createdMeta"]
