@@ -1,9 +1,9 @@
-﻿from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from urllib.parse import urlparse
 from app.database import get_db
-from app.models import User, Project
+from app.models import User, Project, Question, Response
 
 router = APIRouter(prefix="/api", tags=["stats"])
 
@@ -33,11 +33,41 @@ def _safe_avatar_url(url):
     return url
 
 
+PUBLIC_MEMBER_LIMIT = 6
+
+
+def _public_members(db: Session, limit: int = PUBLIC_MEMBER_LIMIT):
+    """Return recent builders we may introduce by name and picture.
+
+    Only accounts that own a project and carry a real, public identity are
+    eligible: a non-synthetic username (GitHub login) and a plain https avatar.
+    Email sign-ins carry a keyed placeholder username and no image, so they are
+    deliberately not presented as named members. Requiring a project keeps the
+    supporting copy ("builders sharing their projects") literally true.
+    """
+    rows = (
+        db.query(User.username, User.avatar_url)
+        .filter(User.avatar_url.isnot(None), User.projects.any())
+        .order_by(User.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+
+    members = []
+    for username, avatar_url in rows:
+        safe_url = _safe_avatar_url(avatar_url)
+        if safe_url and username and not username.startswith("email_"):
+            members.append({"username": username, "avatar_url": safe_url})
+    return members
+
+
 @router.get("/stats")
 def get_stats(db: Session = Depends(get_db)):
     """Return real platform stats for social proof."""
-    total_builders = db.query(func.count(User.id)).scalar()
-    total_projects = db.query(func.count(Project.id)).scalar()
+    total_builders = db.query(func.count(User.id)).scalar() or 0
+    total_projects = db.query(func.count(Project.id)).scalar() or 0
+    total_questions = db.query(func.count(Question.id)).scalar() or 0
+    total_responses = db.query(func.count(Response.id)).scalar() or 0
 
     # Most recent builders. Every builder is returned: one with an avatar URL
     # (GitHub) renders that image, one without renders the local fallback.
@@ -56,5 +86,8 @@ def get_stats(db: Session = Depends(get_db)):
     return {
         "total_builders": total_builders,
         "total_projects": total_projects,
+        "total_questions": total_questions,
+        "total_responses": total_responses,
         "builders": builders,
+        "public_members": _public_members(db),
     }

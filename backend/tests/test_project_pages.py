@@ -43,7 +43,21 @@ def test_existing_project_page_preserves_shell_and_cache_headers(suffix, filenam
     response = TestClient(app).get(f'/project/{project_id}{suffix}')
     assert response.status_code == 200
     source = Path(__file__).resolve().parents[2] / 'frontend' / filename
-    assert response.text == source.read_text(encoding='utf-8')
+    expected = source.read_text(encoding='utf-8').replace(
+        '</head>',
+        f'    <link rel="canonical" href="http://127.0.0.1:8000/project/{project_id}{suffix}">\n</head>',
+    )
+    assert response.text == expected
     assert response.headers['cache-control'] == 'private, no-store'
     assert response.headers['vary'] == 'Cookie'
     assert response.headers['content-type'].startswith('text/html')
+
+
+def test_project_detail_has_breadcrumb_navigation():
+    source = (Path(__file__).resolve().parents[2] / 'frontend' / 'project_detail.html').read_text(encoding='utf-8')
+    assert '<nav aria-label="Breadcrumb" class="breadcrumb-nav">' in source
+    assert '<ol class="breadcrumbs">' in source
+    assert '<a href="/">Home</a>' in source
+    assert '<a href="/discover">Discover</a>' in source
+    assert 'aria-current="page"' in source
+    assert 'id="breadcrumb-current"' in source
