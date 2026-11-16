@@ -11,6 +11,7 @@ Design notes:
 """
 from __future__ import annotations
 
+import concurrent.futures
 import html
 import logging
 from urllib.parse import urlparse
@@ -18,6 +19,8 @@ from urllib.parse import urlparse
 from app.config import settings
 
 logger = logging.getLogger(__name__)
+
+EMAIL_SEND_TIMEOUT_SECONDS: float = 10.0
 
 
 def _build_client():
@@ -206,8 +209,8 @@ def _render_email_text(login_url: str) -> str:
         f"Critique \u00b7 {footer}\n"
     )
 
-def send_login_link(to_email: str, raw_token: str) -> bool:
-    """Send the magic-link email.
+def send_login_link(to_email: str, raw_token: str, timeout: float = EMAIL_SEND_TIMEOUT_SECONDS) -> bool:
+    """Send the magic-link email with a bounded deadline.
 
     Returns True if the provider accepted the send, False otherwise.
     Never raises. Never logs the token or the recipient address.
@@ -223,15 +226,38 @@ def send_login_link(to_email: str, raw_token: str) -> bool:
 
     try:
         client = _build_client()
-        client.send({
+        payload = {
             "from": settings.EMAIL_FROM,
             "to": [to_email],
             "subject": "Your Critique sign-in link",
             "reply_to": settings.EMAIL_FROM,
             "html": _render_email_html(login_url),
             "text": _render_email_text(login_url),
-        })
-        return True
+        }
+        send_ok = False
+        send_exc = None
+
+        def _worker():
+            nonlocal send_ok, send_exc
+            try:
+                client.send(payload)
+                send_ok = True
+            except Exception as e:
+                send_exc = e
+
+        import threading
+        thread = threading.Thread(target=_worker, daemon=True)
+        thread.start()
+        thread.join(timeout=timeout)
+
+        if thread.is_alive():
+            logger.error("send_login_link: provider call timed out after %s seconds", timeout)
+            return False
+
+        if send_exc is not None:
+            raise send_exc
+
+        return send_ok
     except Exception:
         # Log the failure without including the token or recipient.
         logger.exception("send_login_link: provider call failed")
