@@ -106,7 +106,7 @@ else is ignored.
 
 | Method | Path | Auth | Notes |
 |---|---|---|---|
-| GET | `.../results` | Optional | `{project_id, project_title, question_text, stats, responses, is_owner}`. `stats` (clarity/would-use aggregates) is public; `responses` (including written suggestions) is populated only for the owner — determined server-side from the session. `404` for unknown projects. |
+| GET | `.../results` | Optional | `{project_id, project_title, question_text, stats, responses, is_owner, discover_impressions, views_count}`. `stats` (clarity/would-use aggregates) is public; `responses` (including written suggestions) as well as `discover_impressions` and `views_count` reach metrics are populated only for the owner — determined server-side from the session. `404` for unknown projects. |
 | GET | `.../results.csv` | Required (Owner) | Returns feedback as `text/csv; charset=utf-8` attachment (`Content-Disposition: attachment; filename="project-{id}-feedback.csv"`). Columns: `created_at,clarity,would_use,suggestion`. Cells starting with formula triggers (`=`, `+`, `-`, `@`, `\t`, `\r`) are escaped with a leading single quote to neutralize spreadsheet injection. `401` for anonymous, `403` for non-owners, `404` for unknown projects. |
 
 ## Badge — `/badge`
@@ -128,7 +128,7 @@ else is ignored.
 | POST | `/api/analytics/track?event_name=...&project_id=...` | Optional | `analytics` | Parameters are passed in the query string (no request body). `event_name` must be on the server-side allowlist or the request is rejected with `400 {"detail": "Invalid event name"}`. Returns `{"ok": bool}` and sets/refreshes the visitor cookie. Stores only the
   event name, an anonymous visitor ID, optional user/project IDs, and a
   timestamp — no IP addresses, free-form text, or third-party scripts. |
-| GET | `/api/analytics/dashboard` | Required (owner allowlist) | — | Aggregated totals for the site owner; `403` for other signed-in users. |
+| GET | `/api/analytics/dashboard` | Required (owner allowlist) | — | Aggregated totals for the site owner; `403` for other signed-in users. Supports optional `start` and `end` ISO 8601 query parameters for date-range filtering. |
 
 ## SEO — `/`
 
