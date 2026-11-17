@@ -166,3 +166,12 @@ def test_apple_touch_icon_and_mask_icon_on_all_pages():
     assert res_apple.status_code == 200
     res_mask = client.get("/static/favicon.svg")
     assert res_mask.status_code == 200
+
+
+def test_my_projects_declares_twitter_card_metadata():
+    """my_projects.html carries Twitter Card metadata tags."""
+    frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"
+    html = (frontend_dir / "my_projects.html").read_text(encoding="utf-8")
+    assert '<meta name="twitter:card" content="summary">' in html
+    assert '<meta name="twitter:title" content="My Projects — Critique">' in html
+    assert '<meta name="twitter:description"' in html

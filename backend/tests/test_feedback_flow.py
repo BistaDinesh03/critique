@@ -715,3 +715,57 @@ def test_feedback_form_has_progress_indicator(tmp_path):
     assert 'aria-label="Feedback progress"' in result["html"]
     assert 'aria-valuenow="0"' in result["html"]
     assert "Step 0 of 3 completed" in result["html"]
+
+
+def test_project_detail_shows_response_count_to_owner(tmp_path):
+    """Owner sees response count badge in project header; non-owners do not (fixes #327)."""
+    owner_data = {
+        "project": {
+            "id": 1,
+            "title": "Owner's App",
+            "description": "App description",
+            "response_count": 4,
+            "image_url": None,
+            "url": None,
+        },
+        "question": {
+            "id": 1,
+            "text": "What do you think?",
+            "is_active": True,
+            "project_id": 1,
+        },
+        "is_owner": True,
+    }
+    non_owner_data = {
+        "project": {
+            "id": 2,
+            "title": "Visitor's App",
+            "description": "App description",
+            "response_count": 4,
+            "image_url": None,
+            "url": None,
+        },
+        "question": {
+            "id": 2,
+            "text": "What do you think?",
+            "is_active": True,
+            "project_id": 2,
+        },
+        "is_owner": False,
+    }
+
+    owner_res = run(tmp_path, "project_detail.html", [{"fn": "renderProject", "args": [owner_data, []]}], read={"byId": "content"})
+    assert "owner-response-count" in owner_res["html"]
+    assert "4 responses" in owner_res["html"]
+
+    non_owner_res = run(tmp_path, "project_detail.html", [{"fn": "renderProject", "args": [non_owner_data, []]}], read={"byId": "content"})
+    assert "owner-response-count" not in non_owner_res["html"]
+def test_feedback_form_suggestion_textarea_has_maxlength(tmp_path):
+    """The suggestion textarea caps input at 2000 characters to match the API schema (fixes #279)."""
+    result = run(
+        tmp_path,
+        "project_detail.html",
+        [{"fn": "renderProject", "args": [PROJECT, []]}],
+        read={"byId": "content"},
+    )
+    assert '<textarea class="form-textarea" id="suggestion" maxlength="2000"' in result["html"]

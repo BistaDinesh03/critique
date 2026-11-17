@@ -460,6 +460,13 @@ img {
     margin-top: var(--space-1);
 }
 
+.form-char-count {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    text-align: right;
+    margin-top: var(--space-1);
+}
+
 .form-input,
 .form-textarea {
     width: 100%;
@@ -2101,4 +2108,22 @@ img {
         width: 100%;
         justify-content: center;
     }
+}
+
+.reach-metrics {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+    margin-bottom: var(--space-3);
+    padding: var(--space-1) var(--space-3);
+    background: var(--surface-muted);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+}
+
+.reach-metrics strong {
+    color: var(--text-primary);
 }

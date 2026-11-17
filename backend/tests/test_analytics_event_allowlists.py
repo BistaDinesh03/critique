@@ -1,4 +1,5 @@
 import ast
+import json
 import re
 from collections import defaultdict
 from pathlib import Path
@@ -35,11 +36,33 @@ def _backend_events():
 
 
 def _frontend_events():
-    """Read the client-side allowlist out of static/analytics.js."""
-    frontend_source = (ROOT / "static/analytics.js").read_text(encoding="utf-8-sig")
-    match = re.search(r"\b(?:const|let|var)\s+VALID_EVENTS\s*=\s*\[([^\]]*)\]", frontend_source)
-    assert match is not None, "Frontend VALID_EVENTS declaration is missing"
-    return set(re.findall(r"['\"]([a-z0-9_]+)['\"]", match.group(1)))
+    """Read the generated client-side allowlist out of static/analytics_events.js."""
+    frontend_source = (ROOT / "static/analytics_events.js").read_text(
+        encoding="utf-8")
+    prefix = "window.CRITIQUE_VALID_ANALYTICS_EVENTS = "
+    assert frontend_source.startswith(prefix), (
+        "Generated frontend allowlist is missing")
+    return set(json.loads(frontend_source[len(prefix):].strip().removesuffix(";")))
+
+
+def test_generated_frontend_allowlist_matches_backend_exactly():
+    """static/analytics_events.js is generated from the backend allowlist.
+
+    Keeping the generated file byte-for-byte reproducible means a new event
+    cannot be added on one side only, and the browser can never silently drop
+    an event the server would accept.
+    """
+    backend_events = _backend_events()
+    expected_content = (
+        "window.CRITIQUE_VALID_ANALYTICS_EVENTS = "
+        + json.dumps(sorted(backend_events), indent=4)
+        + ";\n"
+    )
+    actual_content = (ROOT / "static/analytics_events.js").read_text(
+        encoding="utf-8")
+    assert actual_content == expected_content, (
+        "static/analytics_events.js is stale: regenerate it from "
+        "backend/app/routes_analytics.py VALID_EVENTS")
 
 
 def _fired_events():

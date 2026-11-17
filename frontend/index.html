@@ -1499,7 +1499,8 @@
 
                     <div class="form-group">
                         <label class="form-label" for="title">Project title <span class="form-required">(required)</span></label>
-                        <input class="form-input" type="text" id="title" name="title" required maxlength="200" placeholder="e.g. Akiya Scout">
+                        <input class="form-input" type="text" id="title" name="title" required maxlength="200" placeholder="e.g. Akiya Scout" aria-describedby="title-char-count">
+                        <div id="title-char-count" class="form-char-count" aria-live="off">0/200</div>
                     </div>
 
                     <div class="form-group">
@@ -1522,7 +1523,8 @@
 
                     <div class="form-group">
                         <label class="form-label" for="question">Ask ONE question <span class="form-required">(required)</span></label>
-                        <textarea class="form-textarea" id="question" name="question" required maxlength="500" placeholder="e.g. Is it immediately clear what this product does?" style="min-height:80px;"></textarea>
+                        <textarea class="form-textarea" id="question" name="question" required maxlength="500" placeholder="e.g. Is it immediately clear what this product does?" style="min-height:80px;" aria-describedby="question-char-count"></textarea>
+                        <div id="question-char-count" class="form-char-count" aria-live="off">0/500</div>
                         <p class="form-helper">Be specific. One clear question leads to more useful feedback.</p>
                     </div>
 
@@ -1858,6 +1860,7 @@
                 if (typeof draft.url === 'string') document.getElementById('url').value = draft.url;
                 if (typeof draft.image_url === 'string') document.getElementById('image_url').value = draft.image_url;
                 if (typeof draft.question === 'string') document.getElementById('question').value = draft.question;
+                syncProjectFormCharCounts();
                 return true;
             } catch (e) {
                 return false;
@@ -1937,6 +1940,19 @@
             } catch (e) {}
         }
 
+        function syncProjectFormCharCounts() {
+            var titleInput = document.getElementById('title');
+            var titleCount = document.getElementById('title-char-count');
+            if (titleInput && titleCount) {
+                titleCount.textContent = titleInput.value.length + '/200';
+            }
+            var questionInput = document.getElementById('question');
+            var questionCount = document.getElementById('question-char-count');
+            if (questionInput && questionCount) {
+                questionCount.textContent = questionInput.value.length + '/500';
+            }
+        }
+
         var projectFormDirty = false;
         function updateProjectFormDirty() {
             var titleEl = document.getElementById('title');
@@ -1954,6 +1970,10 @@
         if (pForm) {
             pForm.addEventListener('input', updateProjectFormDirty);
             pForm.addEventListener('change', updateProjectFormDirty);
+            pForm.addEventListener('input', syncProjectFormCharCounts);
+            pForm.addEventListener('reset', function() {
+                setTimeout(syncProjectFormCharCounts, 0);
+            });
         }
 
         window.addEventListener('beforeunload', function(e) {
@@ -2000,6 +2020,7 @@
                     clearProjectDraft();
                     projectFormDirty = false;
                     document.getElementById('project-form').reset();
+                    syncProjectFormCharCounts();
                     showProjectLive(data);
                 } else if (response.status === 401) {
                     saveProjectDraft();
@@ -2032,6 +2053,7 @@
         try { loadSocialProof(); } catch(e) { console.error('Social proof error:', e); }
         try { loadHomepageProjects(); } catch(e) { console.error('Homepage projects error:', e); }
         try { maybeRestoreProjectAfterLogin(); } catch(e) {}
+        try { syncProjectFormCharCounts(); } catch(e) {}
         try { maybeResumeToSubmit(); } catch(e) {}
 
         function maybeResumeToSubmit() {
@@ -2165,7 +2187,8 @@
 
     </script>
     <script src="/static/ui.js"></script>
-    <script src="/static/analytics.js"></script>
+    <script src="/static/analytics_events.js"></script>
+<script src="/static/analytics.js"></script>
     <script src="/static/share.js"></script>
     <script>trackPageView();</script>
 
