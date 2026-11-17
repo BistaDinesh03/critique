@@ -30,6 +30,29 @@
     <meta name="twitter:image" content="https://critique.page/static/og-image.webp">
     <meta name="twitter:image:alt" content="Critique — Ask one question. Get real answers.">
     <title>Critique — Ask one question. Get real answers.</title>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@graph": [
+            {
+                "@type": "SoftwareApplication",
+                "@id": "https://critique.page/#application",
+                "name": "Critique",
+                "url": "https://critique.page/",
+                "description": "Ask one question about what you built. Get focused feedback from real people.",
+                "applicationCategory": "DeveloperApplication",
+                "operatingSystem": "Web browser",
+                "publisher": {"@id": "https://critique.page/#organization"}
+            },
+            {
+                "@type": "Organization",
+                "@id": "https://critique.page/#organization",
+                "name": "Critique",
+                "url": "https://critique.page/"
+            }
+        ]
+    }
+    </script>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link rel="stylesheet" href="/static/shared.css">
     <style>
@@ -161,8 +184,7 @@
             box-sizing: border-box;
         }
 
-        /* "+N" bubble for builders who are not pictured. Keeps the avatar row
-           consistent with the real builder count in the sentence next to it. */
+        /* "+N" bubble for builders who are not pictured. */
         .avatar-stack .avatar-more {
             display: inline-flex;
             align-items: center;
@@ -1167,6 +1189,7 @@
     </style>
 </head>
 <body>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
     <header class="navbar">
         <a href="/" class="navbar-brand" aria-current="page">
             <img src="/static/logo.svg" alt="Critique" width="32" height="32">
@@ -1184,7 +1207,7 @@
         </nav>
     </header>
 
-    <main class="container-wide" style="max-width: 1100px;">
+    <main id="main-content" class="container-wide" style="max-width: 1100px;">
         <!-- Shown on load when the backend redirects here with ?error=email_link
              (expired, already-used, or invalid magic link). It sits at the very
              top of the page, outside the submit form and before the script that
@@ -1217,7 +1240,7 @@
                 <div class="avatar-stack" id="avatar-stack" aria-hidden="true"><span class="avatar-skeleton skeleton"></span><span class="avatar-skeleton skeleton"></span><span class="avatar-skeleton skeleton"></span><span class="avatar-skeleton skeleton"></span></div>
                 <p class="social-proof-text" id="social-proof-text"><span class="skeleton social-proof-skeleton-line"></span></p>
                 <p class="social-proof-sub">
-                    Real builders &middot; Real projects &middot; Human feedback
+                    Discover real projects. Share thoughtful feedback. Build better together.
                 </p>
             </div>
         </section>
@@ -1784,9 +1807,11 @@
             var container = document.getElementById('question-examples');
             container.innerHTML = '';
             [
-                'Is it immediately clear what my app does?',
-                'What would stop you from trying this product?',
-                'Is the next step on this page easy to find?'
+                'Is the main purpose of this website clear within the first 5 seconds?',
+                'Which part of this onboarding flow feels confusing?',
+                'Does my portfolio communicate my skills and experience clearly?',
+                'Is the navigation easy to understand?',
+                'Would you understand what this product offers and who it is for?'
             ].forEach(function (text) {
                 var button = document.createElement('button');
                 button.type = 'button';
@@ -2012,15 +2037,9 @@
             if (window.location.search.indexOf('resume=project_submit') === -1) return;
             var form = document.getElementById('submit');
             if (!form) return;
-            var behavior = 'smooth';
-            try {
-                if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-                    behavior = 'auto';
-                }
-            } catch (e) {}
-            // Scroll to the submit section
+            // Honor motion preferences when returning to the submit section
             setTimeout(function() {
-                form.scrollIntoView({ behavior: behavior, block: 'start' });
+                form.scrollIntoView({ behavior: CritiqueUI.scrollBehavior(), block: 'start' });
                 // Focus the first input for immediate typing
                 var firstInput = document.getElementById('title');
                 if (firstInput) {
@@ -2030,6 +2049,17 @@
             // Clean the URL so refreshing doesn't re-trigger
             if (window.history && window.history.replaceState) {
                 window.history.replaceState({}, '', '/');
+            }
+        }
+
+        // Defence in depth: only an absolute https image may be loaded.
+        function isSafeAvatarSrc(url) {
+            if (typeof url !== 'string') return false;
+            try {
+                var parsed = new URL(url);
+                return parsed.protocol === 'https:' && !!parsed.hostname;
+            } catch (e) {
+                return false;
             }
         }
 
@@ -2073,17 +2103,6 @@
                 '<g fill="' + fill + '">' + cells + '</g></svg>';
         }
 
-        // Defence in depth: only an absolute https image may be loaded.
-        function isSafeAvatarSrc(url) {
-            if (typeof url !== 'string') return false;
-            try {
-                var parsed = new URL(url);
-                return parsed.protocol === 'https:' && !!parsed.hostname;
-            } catch (e) {
-                return false;
-            }
-        }
-
         async function loadSocialProof() {
             const proofContainer = document.getElementById('social-proof');
             let resolved = false;
@@ -2107,27 +2126,20 @@
                         avatarsHtml += '<span class="avatar-fallback">' + fallbackAvatarSvg(seedValue) + '</span>';
                     }
                 });
-                // The row pictures at most four builders while the sentence
-                // states the real total, so the rest are accounted for with a
-                // "+N" bubble: the avatars and the number then describe the
-                // same real set of builders instead of looking inconsistent.
                 const remaining = (data.total_builders || 0) - shown.length;
                 if (remaining > 0) {
                     avatarsHtml += '<span class="avatar-more">+' + remaining + '</span>';
                 }
                 avatarStack.innerHTML = avatarsHtml;
 
-                if (data.total_builders === 1) {
-                    proofText.textContent = 'Join 1 builder already using Critique';
-                } else if (data.total_builders > 1) {
-                    proofText.textContent = 'Join ' + data.total_builders + ' builders already using Critique';
+                const total = data.total_builders || 0;
+                if (total > 0) {
+                    proofText.textContent = 'Join ' + total + ' members on Critique.';
                 } else {
-                    proofText.textContent = 'Be one of the first builders to use Critique';
+                    proofText.textContent = 'Be one of the first developers to share a project on Critique';
                 }
 
-                // Nothing to show yet: hide the row, exactly as it behaved
-                // before the placeholder existed.
-                proofContainer.style.display = data.total_builders > 0 ? 'flex' : 'none';
+                proofContainer.style.display = total > 0 ? 'flex' : 'none';
 
                 const statProjects = document.getElementById('stat-projects');
                 if (statProjects) statProjects.textContent = data.total_projects || 0;
@@ -2142,14 +2154,13 @@
             } catch (e) {
                 // Silently fail - social proof is enhancement
             } finally {
-                // A placeholder must never be the final state: on success the
-                // real row is in place, otherwise the block is hidden.
                 proofContainer.setAttribute('aria-busy', 'false');
                 if (!resolved) {
                     proofContainer.style.display = 'none';
                 }
             }
         }
+
     </script>
     <script src="/static/ui.js"></script>
     <script src="/static/analytics.js"></script>
@@ -2167,19 +2178,28 @@
             </div>
             <div class="footer-links">
                 <div class="footer-col">
-                    <h4>Product</h4>
+                    <h4>Explore</h4>
                     <ul>
                         <li><a href="/discover">Discover</a></li>
                         <li><a href="/#submit">Submit a project</a></li>
                     </ul>
                 </div>
                 <div class="footer-col">
-                    <h4>Connect</h4>
+                    <h4>Community</h4>
                     <ul>
-                        <li><a href="https://github.com/BistaDinesh03/critique" target="_blank" rel="noopener" aria-label="Critique on GitHub"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>GitHub</a></li>
+                        <li><a href="https://github.com/BistaDinesh03/critique/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">Contribute</a></li>
+                        <li><a href="https://github.com/BistaDinesh03/critique" target="_blank" rel="noopener noreferrer" aria-label="Critique on GitHub"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>GitHub</a></li>
+                        <li><a href="https://github.com/BistaDinesh03/critique/issues/new" target="_blank" rel="noopener noreferrer">Report an issue</a></li>
                     </ul>
                 </div>
             </div>
+        </div>
+        <div class="footer-contribute">
+            <div class="footer-contribute-copy">
+                <h4>Want to help improve Critique?</h4>
+                <p>Contribute code, report an issue, or help make feedback better for everyone.</p>
+            </div>
+            <a href="https://github.com/BistaDinesh03/critique/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer" class="btn btn-secondary footer-contribute-btn">Explore contributions</a>
         </div>
         <div class="footer-bottom">
             <span>© 2026 Critique · Open source · Free to use</span>
@@ -2289,18 +2309,6 @@
             return document.getElementById(id);
         }
 
-        function readReducedMotion() {
-            try {
-                if (typeof window !== 'undefined' && window.matchMedia) {
-                    var mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-                    if (mq && typeof mq.matches === 'boolean') return mq.matches;
-                }
-            } catch (e) {
-                // Treat an unusable media query as "motion allowed".
-            }
-            return false;
-        }
-
         function init() {
             var root = byId('fb-carousel');
             var viewport = byId('fb-viewport');
@@ -2316,7 +2324,7 @@
                 pages: 1,
                 perView: 3,
                 slideCount: 0,
-                reducedMotion: readReducedMotion()
+                reducedMotion: CritiqueUI.readReducedMotion()
             };
 
             function applyMotionPreference() {

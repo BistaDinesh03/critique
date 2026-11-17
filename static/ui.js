@@ -4,6 +4,22 @@
 var CritiqueUI = (function() {
     'use strict';
 
+    function readReducedMotion() {
+        try {
+            if (typeof window !== 'undefined' && window.matchMedia) {
+                var mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+                if (mq && typeof mq.matches === 'boolean') return mq.matches;
+            }
+        } catch (e) {
+            // Treat an unusable media query as "motion allowed".
+        }
+        return false;
+    }
+
+    function scrollBehavior() {
+        return readReducedMotion() ? 'auto' : 'smooth';
+    }
+
     // ============ TOAST SYSTEM ============
     function showToast(message, type) {
         type = type || 'success';
@@ -87,6 +103,8 @@ var CritiqueUI = (function() {
     }
 
     // ============ MODAL SYSTEM ============
+    var confirmModalSequence = 0;
+
     function showConfirmModal(options) {
         var title = options.title || 'Confirm';
         var message = options.message || '';
@@ -94,6 +112,7 @@ var CritiqueUI = (function() {
         var cancelText = options.cancelText || 'Cancel';
         var destructive = options.destructive !== false;
         var onConfirm = options.onConfirm || function() {};
+        var modalId = 'confirm-modal-' + (++confirmModalSequence);
 
         // Create backdrop
         var backdrop = document.createElement('div');
@@ -105,16 +124,16 @@ var CritiqueUI = (function() {
         modal.className = 'modal';
         modal.setAttribute('role', 'dialog');
         modal.setAttribute('aria-modal', 'true');
-        modal.setAttribute('aria-labelledby', 'modal-title');
-        modal.setAttribute('aria-describedby', 'modal-description');
+        modal.setAttribute('aria-labelledby', modalId + '-title');
+        modal.setAttribute('aria-describedby', modalId + '-description');
 
         var titleEl = document.createElement('h3');
-        titleEl.id = 'modal-title';
+        titleEl.id = modalId + '-title';
         titleEl.className = 'modal-title';
         titleEl.textContent = title;
 
         var bodyEl = document.createElement('div');
-        bodyEl.id = 'modal-description';
+        bodyEl.id = modalId + '-description';
         bodyEl.className = 'modal-body';
         bodyEl.textContent = message;
 
@@ -464,12 +483,20 @@ var CritiqueUI = (function() {
                     })
                 });
                 if (response.ok) {
-                    trackAuthEvent('email_verification_sent', context);
-                    // Count the attempt on the same rule as GitHub: GitHub
-                    // fires login_started when the visitor is handed to the
-                    // provider, so email fires it when the provider confirms
-                    // the sign-in link was accepted. Failed sends emit neither.
-                    trackAuthEvent('login_started', context);
+                    var data = null;
+                    try {
+                        data = await response.json();
+                    } catch (e) {
+                        data = null;
+                    }
+                    if (data && data.sent === true) {
+                        trackAuthEvent('email_verification_sent', context);
+                        // Count the attempt on the same rule as GitHub: GitHub
+                        // fires login_started when the visitor is handed to the
+                        // provider, so email fires it when the provider confirms
+                        // the sign-in link was accepted. Failed sends emit neither.
+                        trackAuthEvent('login_started', context);
+                    }
                     // Success is only shown after the backend confirmed the
                     // request; the endpoint always answers generically, so this
                     // never reveals whether an account exists.
@@ -612,6 +639,15 @@ var CritiqueUI = (function() {
                     })
                 });
                 if (response.ok) {
+                    var resData = null;
+                    try {
+                        resData = await response.json();
+                    } catch (e) {
+                        resData = null;
+                    }
+                    if (resData && resData.sent === true) {
+                        trackAuthEvent('email_verification_sent', context);
+                    }
                     lastSentAt = Date.now();
                     status.textContent = 'A new sign-in link is on its way. Check your inbox.';
                     paintCooldown();
@@ -737,6 +773,8 @@ var CritiqueUI = (function() {
     }
 
     return {
+        readReducedMotion: readReducedMotion,
+        scrollBehavior: scrollBehavior,
         showToast: showToast,
         showConfirmModal: showConfirmModal,
         renderAuthChoice: renderAuthChoice,

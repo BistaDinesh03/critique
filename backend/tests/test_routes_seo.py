@@ -11,6 +11,7 @@ Fixtures and style follow ``test_badge.py``: rows are seeded through
 ``SessionLocal`` and deleted again when the test ends.
 """
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -41,7 +42,7 @@ EXPECTED_ROBOTS_BODY = (
 PRIVATE_PATHS = ("/my-projects", "/api/", "/auth/", "/health", "/docs", "/redoc")
 
 
-def _build_project():
+def _build_project(created_at=None):
     """Insert a project (and its owner) so it shows up in the sitemap."""
     unique = uuid.uuid4().hex[:12]
     with SessionLocal() as db:
@@ -51,9 +52,12 @@ def _build_project():
         db.flush()
 
         project = Project(title=f"SEO project {unique}", owner_id=owner.id)
+        if created_at is not None:
+            project.created_at = created_at
         db.add(project)
         db.commit()
-        return project.id, owner.id
+        db.refresh(project)
+        return project.id, owner.id, project.created_at
 
 
 def _delete_project(project_id, owner_id):
@@ -66,17 +70,20 @@ def _delete_project(project_id, owner_id):
 class _ProjectFixture:
     """Context manager so every seeded project is cleaned up afterwards."""
 
+    def __init__(self, created_at=None):
+        self.created_at_override = created_at
+
     def __enter__(self):
-        self.project_id, self.owner_id = _build_project()
-        return self.project_id
+        self.project_id, self.owner_id, self.created_at = _build_project(self.created_at_override)
+        return self.project_id, self.created_at
 
     def __exit__(self, *exc_info):
         _delete_project(self.project_id, self.owner_id)
         return False
 
 
-def project_in_sitemap():
-    return _ProjectFixture()
+def project_in_sitemap(created_at=None):
+    return _ProjectFixture(created_at)
 
 
 def get_robots():
@@ -145,14 +152,16 @@ class TestSitemapXml:
 
         assert f"<loc>{PRODUCTION_ORIGIN}/</loc>" in body
         assert f"<loc>{PRODUCTION_ORIGIN}/discover</loc>" in body
+        assert body.count("<lastmod>") >= 2
 
     def test_newly_created_projects_appear(self, monkeypatch):
         monkeypatch.setattr(settings, "APP_URL", PRODUCTION_ORIGIN)
 
-        with project_in_sitemap() as project_id:
+        with project_in_sitemap() as (project_id, created_at):
             body = get_sitemap().text
 
         assert f"<loc>{PRODUCTION_ORIGIN}/project/{project_id}</loc>" in body
+        assert f"<lastmod>{created_at.date().isoformat()}</lastmod>" in body
 
     def test_trailing_slash_does_not_produce_a_double_slash(self, monkeypatch):
         monkeypatch.setattr(settings, "APP_URL", PRODUCTION_ORIGIN + "/")
@@ -161,6 +170,17 @@ class TestSitemapXml:
 
         assert f"<loc>{PRODUCTION_ORIGIN}/discover</loc>" in body
         assert f"{PRODUCTION_ORIGIN}//" not in body
+
+    def test_projects_on_different_days_have_different_lastmod(self, monkeypatch):
+        monkeypatch.setattr(settings, "APP_URL", PRODUCTION_ORIGIN)
+
+        d1 = datetime(2024, 1, 1, tzinfo=timezone.utc)
+        d2 = datetime(2024, 6, 15, tzinfo=timezone.utc)
+        with project_in_sitemap(d1) as (p1, _), project_in_sitemap(d2) as (p2, _):
+            body = get_sitemap().text
+
+        assert "<lastmod>2024-01-01</lastmod>" in body
+        assert "<lastmod>2024-06-15</lastmod>" in body
 
     def test_a_self_hosted_origin_is_used_for_every_loc(self, monkeypatch):
         """Every <loc> must point at the configured deployment, never production."""

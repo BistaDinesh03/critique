@@ -43,8 +43,8 @@ class ProjectCreate(BaseModel):
 
     @field_validator("url")
     @classmethod
-    def validate_url(cls, v: Optional[str]) -> Optional[str]:
-        """Validate that URL is a valid http or https URL with a host."""
+    def validate_project_url(cls, v: Optional[str]) -> Optional[str]:
+        """Validate project URL: requires valid host, http/https, no credentials or control chars."""
         if v is None:
             return None
         v = v.strip()
@@ -54,20 +54,18 @@ class ProjectCreate(BaseModel):
             parsed = urlsplit(v)
         except ValueError:
             raise ValueError("Invalid URL")
-        if parsed.scheme not in {"http", "https"}:
-            raise ValueError("URL must use http or https scheme")
-        if not parsed.netloc or not parsed.netloc.strip():
-            raise ValueError("URL must have a valid host")
-        if any(ch.isspace() for ch in parsed.netloc):
-            raise ValueError("URL host must not contain whitespace")
+        if parsed.scheme not in ("http", "https") or not parsed.netloc:
+            raise ValueError("URL must have http or https scheme and a valid host")
+        if any(ch.isspace() or ord(ch) < 32 or ord(ch) == 127 for ch in parsed.netloc):
+            raise ValueError("URL host cannot contain whitespace or control characters")
         if parsed.username or parsed.password:
-            raise ValueError("URL must not contain embedded credentials")
+            raise ValueError("URL cannot contain embedded credentials")
         return v
 
     @field_validator("image_url")
     @classmethod
     def validate_image_url(cls, v: Optional[str]) -> Optional[str]:
-        """Validate that image URL is a valid https URL with a host."""
+        """Validate screenshot URL: requires valid host, HTTPS (to prevent mixed content), no credentials."""
         if v is None:
             return None
         v = v.strip()
@@ -76,15 +74,13 @@ class ProjectCreate(BaseModel):
         try:
             parsed = urlsplit(v)
         except ValueError:
-            raise ValueError("Invalid URL")
-        if parsed.scheme != "https":
-            raise ValueError("Image URL must use https scheme to prevent mixed content")
-        if not parsed.netloc or not parsed.netloc.strip():
-            raise ValueError("Image URL must have a valid host")
-        if any(ch.isspace() for ch in parsed.netloc):
-            raise ValueError("Image URL host must not contain whitespace")
+            raise ValueError("Invalid image URL")
+        if parsed.scheme != "https" or not parsed.netloc:
+            raise ValueError("Image URL must use https scheme and have a valid host")
+        if any(ch.isspace() or ord(ch) < 32 or ord(ch) == 127 for ch in parsed.netloc):
+            raise ValueError("Image URL host cannot contain whitespace or control characters")
         if parsed.username or parsed.password:
-            raise ValueError("Image URL must not contain embedded credentials")
+            raise ValueError("Image URL cannot contain embedded credentials")
         return v
 
 

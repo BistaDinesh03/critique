@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="light dark">
-    <meta name="description" id="meta-description" content="Give focused feedback on this project on Critique.">
+    <title>Project - Critique</title>
+    <meta name="description" id="meta-description" content="Review this project and give honest feedback on Critique.">
 
     <!-- Open Graph -->
     <meta property="og:type" content="website">
@@ -294,6 +295,7 @@
     </style>
 </head>
 <body>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
     <header class="navbar">
         <a href="/" class="navbar-brand">
             <img src="/static/logo.svg" alt="Critique" width="32" height="32">
@@ -311,7 +313,7 @@
         </nav>
     </header>
 
-    <main class="container">
+    <main id="main-content" class="container">
         <nav aria-label="Breadcrumb" class="breadcrumb-nav">
             <ol class="breadcrumbs">
                 <li><a href="/">Home</a></li>
@@ -466,6 +468,7 @@
             // What is being reviewed is stated before anything is asked of the
             // visitor, so the answer is given with the context in view.
             if (p.description) { html += '<p class="project-summary">' + escapeHtml(p.description) + '</p>'; }
+            if (p.url) { html += '<p class="project-link"><a href="' + escapeHtml(p.url) + '" target="_blank" rel="noopener noreferrer" class="btn btn-secondary visit-project-btn">Visit project \u2192</a></p>'; }
             if (q) {
                 html += '<div class="question-block"><div class="question-label">The Maker\'s Question</div><div class="question-text">' + escapeHtml(q.text) + '</div></div>';
                 html += '<div class="eyebrow">Your feedback</div>';
@@ -479,17 +482,17 @@
                     // with an end rather than an open-ended questionnaire.
                     html += '<div class="response-form-card"><form id="response-form">';
                     html += '<fieldset class="form-section"><legend>1. How clear is it?</legend><div class="radio-cards">';
-                    html += '<label class="radio-card"><input type="radio" id="c1" name="clarity" value="very_clear" required onclick="trackFeedbackStart()"><span class="radio-card-label"><span class="radio-card-title">Very clear</span><span class="radio-card-desc">I understood the project quickly.</span></span></label>';
-                    html += '<label class="radio-card"><input type="radio" id="c2" name="clarity" value="mostly_clear" onclick="trackFeedbackStart()"><span class="radio-card-label"><span class="radio-card-title">Mostly clear</span><span class="radio-card-desc">I understood it, but needed some explanation.</span></span></label>';
-                    html += '<label class="radio-card"><input type="radio" id="c3" name="clarity" value="confusing" onclick="trackFeedbackStart()"><span class="radio-card-label"><span class="radio-card-title">Confusing</span><span class="radio-card-desc">I was not sure what it does.</span></span></label>';
+                    html += '<label class="radio-card"><input type="radio" id="c1" name="clarity" value="very_clear" required><span class="radio-card-label"><span class="radio-card-title">Very clear</span><span class="radio-card-desc">I understood the project quickly.</span></span></label>';
+                    html += '<label class="radio-card"><input type="radio" id="c2" name="clarity" value="mostly_clear"><span class="radio-card-label"><span class="radio-card-title">Mostly clear</span><span class="radio-card-desc">I understood it, but needed some explanation.</span></span></label>';
+                    html += '<label class="radio-card"><input type="radio" id="c3" name="clarity" value="confusing"><span class="radio-card-label"><span class="radio-card-title">Confusing</span><span class="radio-card-desc">I was not sure what it does.</span></span></label>';
                     html += '</div></fieldset>';
                     html += '<fieldset class="form-section"><legend>2. Would you use it?</legend><div class="radio-cards">';
                     html += '<label class="radio-card"><input type="radio" id="u1" name="would_use" value="yes" required><span class="radio-card-label"><span class="radio-card-title">Yes</span><span class="radio-card-desc">I would use this.</span></span></label>';
                     html += '<label class="radio-card"><input type="radio" id="u2" name="would_use" value="maybe"><span class="radio-card-label"><span class="radio-card-title">Maybe</span><span class="radio-card-desc">I might use this in some cases.</span></span></label>';
                     html += '<label class="radio-card"><input type="radio" id="u3" name="would_use" value="no"><span class="radio-card-label"><span class="radio-card-title">No</span><span class="radio-card-desc">I would not use this.</span></span></label>';
                     html += '</div></fieldset>';
-                    html += '<div class="form-section"><h3>3. What would you change? <span style="font-weight:400;color:var(--text-muted);">(optional)</span></h3><textarea class="form-textarea" id="suggestion" maxlength="2000" placeholder="Your honest feedback..."></textarea></div>';
-                    html += '<button type="submit" class="btn btn-primary" id="submit-btn" style="width:100%;">Submit feedback</button>';
+                    html += '<div class="form-section"><h3>3. What would you change? <span style="font-weight:400;color:var(--text-muted);">(optional)</span></h3><textarea class="form-textarea" id="suggestion" maxlength="2000" placeholder="Your honest feedback..." aria-keyshortcuts="Control+Enter Meta+Enter"></textarea><p class="form-helper" style="font-size:var(--text-xs);color:var(--text-muted);margin-top:var(--space-1);">Press <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd> to submit</p><div id="suggestion-char-count" style="font-size:12px;color:var(--text-muted);text-align:right;margin-top:4px;">0 / 2000</div></div>';
+                    html += '<button type="submit" class="btn btn-primary" id="submit-btn" style="width:100%;" aria-keyshortcuts="Control+Enter Meta+Enter">Submit feedback</button>';
                     html += '<div class="message" id="message" role="alert" aria-live="polite"></div></form></div>';
                 }
                 var details = '';
@@ -498,7 +501,6 @@
                     const altText = 'Screenshot of ' + escapeHtml(projectTitle);
                     details += '<img class="project-screenshot" src="' + escapeHtml(p.image_url) + '" alt="' + altText + '" loading="lazy" onerror="this.style.display=\'none\'">';
                 }
-                if (p.url) { details += '<a href="' + escapeHtml(p.url) + '" target="_blank" rel="noopener" class="project-url">' + escapeHtml(p.url) + '</a>'; }
                 if (details) { html += '<div class="eyebrow">About this project</div><div class="project-header" style="margin-top: var(--space-5);">' + details + '</div>'; }
                 if (responses.length > 0) {
                     html += '<div class="eyebrow">Responses</div>';
@@ -512,10 +514,36 @@
                 }
             }
             content.innerHTML = html;
+            const suggestionInput = document.getElementById('suggestion');
+            if (suggestionInput) suggestionInput.addEventListener('input', syncSuggestionCharCount);
+            syncSuggestionCharCount();
             const copyBtn = document.getElementById('copy-project-link');
             if (copyBtn) copyBtn.addEventListener('click', copyProjectLink);
             const form = document.getElementById('response-form');
-            if (form) form.addEventListener('submit', handleSubmit);
+            if (form) {
+                form.addEventListener('submit', handleSubmit);
+                form.addEventListener('keydown', function(e) {
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                        e.preventDefault();
+                        if (typeof form.requestSubmit === 'function') {
+                            form.requestSubmit();
+                        } else {
+                            form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+                        }
+                    }
+                });
+                // Listen at the form level so keyboard radio selection (arrow keys)
+                // is captured, not just pointer clicks.
+                form.addEventListener('change', function(e) {
+                    if (e.target && (e.target.name === 'clarity' || e.target.name === 'would_use')) {
+                        trackFeedbackStart();
+                    }
+                });
+                const feedbackSuggestion = form.querySelector('textarea[name="suggestion"]') || document.getElementById('suggestion');
+                if (feedbackSuggestion) {
+                    feedbackSuggestion.addEventListener('input', trackFeedbackStart);
+                }
+            }
             if (form && !feedbackFormViewedTracked) { feedbackFormViewedTracked = true; window.CritiqueAnalytics.trackEvent('feedback_form_viewed', projectId); }
             if (feedbackAlreadySubmitted()) {
                 showFeedbackSuccessNextStep(document.getElementById('feedback-thanks'));
@@ -523,6 +551,20 @@
             // Restore any saved feedback draft from before OAuth
             maybeRestoreAfterLogin();
             maybeResumeToFeedback();
+            // Draft restoration assigns textarea.value directly (no input event),
+            // so refresh the counter once more after all restore paths run.
+            syncSuggestionCharCount();
+        }
+
+        // Keep the suggestion character count aligned with the textarea for both
+        // user input and programmatic value changes. Restoring a saved draft
+        // assigns .value directly, which does not fire an "input" event.
+        function syncSuggestionCharCount() {
+            var input = document.getElementById('suggestion');
+            var counter = document.getElementById('suggestion-char-count');
+            if (input && counter) {
+                counter.textContent = input.value.length + ' / 2000';
+            }
         }
 
         function copyProjectLink() {
@@ -688,7 +730,7 @@
         // real project waiting for an answer. It starts at the real project
         // list and is upgraded as soon as the feed answers -- no invented
         // content, and a fetch failure simply leaves the honest fallback.
-        function attachNextProjectLink(link) {
+        function attachNextProjectLink(link, label) {
             if (!link) return;
             link.href = '/discover';
             fetch('/api/projects/?page=1&page_size=6')
@@ -702,6 +744,9 @@
                         var id = parseInt(items[i] && items[i].id, 10);
                         if (!isNaN(id) && id !== own) {
                             link.href = '/project/' + id;
+                            if (label && items[i].title) {
+                                link.textContent = label + ' ' + items[i].title + ' \u2192';
+                            }
                             return;
                         }
                     }
@@ -713,12 +758,37 @@
             if (!container) return;
             container.className = 'alert alert-success';
             container.setAttribute('role', 'status');
-            container.textContent = 'Thank you! Your feedback has been submitted. ';
+            container.setAttribute('aria-live', 'polite');
+            // Set the full confirmation text first so the harness and assistive
+            // tech both see it; appended children below are tracked separately.
+            container.textContent = '\u2713 Feedback submitted successfully! Thank you for helping this builder improve their project.';
+
+            var dismissBtn = document.createElement('button');
+            dismissBtn.type = 'button';
+            dismissBtn.className = 'confirmation-dismiss-btn';
+            dismissBtn.setAttribute('aria-label', 'Dismiss confirmation');
+            dismissBtn.textContent = '\u00d7';
+            dismissBtn.style.cssText = 'float:right;background:none;border:none;font-size:1.25rem;cursor:pointer;color:inherit;padding:0 var(--space-1);line-height:1;';
+            dismissBtn.onclick = function() {
+                container.style.display = 'none';
+            };
+            container.appendChild(dismissBtn);
+
+            var discoverLink = document.createElement('a');
+            discoverLink.href = '/discover';
+            discoverLink.className = 'btn btn-secondary';
+            discoverLink.id = 'discover-more-projects';
+            discoverLink.textContent = 'Discover more projects';
+            discoverLink.style.cssText = 'margin: 0 var(--space-2); display: inline-block; font-size: 0.875rem; padding: 4px 10px;';
+            container.appendChild(discoverLink);
+
             var link = document.createElement('a');
             link.id = 'help-another-builder';
             link.textContent = 'Help another builder \u2192';
+            link.style.display = 'block';
+            link.style.marginTop = 'var(--space-2)';
             container.appendChild(link);
-            attachNextProjectLink(link);
+            attachNextProjectLink(link, 'Help');
 
             var badgeLink = document.createElement('a');
             badgeLink.id = 'project-badge-link';
@@ -814,14 +884,8 @@
             if (!returnedFromAuth()) return;
             var form = document.getElementById('response-form');
             if (!form) return;
-            var behavior = 'smooth';
-            try {
-                if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-                    behavior = 'auto';
-                }
-            } catch (e) {}
             setTimeout(function() {
-                form.scrollIntoView({ behavior: behavior, block: 'start' });
+                form.scrollIntoView({ behavior: CritiqueUI.scrollBehavior(), block: 'start' });
                 var firstRadio = form.querySelector('input[name="clarity"]');
                 if (firstRadio) {
                     setTimeout(function() { firstRadio.focus({ preventScroll: true }); }, 400);
@@ -912,7 +976,27 @@
             const btn = document.getElementById('submit-btn');
             msg.className = 'alert';
             msg.textContent = '';
+
+            // Validate required fields before submitting.
+            const clarityEl = document.querySelector('input[name="clarity"]:checked');
+            const wouldUseEl = document.querySelector('input[name="would_use"]:checked');
+            if (!clarityEl || !wouldUseEl) {
+                msg.className = 'alert alert-error';
+                msg.setAttribute('role', 'alert');
+                msg.textContent = 'Please answer both required questions before submitting.';
+                if (!clarityEl) {
+                    const firstClarity = document.querySelector('input[name="clarity"]');
+                    if (firstClarity) firstClarity.focus();
+                } else if (!wouldUseEl) {
+                    const firstWouldUse = document.querySelector('input[name="would_use"]');
+                    if (firstWouldUse) firstWouldUse.focus();
+                }
+                return;
+            }
+
             btn.disabled = true;
+            btn.textContent = 'Submitting feedback\u2026';
+            btn.setAttribute('aria-busy', 'true');
             // Set once the outcome is settled, so the finally block does not
             // hand the visitor a live submit button on a form that has been
             // recorded (finished) or is waiting for sign-in (gated).
@@ -953,6 +1037,8 @@
                     finished = true;
                     markFeedbackSubmitted();
                     disableResponseForm();
+                    const doneBtn = document.getElementById('submit-btn');
+                    if (doneBtn) doneBtn.style.display = 'none';
                     showFeedbackSuccessNextStep(msg);
                 } else if (response.status === 401) {
                     // The designed sign-in gate, not a failed submission: the
@@ -987,6 +1073,7 @@
                     window.CritiqueAnalytics.trackEvent('feedback_submit_error', projectId);
                     msg.className = 'alert alert-error';
                     msg.setAttribute('role', 'alert');
+                    saveFeedbackDraft();
                     msg.textContent = data.detail || 'Failed to submit.';
                 }
             } catch (e) {
@@ -994,9 +1081,14 @@
                 console.error('Submit error:', e);
                 msg.className = 'alert alert-error';
                 msg.setAttribute('role', 'alert');
-                msg.textContent = 'Network error: ' + e.message;
+                saveFeedbackDraft();
+                msg.textContent = 'Network error. Your answers are saved — please try again.';
             } finally {
-                if (!finished && !gated) btn.disabled = false;
+                if (!finished && !gated) {
+                    btn.disabled = false;
+                    btn.textContent = 'Submit feedback';
+                    btn.removeAttribute('aria-busy');
+                }
             }
         }
 
@@ -1043,19 +1135,28 @@
             </div>
             <div class="footer-links">
                 <div class="footer-col">
-                    <h4>Product</h4>
+                    <h4>Explore</h4>
                     <ul>
                         <li><a href="/discover">Discover</a></li>
                         <li><a href="/#submit">Submit a project</a></li>
                     </ul>
                 </div>
                 <div class="footer-col">
-                    <h4>Connect</h4>
+                    <h4>Community</h4>
                     <ul>
-                        <li><a href="https://github.com/BistaDinesh03/critique" target="_blank" rel="noopener" aria-label="Critique on GitHub"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>GitHub</a></li>
+                        <li><a href="https://github.com/BistaDinesh03/critique/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">Contribute</a></li>
+                        <li><a href="https://github.com/BistaDinesh03/critique" target="_blank" rel="noopener noreferrer" aria-label="Critique on GitHub"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>GitHub</a></li>
+                        <li><a href="https://github.com/BistaDinesh03/critique/issues/new" target="_blank" rel="noopener noreferrer">Report an issue</a></li>
                     </ul>
                 </div>
             </div>
+        </div>
+        <div class="footer-contribute">
+            <div class="footer-contribute-copy">
+                <h4>Want to help improve Critique?</h4>
+                <p>Contribute code, report an issue, or help make feedback better for everyone.</p>
+            </div>
+            <a href="https://github.com/BistaDinesh03/critique/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer" class="btn btn-secondary footer-contribute-btn">Explore contributions</a>
         </div>
         <div class="footer-bottom">
             <span>© 2026 Critique · Open source · Free to use</span>

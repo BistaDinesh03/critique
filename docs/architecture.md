@@ -57,7 +57,7 @@ Critique is built as a lightweight, zero-build web application designed to be si
 ### Backend (`backend/app/`)
 - **FastAPI Framework:** Implements ASGI endpoints, dependency injection, and automatic JSON validation.
 - **Pydantic Validation (`schemas.py`):** Enforces strict validation on project creation, questions, and feedback responses.
-- **Database & ORM (`database.py`, `models.py`):** Uses SQLAlchemy to map relational entities (`User`, `Project`, `Question`, `Response`, `EmailLoginToken`, `AnalyticsEvent`) to SQLite.
+- **Database & ORM (`database.py`, `models.py`):** Uses SQLAlchemy to map relational entities (`User`, `Project`, `Question`, `Response`, `EmailLoginToken`, `AnalyticsEvent`) to SQLite. Schema changes to existing tables are applied at startup by guarded, additive migrations rather than a migration framework — see [database-migrations.md](database-migrations.md) for the contract.
 
 ### Authentication & Security (`auth.py`, `csrf.py`, `email.py`)
 - **GitHub OAuth:** Users can authenticate via standard OAuth authorization code flow.

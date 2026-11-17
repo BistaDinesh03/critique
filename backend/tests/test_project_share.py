@@ -276,9 +276,9 @@ def test_a_failed_submission_shows_no_success_and_no_share_state(tmp_path):
     )
 
     assert len(posts(result)) == 1
-    # The failure reports honestly (server detail or friendly fallback)
+    # The failure reports honestly (the API's detail sentence, never raw JSON)
     # and the share UI never appears.
-    assert "Title is required" in (result["ids"].get("message") or "")
+    assert (result["ids"].get("message") or "") == "Title is required"
     assert "Your project is live" not in " ".join(result["created"])
     assert not any(
         m.get("className") == "success-share" for m in result["createdMeta"]
@@ -598,6 +598,17 @@ MY_PROJECTS_LIST = [
         "response_count": 0,
     },
 ]
+
+
+def test_my_projects_cards_use_headings_directly_below_the_page_title(tmp_path):
+    project = {**MY_PROJECTS_LIST[0], "title": "Sentry <bot> & Log Lens"}
+    result = run(
+        tmp_path,
+        "my_projects.html",
+        [{"fn": "loadProjects", "args": []}, WAIT_FOR_RENDER],
+        fetch={MY_PROJECTS_URL: {"status": 200, "body": [project]}},
+    )
+    assert '<h2 class="project-title">Sentry &lt;bot&gt; &amp; Log Lens</h2>' in result["ids"]["content"]
 
 
 def test_card_share_rows_carry_the_project_they_belong_to(tmp_path):
