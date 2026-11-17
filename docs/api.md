@@ -26,6 +26,14 @@ by FastAPI from `frontend/`; everything below returns JSON unless noted.
   Other error statuses (`400`, `401`, `403`, `409`, `422`, `429`, `500`)
   retain their JSON responses for all clients.
 
+### Request IDs
+
+Every HTTP response returned by Critique includes an `X-Request-ID` header.
+
+- **Client-supplied IDs:** Clients may provide an inbound `X-Request-ID` request header to correlate requests across systems. The incoming value must match `^[A-Za-z0-9-]{1,64}$` (alphanumeric characters and hyphens, up to 64 characters).
+- **Server-generated fallback:** If the incoming header is missing, empty, contains invalid characters, or exceeds 64 characters, the server automatically generates a 32-character UUID4 hex string.
+- **Bug reports:** When filing a bug report or asking for troubleshooting support, include the `X-Request-ID` value from the response headers so maintainers can correlate and inspect server logs for that specific request.
+
 ### Rate limits
 
 The limits below are per client IP. Magic-link requests also have a separate
