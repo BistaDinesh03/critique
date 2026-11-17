@@ -1,4 +1,4 @@
-﻿from app.stats import calculate_stats
+from app.stats import calculate_stats
 from app.models import Response
 
 
@@ -91,3 +91,47 @@ def test_calculate_stats_all_same():
     assert stats["would_use"]["yes"] == 100.0
     assert stats["would_use"]["maybe"] == 0
     assert stats["would_use"]["no"] == 0
+
+
+def test_stats_cached_response(monkeypatch):
+    """Calling /api/stats caches results within the TTL window to avoid redundant DB hits."""
+    from fastapi.testclient import TestClient
+    from app.main import app
+    from app.database import SessionLocal
+    from app.models import User
+    from app.routes_stats import clear_stats_cache
+    import time
+
+    clear_stats_cache()
+    client = TestClient(app)
+    res1 = client.get("/api/stats")
+    assert res1.status_code == 200
+    initial_builders = res1.json()["total_builders"]
+
+    # Add a user to DB directly
+    db = SessionLocal()
+    u = User(username="cache_test_user_xyz", github_id=778899)
+    db.add(u)
+    db.commit()
+    db.close()
+
+    try:
+        # Immediate subsequent request hits the cache and returns old total
+        res2 = client.get("/api/stats")
+        assert res2.status_code == 200
+        assert res2.json()["total_builders"] == initial_builders
+
+        # Advance time past TTL (60s)
+        now = time.time() + 65.0
+        monkeypatch.setattr(time, "time", lambda: now)
+
+        # Expired cache re-queries DB and reflects new total
+        res3 = client.get("/api/stats")
+        assert res3.status_code == 200
+        assert res3.json()["total_builders"] == initial_builders + 1
+    finally:
+        db = SessionLocal()
+        db.query(User).filter(User.username == "cache_test_user_xyz").delete()
+        db.commit()
+        db.close()
+        clear_stats_cache()
