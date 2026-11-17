@@ -760,3 +760,12 @@ def test_project_detail_shows_response_count_to_owner(tmp_path):
 
     non_owner_res = run(tmp_path, "project_detail.html", [{"fn": "renderProject", "args": [non_owner_data, []]}], read={"byId": "content"})
     assert "owner-response-count" not in non_owner_res["html"]
+def test_feedback_form_suggestion_textarea_has_maxlength(tmp_path):
+    """The suggestion textarea caps input at 2000 characters to match the API schema (fixes #279)."""
+    result = run(
+        tmp_path,
+        "project_detail.html",
+        [{"fn": "renderProject", "args": [PROJECT, []]}],
+        read={"byId": "content"},
+    )
+    assert '<textarea class="form-textarea" id="suggestion" maxlength="2000"' in result["html"]

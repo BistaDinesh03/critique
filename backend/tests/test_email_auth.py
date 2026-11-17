@@ -534,3 +534,42 @@ def test_email_verify_session_cookie_attributes(client, monkeypatch, secure):
     finally:
         _cleanup_tokens_by_email(email)
         _cleanup_user_by_email(email)
+
+
+def test_send_login_link_handles_resend_exception(monkeypatch):
+    """When the underlying provider raises an exception, send_login_link returns False."""
+    from app.email import send_login_link
+
+    class FailingEmails:
+        @staticmethod
+        def send(payload):
+            raise RuntimeError("Simulated Resend API connection timeout")
+
+    monkeypatch.setattr("app.email._build_client", lambda: FailingEmails)
+    monkeypatch.setattr(settings, "RESEND_API_KEY", "dummy_key")
+    monkeypatch.setattr(settings, "EMAIL_FROM", "Critique <login@example.com>")
+
+    success = send_login_link("user@example.com", "dummy_token_abc123")
+    assert success is False
+
+
+def test_send_login_link_missing_api_key_returns_false(monkeypatch):
+    """When RESEND_API_KEY is not configured, send_login_link returns False without raising."""
+    from app.email import send_login_link
+
+    monkeypatch.setattr(settings, "RESEND_API_KEY", "")
+    monkeypatch.setattr(settings, "EMAIL_FROM", "Critique <login@example.com>")
+
+    success = send_login_link("user@example.com", "dummy_token_abc123")
+    assert success is False
+
+
+def test_send_login_link_missing_email_from_returns_false(monkeypatch):
+    """When EMAIL_FROM is not configured, send_login_link returns False without raising."""
+    from app.email import send_login_link
+
+    monkeypatch.setattr(settings, "RESEND_API_KEY", "dummy_key")
+    monkeypatch.setattr(settings, "EMAIL_FROM", "")
+
+    success = send_login_link("user@example.com", "dummy_token_abc123")
+    assert success is False
