@@ -35,6 +35,8 @@ def _fresh_test_db():
 def reset_limits_before_test():
     """Reset rate limits before every test."""
     reset_rate_limits()
+    from app.routes_stats import clear_stats_cache
+    clear_stats_cache()
     yield
 
 

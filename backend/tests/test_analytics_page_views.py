@@ -9,6 +9,7 @@ from urllib.parse import parse_qs, urlsplit
 import pytest
 
 ANALYTICS_JS = Path(__file__).resolve().parents[2] / "static" / "analytics.js"
+EVENTS_JS = Path(__file__).resolve().parents[2] / "static" / "analytics_events.js"
 
 pytestmark = [
     pytest.mark.frontend_render,
@@ -29,6 +30,7 @@ const sandbox = {
         return Promise.resolve();
     },
 };
+vm.runInNewContext(fs.readFileSync(process.argv[3], 'utf8'), sandbox);
 vm.runInNewContext(fs.readFileSync(process.argv[1], 'utf8'), sandbox);
 const analytics = sandbox.window.CritiqueAnalytics;
 analytics.trackPageView();
@@ -56,7 +58,7 @@ process.stdout.write(JSON.stringify({ projectId: analytics.getProjectId(), reque
 )
 def test_page_view_request(location, event_name, project_id):
     proc = subprocess.run(
-        ["node", "-e", HARNESS, str(ANALYTICS_JS), location],
+        ["node", "-e", HARNESS, str(ANALYTICS_JS), location, str(EVENTS_JS)],
         check=False,
         capture_output=True,
         text=True,

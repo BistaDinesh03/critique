@@ -482,3 +482,22 @@ def test_download_csv_button_visibility_for_owner_vs_visitor(tmp_path):
     visitor_html = render_results(tmp_path, visitor_data)
     assert 'id="download-csv-btn"' not in visitor_html
     assert "Download CSV" not in visitor_html
+
+
+def test_owner_reach_metrics_rendering(tmp_path):
+    """Verify owner sees reach metrics card and non-owner does not."""
+    clarity, would_use = mixed_stats()
+    owner_data = results_data(3, clarity, would_use, owner=True)
+    owner_data["discover_impressions"] = 42
+    owner_data["views_count"] = 7
+    html = render_results(tmp_path, owner_data)
+
+    assert 'class="reach-metrics"' in html
+    assert "42</strong> discover impressions" in html
+    assert "7</strong> page views" in html
+
+    visitor_data = results_data(3, clarity, would_use, owner=False)
+    visitor_data["discover_impressions"] = None
+    visitor_data["views_count"] = None
+    visitor_html = render_results(tmp_path, visitor_data)
+    assert 'class="reach-metrics"' not in visitor_html
