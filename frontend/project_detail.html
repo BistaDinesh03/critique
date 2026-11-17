@@ -458,17 +458,17 @@
                     // with an end rather than an open-ended questionnaire.
                     html += '<div class="response-form-card"><form id="response-form">';
                     html += '<fieldset class="form-section"><legend>1. How clear is it?</legend><div class="radio-cards">';
-                    html += '<label class="radio-card"><input type="radio" id="c1" name="clarity" value="very_clear" required onclick="trackFeedbackStart()"><span class="radio-card-label"><span class="radio-card-title">Very clear</span><span class="radio-card-desc">I understood the project quickly.</span></span></label>';
-                    html += '<label class="radio-card"><input type="radio" id="c2" name="clarity" value="mostly_clear" onclick="trackFeedbackStart()"><span class="radio-card-label"><span class="radio-card-title">Mostly clear</span><span class="radio-card-desc">I understood it, but needed some explanation.</span></span></label>';
-                    html += '<label class="radio-card"><input type="radio" id="c3" name="clarity" value="confusing" onclick="trackFeedbackStart()"><span class="radio-card-label"><span class="radio-card-title">Confusing</span><span class="radio-card-desc">I was not sure what it does.</span></span></label>';
+                    html += '<label class="radio-card"><input type="radio" id="c1" name="clarity" value="very_clear" required><span class="radio-card-label"><span class="radio-card-title">Very clear</span><span class="radio-card-desc">I understood the project quickly.</span></span></label>';
+                    html += '<label class="radio-card"><input type="radio" id="c2" name="clarity" value="mostly_clear"><span class="radio-card-label"><span class="radio-card-title">Mostly clear</span><span class="radio-card-desc">I understood it, but needed some explanation.</span></span></label>';
+                    html += '<label class="radio-card"><input type="radio" id="c3" name="clarity" value="confusing"><span class="radio-card-label"><span class="radio-card-title">Confusing</span><span class="radio-card-desc">I was not sure what it does.</span></span></label>';
                     html += '</div></fieldset>';
                     html += '<fieldset class="form-section"><legend>2. Would you use it?</legend><div class="radio-cards">';
                     html += '<label class="radio-card"><input type="radio" id="u1" name="would_use" value="yes" required><span class="radio-card-label"><span class="radio-card-title">Yes</span><span class="radio-card-desc">I would use this.</span></span></label>';
                     html += '<label class="radio-card"><input type="radio" id="u2" name="would_use" value="maybe"><span class="radio-card-label"><span class="radio-card-title">Maybe</span><span class="radio-card-desc">I might use this in some cases.</span></span></label>';
                     html += '<label class="radio-card"><input type="radio" id="u3" name="would_use" value="no"><span class="radio-card-label"><span class="radio-card-title">No</span><span class="radio-card-desc">I would not use this.</span></span></label>';
                     html += '</div></fieldset>';
-                    html += '<div class="form-section"><h3>3. What would you change? <span style="font-weight:400;color:var(--text-muted);">(optional)</span></h3><textarea class="form-textarea" id="suggestion" maxlength="2000" placeholder="Your honest feedback..."></textarea><div id="suggestion-char-count" style="font-size:12px;color:var(--text-muted);text-align:right;margin-top:4px;">0 / 2000</div></div>';
-                    html += '<button type="submit" class="btn btn-primary" id="submit-btn" style="width:100%;">Submit feedback</button>';
+                    html += '<div class="form-section"><h3>3. What would you change? <span style="font-weight:400;color:var(--text-muted);">(optional)</span></h3><textarea class="form-textarea" id="suggestion" maxlength="2000" placeholder="Your honest feedback..." aria-keyshortcuts="Control+Enter Meta+Enter"></textarea><p class="form-helper" style="font-size:var(--text-xs);color:var(--text-muted);margin-top:var(--space-1);">Press <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd> to submit</p><div id="suggestion-char-count" style="font-size:12px;color:var(--text-muted);text-align:right;margin-top:4px;">0 / 2000</div></div>';
+                    html += '<button type="submit" class="btn btn-primary" id="submit-btn" style="width:100%;" aria-keyshortcuts="Control+Enter Meta+Enter">Submit feedback</button>';
                     html += '<div class="message" id="message" role="alert" aria-live="polite"></div></form></div>';
                 }
                 var details = '';
@@ -496,7 +496,30 @@
             const copyBtn = document.getElementById('copy-project-link');
             if (copyBtn) copyBtn.addEventListener('click', copyProjectLink);
             const form = document.getElementById('response-form');
-            if (form) form.addEventListener('submit', handleSubmit);
+            if (form) {
+                form.addEventListener('submit', handleSubmit);
+                form.addEventListener('keydown', function(e) {
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                        e.preventDefault();
+                        if (typeof form.requestSubmit === 'function') {
+                            form.requestSubmit();
+                        } else {
+                            form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+                        }
+                    }
+                });
+                // Listen at the form level so keyboard radio selection (arrow keys)
+                // is captured, not just pointer clicks.
+                form.addEventListener('change', function(e) {
+                    if (e.target && (e.target.name === 'clarity' || e.target.name === 'would_use')) {
+                        trackFeedbackStart();
+                    }
+                });
+                const feedbackSuggestion = form.querySelector('textarea[name="suggestion"]') || document.getElementById('suggestion');
+                if (feedbackSuggestion) {
+                    feedbackSuggestion.addEventListener('input', trackFeedbackStart);
+                }
+            }
             if (form && !feedbackFormViewedTracked) { feedbackFormViewedTracked = true; window.CritiqueAnalytics.trackEvent('feedback_form_viewed', projectId); }
             if (feedbackAlreadySubmitted()) {
                 showFeedbackSuccessNextStep(document.getElementById('feedback-thanks'));
@@ -715,6 +738,25 @@
             // Set the full confirmation text first so the harness and assistive
             // tech both see it; appended children below are tracked separately.
             container.textContent = '\u2713 Feedback submitted successfully! Thank you for helping this builder improve their project.';
+
+            var dismissBtn = document.createElement('button');
+            dismissBtn.type = 'button';
+            dismissBtn.className = 'confirmation-dismiss-btn';
+            dismissBtn.setAttribute('aria-label', 'Dismiss confirmation');
+            dismissBtn.textContent = '\u00d7';
+            dismissBtn.style.cssText = 'float:right;background:none;border:none;font-size:1.25rem;cursor:pointer;color:inherit;padding:0 var(--space-1);line-height:1;';
+            dismissBtn.onclick = function() {
+                container.style.display = 'none';
+            };
+            container.appendChild(dismissBtn);
+
+            var discoverLink = document.createElement('a');
+            discoverLink.href = '/discover';
+            discoverLink.className = 'btn btn-secondary';
+            discoverLink.id = 'discover-more-projects';
+            discoverLink.textContent = 'Discover more projects';
+            discoverLink.style.cssText = 'margin: 0 var(--space-2); display: inline-block; font-size: 0.875rem; padding: 4px 10px;';
+            container.appendChild(discoverLink);
 
             var link = document.createElement('a');
             link.id = 'help-another-builder';
