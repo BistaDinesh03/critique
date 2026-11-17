@@ -167,7 +167,12 @@ def _page_response(
     if description:
         import re
         if "<meta name=\"description\"" in html:
-            html = re.sub(r'<meta name="description" content=".*?">', f'<meta name="description" content="{description}">', html, count=1)
+            html = re.sub(
+                r'(<meta name="description"[^>]*content=")[^"]*(")',
+                rf"\g<1>{description}\g<2>",
+                html,
+                count=1,
+            )
         else:
             html = html.replace("</head>", f'    <meta name="description" content="{description}">\n</head>', 1)
     if status_code != 404 and filename != "404.html":
