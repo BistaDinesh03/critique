@@ -103,6 +103,41 @@ else is ignored.
 | `page_size` | integer | Maximum number of items per page. |
 | `total_pages` | integer | Total available pages (`ceil(total / page_size)`). |
 
+#### Project Detail Response
+
+`GET /api/projects/{project_id}` returns the project along with its currently active question:
+
+```json
+{
+  "project": {
+    "id": 1,
+    "title": "Akiya Scout",
+    "description": "Find vacant and abandoned homes across Japan.",
+    "url": "https://example.com",
+    "image_url": "https://example.com/screenshot.webp",
+    "owner_id": 42,
+    "created_at": "2026-11-01T12:00:00Z"
+  },
+  "question": {
+    "id": 10,
+    "text": "Can you understand what this website does within 10 seconds?",
+    "is_active": true,
+    "project_id": 1,
+    "created_at": "2026-11-01T12:00:00Z"
+  }
+}
+```
+
+If no active question is associated with the project, `"question"` is `null`.
+
+If the project does not exist, the endpoint returns `404 Not Found`:
+
+```json
+{
+  "detail": "Project not found"
+}
+```
+
 ## Feedback — `/api/projects/{project_id}/responses`
 
 | Method | Path | Auth | CSRF | Rate limit | Notes |
