@@ -3,9 +3,12 @@ from app.models import Project, Question, Response, User
 
 
 def cleanup_database():
-    """Remove test data from database."""
     db = SessionLocal()
     try:
+        # Delete in dependency order so foreign keys can be enforced.
+        from app.models import AnalyticsEvent, ProjectView, Question, Response
+        db.query(AnalyticsEvent).delete()
+        db.query(ProjectView).delete()
         db.query(Response).delete()
         db.query(Question).delete()
         db.query(Project).delete()
@@ -73,7 +76,6 @@ def test_results_many_responses(auth_client):
     db = SessionLocal()
     try:
         question = db.query(Question).filter(Question.project_id == project_id).first()
-        existing_user = db.query(User).first()
         
         # Create second user
         second_user = User(github_id=888888, username="second_test_user")

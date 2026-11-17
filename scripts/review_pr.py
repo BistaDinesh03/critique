@@ -20,8 +20,10 @@ What this script does not do:
 
 Authentication and repository identity come from the `gh` CLI and the local
 `origin` remote. When the suite is run, it runs in a throwaway clone with a
-stripped environment, so contributor code never sees the maintainer's tokens
-or `.env`.
+stripped environment, so contributor code never sees the maintainer's token
+environment variables or `.env`. Note: environment variables are stripped, but
+the filesystem is not sandboxed — use a dedicated low-privilege account or
+container for untrusted code.
 
 Exit codes:
     0   review completed and the pull request is READY (or a merge was done)
@@ -1039,13 +1041,19 @@ def _git(args: Sequence[str], cwd: str, timeout: int = 300):
 
 
 def _sanitized_env() -> Dict[str, str]:
-    """Just enough environment to run Python, and nothing that carries a
-    credential, so contributor code cannot read a token even if it wanted to.
+    """Just enough environment to run Python, with sensitive token variables
+    stripped (e.g. GITHUB_TOKEN, GH_TOKEN, cloud keys). Preserves system paths
+    like HOME/USERPROFILE so Python and Git can locate their runtime files;
+    the user's home directory is not sandboxed.
     """
     keep = [
         "PATH", "PATHEXT", "HOME", "USERPROFILE", "HOMEPATH", "APPDATA",
         "LOCALAPPDATA", "SYSTEMROOT", "SYSTEMDRIVE", "COMSPEC", "WINDIR",
         "TEMP", "TMP", "NUMBER_OF_PROCESSORS", "LANG", "LC_ALL",
+        # Public OAuth client id, not a secret: tests.yml sets it for the suite
+        # (docs/pull-request-review.md documents the contract), so the review
+        # tool must carry it through or the OAuth state test fails spuriously.
+        "GITHUB_CLIENT_ID",
     ]
     env = {k: os.environ[k] for k in keep if os.environ.get(k)}
     env["PYTHONIOENCODING"] = "utf-8"
@@ -1163,8 +1171,8 @@ def run_suite(source_dir: str, commit: str, fetch_url: Optional[str] = None,
     """Check out `commit` in a throwaway clone and run the suite there.
 
     The clone has no `.env`, no database files and no local git config, and
-    the child process receives `_sanitized_env()`, so contributor code runs
-    with none of the maintainer's secrets available to it.
+    the child process receives `_sanitized_env()` with token environment
+    variables stripped.
     """
     tmp = tempfile.mkdtemp(prefix="critique-pr-")
     result: Dict[str, Any] = {

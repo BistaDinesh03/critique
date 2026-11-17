@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.responses import RedirectResponse, JSONResponse
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from app.config import settings
 from app.database import get_db
 from app.models import User
@@ -70,6 +71,12 @@ def _email_cooldown_check_and_set(normalized_email: str) -> bool:
     _EMAIL_COOLDOWN[normalized_email] = now
     _EMAIL_COOLDOWN.move_to_end(normalized_email)
     return False
+
+
+def _clear_email_cooldown(normalized_email: str) -> None:
+    """Clear cooldown entry for an address when email send failed (fixes #314)."""
+    _EMAIL_COOLDOWN.pop(normalized_email, None)
+
 
 serializer = URLSafeTimedSerializer(settings.SECRET_KEY, salt="session")
 
@@ -388,8 +395,33 @@ async def github_callback(
             avatar_url=github_user.get("avatar_url"),
         )
         db.add(user)
-        db.commit()
-        db.refresh(user)
+        try:
+            db.commit()
+            db.refresh(user)
+        except IntegrityError:
+            db.rollback()
+            failure = JSONResponse(
+                status_code=400, content={"detail": "GitHub authentication failed"}
+            )
+            _set_pending_states_cookie(failure, remaining)
+            return failure
+    else:
+        new_username = github_user.get("login")
+        new_avatar_url = github_user.get("avatar_url")
+        if new_username and (user.username != new_username or user.avatar_url != new_avatar_url):
+            existing_conflict = (
+                db.query(User)
+                .filter(User.username == new_username, User.id != user.id)
+                .first()
+            )
+            if not existing_conflict:
+                user.username = new_username
+            user.avatar_url = new_avatar_url
+            try:
+                db.commit()
+                db.refresh(user)
+            except IntegrityError:
+                db.rollback()
 
     session_token = create_session_token(user.id)
     csrf_token = generate_csrf_token()
@@ -508,6 +540,7 @@ def email_start(
     if payload.return_to and _is_safe_return_path(payload.return_to):
         return_to = payload.return_to
 
+    sent = False
     if _is_plausible_email(normalized) and not cooldown_active:
         raw_token = secrets.token_urlsafe(32)
         token_hash = _hash_token(raw_token)
@@ -528,12 +561,16 @@ def email_start(
 
         # Send. Failure is swallowed intentionally; the response is identical either way.
         try:
-            send_login_link(normalized, raw_token)
-        except Exception:
-            pass
+            dispatched = send_login_link(normalized, raw_token)
+            if dispatched:
+                sent = True
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning("Failed to send login link to %s: %s", normalized, e)
+            _clear_email_cooldown(normalized)
 
     # Generic response regardless of whether email exists, is valid, or is on cooldown.
-    return {"ok": True}
+    return {"ok": True, "sent": sent}
 
 
 @router.get("/email/verify")

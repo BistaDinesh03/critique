@@ -71,6 +71,10 @@ def get_analytics_dashboard(
         AnalyticsEvent.event_name == "feedback_submit_error"
     ).scalar() or 0
 
+    total_feedback_already_responded = db.query(func.count(AnalyticsEvent.id)).filter(
+        AnalyticsEvent.event_name == "feedback_already_responded"
+    ).scalar() or 0
+
     total_auth_method_github = db.query(func.count(AnalyticsEvent.id)).filter(
         AnalyticsEvent.event_name == "auth_method_selected_github"
     ).scalar() or 0
@@ -138,6 +142,7 @@ def get_analytics_dashboard(
             "feedback_resumes": total_feedback_resumes,
             "feedback_submit_attempts": total_feedback_submit_attempts,
             "feedback_submit_errors": total_feedback_submit_errors,
+            "feedback_already_responded": total_feedback_already_responded,
             "auth_method_selected_github": total_auth_method_github,
             "auth_method_selected_email": total_auth_method_email,
             "email_verification_sent": total_email_verification_sent,

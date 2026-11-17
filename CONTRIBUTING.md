@@ -9,6 +9,8 @@ maintainable.
 
 ## Getting Started
 
+If you are contributing for the first time, check out our step-by-step [Contributor Onboarding Guide](docs/contributing-start.md).
+
 1. Fork the repository
 2. Clone your fork
 3. Create a branch for your change
@@ -31,7 +33,8 @@ uvicorn app.main:app --reload
 
 Open http://127.0.0.1:8000. Authentication providers are optional for local
 browsing — see [docs/github-oauth-setup.md](docs/github-oauth-setup.md) if
-your change needs signed-in flows.
+your change needs signed-in flows. For common local setup issues and solutions,
+see [docs/troubleshooting.md](docs/troubleshooting.md).
 
 ### Run the tests
 
@@ -88,6 +91,8 @@ To run only the frontend-render tests locally:
 python -m pytest tests/ -m frontend_render -q
 ```
 
+For full details on scenario construction and DOM stub capabilities, see the [Frontend Render Test Harness guide](docs/frontend-render-harness.md).
+
 ## Development Guidelines
 
 ### Keep it simple
@@ -106,6 +111,15 @@ Critique intentionally avoids complexity. Before adding anything, ask:
 - Comment only where useful
 - No dead code
 
+### Database changes
+
+Critique has no migration framework. Schema changes to existing tables are
+applied at startup by `backend/app/database.py`, and they must follow a strict
+contract: guarded on `inspect()`, idempotent, additive, applied on both SQLite
+and PostgreSQL, and loud on failure. Read
+[docs/database-migrations.md](docs/database-migrations.md) before changing a
+model.
+
 ### Testing
 
 - Run all tests before submitting
@@ -122,6 +136,10 @@ Critique intentionally avoids complexity. Before adding anything, ask:
 
 For a step-by-step example of claiming an issue, working in a fork, running relevant checks, and opening a pull request, see the [first-contributor walkthrough](docs/first-contributors.md).
 
+Changes that affect layout should also run the visual regression suite.
+[docs/visual-regression.md](docs/visual-regression.md) explains what the
+baselines cover and how to update them when a visual change is intentional.
+
 ## Welcome to new contributors
 
 Thanks for your interest in contributing to Critique!
@@ -135,7 +153,7 @@ documentation, or feedback.
 
 ### First-contribution checklist
 
-1. Read [README.md](README.md) and skim [docs/first-contributors.md](docs/first-contributors.md).
+1. Read [README.md](README.md), skim [docs/architecture.md](docs/architecture.md), and [docs/first-contributors.md](docs/first-contributors.md).
 2. Pick an issue from the [Good issues to contribute](README.md#good-issues-to-contribute) list.
 3. Comment on the issue to claim it (maintainers confirm availability).
 4. Fork, branch, implement, and add tests.
@@ -164,17 +182,94 @@ are a good place to start. Got a question about the codebase or an approach?
 Ask in [issue #1](https://github.com/BistaDinesh03/critique/issues/1) before
 starting — no question is too small.
 
-Issues are also labeled by area — `frontend`, `backend`, `tests`,
-`accessibility`, `security`, `performance` — so you can filter to work that
-matches what you know, or deliberately stretch into something new.
+Issues are also labeled by **area** and by **difficulty**, so you can filter for
+work that matches what you know — or deliberately stretch into something new.
+Both are documented in [The label taxonomy](#the-label-taxonomy) below.
 
-A curated plan of 50 issues lives in
-[docs/issue-roadmap.md](docs/issue-roadmap.md). Each entry states its
-difficulty, the problem it solves, and which files it touches. As a prepared
-roadmap, row statuses may lag behind the live tracker, so always verify on
-the [live issue tracker](https://github.com/BistaDinesh03/critique/issues) that an
-issue is open before beginning work. If you are looking for something concrete,
-start there.
+For a verified list of work that is actually available, use
+[docs/contributor-opportunities.md](docs/contributor-opportunities.md). Every issue
+on that page is open, unassigned, not claimed in a comment, and not attached to an
+open pull request, and the page states the date it was last checked against the
+tracker. It is the only list you should act on.
+
+[docs/issue-roadmap.md](docs/issue-roadmap.md) also exists, but it is a **dated
+historical record** from 2026-10-17 — many of its rows have since shipped. Read it
+for context, not for a task.
+
+### Triage, labels and issue lifecycle
+
+So that this page stays trustworthy, issues follow a simple lifecycle:
+
+- **Open and unclaimed** — the issue is real, nobody is on it. Comment to claim it.
+- **Assigned** — someone is working on it. The assignee is shown on the issue.
+- **Blocked** — an open pull request or an unresolved design question stands in the
+  way. Comment and ask before starting; the blocker may be resolvable.
+- **Closed as resolved** — the behaviour shipped. The closing comment names the file
+  and test that prove it.
+- **Closed as duplicate** — an earlier issue covers the same work. The closing
+  comment links the canonical issue, which stays open.
+- **Closed as not planned** — the idea is out of scope or has no scoped path right
+  now. This is not a judgement on the idea; it can be reopened with a concrete use
+  case.
+
+Two conventions matter when you pick up work:
+
+1. **The tracker is a queue, not a wishlist.** An issue is only created when someone
+   intends to work on it. Broad ideas belong in
+   [issue #1](https://github.com/BistaDinesh03/critique/issues/1) or Discussions first.
+2. **`good first issue` means small, unblocked, and unclaimed.** If an issue carrying
+   that label is assigned or has an open pull request, the label is wrong — say so and
+   it will be removed.
+
+#### The label taxonomy
+
+Labels answer two questions: *what is this about*, and *how hard is it*.
+
+**Area labels** say which part of the codebase an issue touches.
+
+| Label | Meaning |
+|-------|---------|
+| `frontend` | UI, styling and browser-side behaviour |
+| `backend` | Server-side, API and database work |
+| `tests` | Test coverage, harnesses and CI checks |
+| `security` | Hardening, vulnerabilities and privacy |
+| `performance` | Speed, caching and resource use |
+| `accessibility` | Barrier affecting people with disabilities |
+| `documentation` | Improvements or additions to documentation |
+
+Some issues also carry an `area:*` label — for example `area: growth` or
+`area: feedback` — recording which part of the product plan the issue came from.
+Area labels describe *place*. They say nothing about difficulty.
+
+**Difficulty labels** say how much context a change needs.
+
+| Label | Meaning | Roughly |
+|-------|---------|---------|
+| `beginner` | Small, well-scoped first contribution | one file and one test |
+| `intermediate` | Requires cross-component work or design judgment | a few files, an existing pattern to follow |
+| `advanced` | Deep work: concurrency, migrations, performance, observability | a design decision plus new tests |
+
+An issue should carry exactly one difficulty label. If one is missing or looks
+wrong, say so in the issue and it will be corrected — the label is a promise
+about scope, and a broken promise costs a contributor a weekend.
+
+Other labels you will see: `good first issue` (small, unblocked, unclaimed),
+`help wanted` (a contribution would be welcome), `bug`, `enhancement`,
+`duplicate`, and the automation labels (`dependencies`, `python`,
+`github_actions`).
+
+#### Choosing work that fits
+
+1. Decide how much time you have. A `beginner` issue is an evening; an
+   `advanced` one is a project.
+2. Filter by the area you know, or by the area you want to learn.
+3. Check nothing blocks it: no assignee, no open pull request, and no
+   claim comment.
+   [docs/contributor-opportunities.md](docs/contributor-opportunities.md) has
+   already done this check for you.
+4. Comment on the issue with your plan before writing code. For anything past
+   `beginner`, the maintainer would rather agree on the approach first than
+   review a large PR in the wrong direction.
 
 ## How we work together on Critique
 
@@ -235,12 +330,12 @@ gate — a pull request with a failing check, an unresolved blocker, or a
 missing approval is refused, and the report says which gate and why.
 
 Each report ends with `READY`, `CHANGES_REQUESTED`, or `BLOCKED`, followed by
-the merge gate as a checklist. Two of those gates depend on repository
-settings that cannot be checked by a script: continuous integration, and
-branch protection on the default branch. Until both are configured in
-Settings, `--merge` refuses — deliberately, because with nothing configured
-no check and no approval is actually required before merging. The report
-prints the exact steps each time.
+the merge gate as a checklist. Continuous integration and branch protection
+on the default branch (`main`) are actively configured: every pull request runs
+the required `test` check via GitHub Actions, and `main` requires passing status
+checks, strict up-to-date branch alignment, 1 approval, and conversation
+resolution with administrator enforcement. `--merge` enforces these gates and
+refuses if any check, approval, or gate remains unsatisfied.
 
 Full usage, what each check means, and the limitations:
 [docs/pull-request-review.md](docs/pull-request-review.md).
@@ -270,6 +365,9 @@ For the project-specific review checklist, see the [Maintainer Pull Request Revi
 - Be kind and constructive
 - Assume good intentions
 - Focus on the work, not the person
+
+All participation in this project is covered by the
+[Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Reporting a security issue
 
