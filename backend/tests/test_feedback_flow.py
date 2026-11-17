@@ -715,3 +715,14 @@ def test_feedback_form_has_progress_indicator(tmp_path):
     assert 'aria-label="Feedback progress"' in result["html"]
     assert 'aria-valuenow="0"' in result["html"]
     assert "Step 0 of 3 completed" in result["html"]
+
+
+def test_feedback_form_suggestion_textarea_has_maxlength(tmp_path):
+    """The suggestion textarea caps input at 2000 characters to match the API schema (fixes #279)."""
+    result = run(
+        tmp_path,
+        "project_detail.html",
+        [{"fn": "renderProject", "args": [PROJECT, []]}],
+        read={"byId": "content"},
+    )
+    assert '<textarea class="form-textarea" id="suggestion" maxlength="2000"' in result["html"]
