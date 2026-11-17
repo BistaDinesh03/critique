@@ -696,3 +696,22 @@ def test_missing_required_selection_shows_validation_message(tmp_path):
     assert posts == []
     # Button stays enabled so the visitor can fix and retry.
     assert result["values"]["btn_disabled"] is False
+
+
+def test_feedback_form_has_progress_indicator(tmp_path):
+    """The feedback form displays an accessible progress indicator (fixes #329)."""
+    fetch = {
+        "/api/projects/1": {"status": 200, "body": PROJECT},
+    }
+    result = run(
+        tmp_path,
+        "project_detail.html",
+        [{"fn": "renderProject", "args": [PROJECT, []]}],
+        fetch=fetch,
+        location="/project/1",
+        read={"byId": "content"},
+    )
+    assert 'role="progressbar"' in result["html"]
+    assert 'aria-label="Feedback progress"' in result["html"]
+    assert 'aria-valuenow="0"' in result["html"]
+    assert "Step 0 of 3 completed" in result["html"]
