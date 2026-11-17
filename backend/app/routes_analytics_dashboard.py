@@ -1,4 +1,4 @@
-﻿from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.database import get_db
@@ -30,6 +30,10 @@ def get_analytics_dashboard(
 
     total_project_views = db.query(func.count(AnalyticsEvent.id)).filter(
         AnalyticsEvent.event_name == "project_view"
+    ).scalar() or 0
+
+    total_feedback_form_viewed = db.query(func.count(AnalyticsEvent.id)).filter(
+        AnalyticsEvent.event_name == "feedback_form_viewed"
     ).scalar() or 0
 
     total_feedback_starts = db.query(func.count(AnalyticsEvent.id)).filter(
@@ -65,6 +69,10 @@ def get_analytics_dashboard(
 
     total_feedback_submit_errors = db.query(func.count(AnalyticsEvent.id)).filter(
         AnalyticsEvent.event_name == "feedback_submit_error"
+    ).scalar() or 0
+
+    total_feedback_already_responded = db.query(func.count(AnalyticsEvent.id)).filter(
+        AnalyticsEvent.event_name == "feedback_already_responded"
     ).scalar() or 0
 
     total_auth_method_github = db.query(func.count(AnalyticsEvent.id)).filter(
@@ -123,6 +131,7 @@ def get_analytics_dashboard(
             "page_views": total_page_views,
             "discover_views": total_discover_views,
             "project_views": total_project_views,
+            "feedback_form_viewed": total_feedback_form_viewed,
             "feedback_starts": total_feedback_starts,
             "feedback_submits": total_feedback_submits,
             "project_submits": total_project_submits,
@@ -133,6 +142,7 @@ def get_analytics_dashboard(
             "feedback_resumes": total_feedback_resumes,
             "feedback_submit_attempts": total_feedback_submit_attempts,
             "feedback_submit_errors": total_feedback_submit_errors,
+            "feedback_already_responded": total_feedback_already_responded,
             "auth_method_selected_github": total_auth_method_github,
             "auth_method_selected_email": total_auth_method_email,
             "email_verification_sent": total_email_verification_sent,

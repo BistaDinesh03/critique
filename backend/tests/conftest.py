@@ -1,4 +1,4 @@
-﻿import os
+import os
 import shutil
 from pathlib import Path
 
@@ -8,6 +8,7 @@ from pathlib import Path
 _BACKEND_DIR = Path(__file__).resolve().parent.parent
 _TEST_DB_PATH = _BACKEND_DIR / "critique_test.db"
 os.environ["DATABASE_URL"] = "sqlite:///" + _TEST_DB_PATH.as_posix()
+os.environ.setdefault("GITHUB_CLIENT_ID", "ci-test-client-id")
 
 import pytest
 import uuid
@@ -52,13 +53,31 @@ def auth_client():
     db.close()
 
     db2 = SessionLocal()
-    user = db2.query(User).filter(User.id == user_id).first()
+    db2.close()
+    unique_suffix_copy = unique_suffix
+
+    def _get_or_recreate_user():
+        s = SessionLocal()
+        try:
+            u = s.query(User).filter(User.id == user_id).first()
+            if u is None:
+                # Test cleanup helpers may have deleted the fixture row; put it
+                # back with the same id so foreign keys stay satisfiable.
+                u = User(id=user_id, github_id=hash(unique_suffix_copy) % 100000000,
+                         username=f"testuser_{unique_suffix_copy}")
+                s.add(u)
+                s.commit()
+                s.refresh(u)
+            s.expunge(u)
+            return u
+        finally:
+            s.close()
 
     def mock_get_current_user():
-        return user
+        return _get_or_recreate_user()
 
     def mock_get_current_user_optional():
-        return user
+        return _get_or_recreate_user()
 
     app.dependency_overrides[get_current_user] = mock_get_current_user
     app.dependency_overrides[get_current_user_optional] = mock_get_current_user_optional

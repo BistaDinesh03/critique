@@ -1,8 +1,24 @@
-﻿// Critique UI Utilities
+// Critique UI Utilities
 // Shared toast and modal system
 
 var CritiqueUI = (function() {
     'use strict';
+
+    function readReducedMotion() {
+        try {
+            if (typeof window !== 'undefined' && window.matchMedia) {
+                var mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+                if (mq && typeof mq.matches === 'boolean') return mq.matches;
+            }
+        } catch (e) {
+            // Treat an unusable media query as "motion allowed".
+        }
+        return false;
+    }
+
+    function scrollBehavior() {
+        return readReducedMotion() ? 'auto' : 'smooth';
+    }
 
     // ============ TOAST SYSTEM ============
     function showToast(message, type) {
@@ -28,29 +44,67 @@ var CritiqueUI = (function() {
         text.className = 'toast-text';
         text.textContent = message;
 
+        var dismissBtn = document.createElement('button');
+        dismissBtn.type = 'button';
+        dismissBtn.className = 'toast-dismiss';
+        dismissBtn.setAttribute('aria-label', 'Dismiss notification');
+        dismissBtn.textContent = '×';
+
         toast.appendChild(icon);
         toast.appendChild(text);
+        toast.appendChild(dismissBtn);
 
         container.appendChild(toast);
 
-        // Auto dismiss after 3.5 seconds
-        setTimeout(function() {
+        var dismissTimeout = null;
+        var isPaused = false;
+
+        function dismissToast() {
             toast.classList.add('toast-hide');
             setTimeout(function() {
                 if (toast.parentNode) toast.parentNode.removeChild(toast);
             }, 200);
-        }, 3500);
+        }
+
+        function startTimer() {
+            if (dismissTimeout) clearTimeout(dismissTimeout);
+            dismissTimeout = setTimeout(function() {
+                if (!isPaused) dismissToast();
+            }, 3500);
+        }
+
+        function pauseTimer() {
+            isPaused = true;
+            if (dismissTimeout) {
+                clearTimeout(dismissTimeout);
+                dismissTimeout = null;
+            }
+        }
+
+        function resumeTimer() {
+            isPaused = false;
+            startTimer();
+        }
+
+        toast.addEventListener('mouseenter', pauseTimer);
+        toast.addEventListener('mouseleave', resumeTimer);
+        toast.addEventListener('focusin', pauseTimer);
+        toast.addEventListener('focusout', resumeTimer);
+
+        dismissBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            dismissToast();
+        });
 
         // Click to dismiss
-        toast.addEventListener('click', function() {
-            toast.classList.add('toast-hide');
-            setTimeout(function() {
-                if (toast.parentNode) toast.parentNode.removeChild(toast);
-            }, 200);
-        });
+        toast.addEventListener('click', dismissToast);
+
+        startTimer();
     }
 
     // ============ MODAL SYSTEM ============
+    var confirmModalSequence = 0;
+
     function showConfirmModal(options) {
         var title = options.title || 'Confirm';
         var message = options.message || '';
@@ -58,6 +112,7 @@ var CritiqueUI = (function() {
         var cancelText = options.cancelText || 'Cancel';
         var destructive = options.destructive !== false;
         var onConfirm = options.onConfirm || function() {};
+        var modalId = 'confirm-modal-' + (++confirmModalSequence);
 
         // Create backdrop
         var backdrop = document.createElement('div');
@@ -69,14 +124,16 @@ var CritiqueUI = (function() {
         modal.className = 'modal';
         modal.setAttribute('role', 'dialog');
         modal.setAttribute('aria-modal', 'true');
-        modal.setAttribute('aria-labelledby', 'modal-title');
+        modal.setAttribute('aria-labelledby', modalId + '-title');
+        modal.setAttribute('aria-describedby', modalId + '-description');
 
         var titleEl = document.createElement('h3');
-        titleEl.id = 'modal-title';
+        titleEl.id = modalId + '-title';
         titleEl.className = 'modal-title';
         titleEl.textContent = title;
 
         var bodyEl = document.createElement('div');
+        bodyEl.id = modalId + '-description';
         bodyEl.className = 'modal-body';
         bodyEl.textContent = message;
 
@@ -101,14 +158,43 @@ var CritiqueUI = (function() {
         modal.appendChild(actionsEl);
 
         backdrop.appendChild(modal);
+        var previousActiveElement = document.activeElement;
         document.body.appendChild(backdrop);
 
         // Prevent body scroll
         document.body.style.overflow = 'hidden';
 
+        function keyHandler(e) {
+            if (e.key === 'Escape') {
+                closeModal();
+                return;
+            }
+            if (e.key === 'Tab') {
+                var focusable = modal.querySelectorAll('button:not([disabled]), [tabindex]:not([tabindex="-1"])');
+                if (!focusable || focusable.length === 0) return;
+                var first = focusable[0];
+                var last = focusable[focusable.length - 1];
+                if (e.shiftKey) {
+                    if (document.activeElement === first) {
+                        e.preventDefault();
+                        last.focus();
+                    }
+                } else {
+                    if (document.activeElement === last) {
+                        e.preventDefault();
+                        first.focus();
+                    }
+                }
+            }
+        }
+
         function closeModal() {
+            document.removeEventListener('keydown', keyHandler);
             document.body.style.overflow = '';
             if (backdrop.parentNode) backdrop.parentNode.removeChild(backdrop);
+            if (previousActiveElement && typeof previousActiveElement.focus === 'function') {
+                previousActiveElement.focus();
+            }
         }
 
         function handleConfirm() {
@@ -127,14 +213,7 @@ var CritiqueUI = (function() {
             if (e.target === backdrop) closeModal();
         });
         confirmBtn.addEventListener('click', handleConfirm);
-
-        // Escape key
-        document.addEventListener('keydown', function escHandler(e) {
-            if (e.key === 'Escape') {
-                closeModal();
-                document.removeEventListener('keydown', escHandler);
-            }
-        });
+        document.addEventListener('keydown', keyHandler);
 
         // Focus confirm button
         setTimeout(function() { confirmBtn.focus(); }, 100);
@@ -195,7 +274,7 @@ var CritiqueUI = (function() {
         resending: 'Sending another link\u2026',
         changeEmail: 'Change email',
         genericError: "We couldn't send the link. Check your connection and try again.",
-        rateLimitError: 'Too many attempts. Please wait a minute, then try again.'
+        rateLimitError: 'Too many attempts. Please wait about 15 minutes, then try again.'
     };
 
     var EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -249,6 +328,11 @@ var CritiqueUI = (function() {
             trackAuthEvent('auth_method_selected_github', context);
             if (typeof config.onStart === 'function') config.onStart('github');
             trackAuthEvent('login_started', context);
+            ghLink.setAttribute('aria-busy', 'true');
+            ghLink.style.pointerEvents = 'none';
+            ghLink.style.opacity = '0.7';
+            var ghSpan = ghLink.querySelector('span');
+            if (ghSpan) ghSpan.textContent = 'Connecting to GitHub\u2026';
         });
         actions.appendChild(ghLink);
 
@@ -399,12 +483,20 @@ var CritiqueUI = (function() {
                     })
                 });
                 if (response.ok) {
-                    trackAuthEvent('email_verification_sent', context);
-                    // Count the attempt on the same rule as GitHub: GitHub
-                    // fires login_started when the visitor is handed to the
-                    // provider, so email fires it when the provider confirms
-                    // the sign-in link was accepted. Failed sends emit neither.
-                    trackAuthEvent('login_started', context);
+                    var data = null;
+                    try {
+                        data = await response.json();
+                    } catch (e) {
+                        data = null;
+                    }
+                    if (data && data.sent === true) {
+                        trackAuthEvent('email_verification_sent', context);
+                        // Count the attempt on the same rule as GitHub: GitHub
+                        // fires login_started when the visitor is handed to the
+                        // provider, so email fires it when the provider confirms
+                        // the sign-in link was accepted. Failed sends emit neither.
+                        trackAuthEvent('login_started', context);
+                    }
                     // Success is only shown after the backend confirmed the
                     // request; the endpoint always answers generically, so this
                     // never reveals whether an account exists.
@@ -547,6 +639,15 @@ var CritiqueUI = (function() {
                     })
                 });
                 if (response.ok) {
+                    var resData = null;
+                    try {
+                        resData = await response.json();
+                    } catch (e) {
+                        resData = null;
+                    }
+                    if (resData && resData.sent === true) {
+                        trackAuthEvent('email_verification_sent', context);
+                    }
                     lastSentAt = Date.now();
                     status.textContent = 'A new sign-in link is on its way. Check your inbox.';
                     paintCooldown();
@@ -672,6 +773,8 @@ var CritiqueUI = (function() {
     }
 
     return {
+        readReducedMotion: readReducedMotion,
+        scrollBehavior: scrollBehavior,
         showToast: showToast,
         showConfirmModal: showConfirmModal,
         renderAuthChoice: renderAuthChoice,
