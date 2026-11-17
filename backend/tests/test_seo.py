@@ -148,3 +148,12 @@ def test_feed_xml_is_valid_rss():
     assert channel.find("title") is not None
     assert channel.find("link") is not None
     assert channel.find("link").text == "https://critique.page/discover"
+
+
+def test_my_projects_declares_twitter_card_metadata():
+    """my_projects.html carries Twitter Card metadata tags."""
+    frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"
+    html = (frontend_dir / "my_projects.html").read_text(encoding="utf-8")
+    assert '<meta name="twitter:card" content="summary">' in html
+    assert '<meta name="twitter:title" content="My Projects — Critique">' in html
+    assert '<meta name="twitter:description"' in html
