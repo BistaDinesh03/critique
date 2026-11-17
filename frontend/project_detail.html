@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="light dark">
     <title>Project - Critique</title>
-    <meta name="description" content="Review this project and give honest feedback on Critique.">
+    <meta name="description" id="meta-description" content="Review this project and give honest feedback on Critique.">
 
     <!-- Open Graph -->
     <meta property="og:type" content="website">
-    <meta property="og:title" content="Project — Critique">
-    <meta property="og:description" content="Give focused feedback on this project on Critique.">
-    <meta property="og:image" content="https://critique.page/static/og-image.webp">
+    <meta property="og:title" id="og-title" content="Project — Critique">
+    <meta property="og:description" id="og-description" content="Give focused feedback on this project on Critique.">
+    <meta property="og:image" id="og-image" content="https://critique.page/static/og-image.webp">
     <meta property="og:image:type" content="image/webp">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
@@ -20,9 +20,9 @@
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Project — Critique">
-    <meta name="twitter:description" content="Give focused feedback on this project on Critique.">
-    <meta name="twitter:image" content="https://critique.page/static/og-image.webp">
+    <meta name="twitter:title" id="tw-title" content="Project — Critique">
+    <meta name="twitter:description" id="tw-description" content="Give focused feedback on this project on Critique.">
+    <meta name="twitter:image" id="tw-image" content="https://critique.page/static/og-image.webp">
     <meta name="twitter:image:alt" content="Critique — Ask one question. Get real answers.">
 
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
@@ -439,8 +439,36 @@
             if (bcCurrent && p && p.title) {
                 bcCurrent.textContent = p.title;
             }
+
+            // Dynamically update document title and social sharing meta tags
+            if (p && p.title) {
+                document.title = p.title + ' — Critique';
+                var ogTitle = document.getElementById('og-title');
+                if (ogTitle) ogTitle.setAttribute('content', p.title + ' — Critique');
+                var twTitle = document.getElementById('tw-title');
+                if (twTitle) twTitle.setAttribute('content', p.title + ' — Critique');
+            }
+            if (p && p.description) {
+                var metaDesc = document.getElementById('meta-description');
+                if (metaDesc) metaDesc.setAttribute('content', p.description);
+                var ogDesc = document.getElementById('og-description');
+                if (ogDesc) ogDesc.setAttribute('content', p.description);
+                var twDesc = document.getElementById('tw-description');
+                if (twDesc) twDesc.setAttribute('content', p.description);
+            }
+            if (p && p.image_url) {
+                var ogImg = document.getElementById('og-image');
+                if (ogImg) ogImg.setAttribute('content', p.image_url);
+                var twImg = document.getElementById('tw-image');
+                if (twImg) twImg.setAttribute('content', p.image_url);
+            }
             let html = '';
-            html += '<div class="project-header-row"><h1 class="project-title">' + escapeHtml(p.title) + '</h1>';
+            html += '<div class="project-header-row"><h1 class="project-title">' + escapeHtml(p.title);
+            if (data.is_owner || (Array.isArray(responses) && responses.length > 0)) {
+                const count = responses && responses.length > 0 ? responses.length : (p.response_count || 0);
+                html += ' <span class="badge response-count-badge" id="owner-response-count">' + count + ' ' + (count === 1 ? 'response' : 'responses') + '</span>';
+            }
+            html += '</h1>';
             html += '<button type="button" class="btn btn-secondary" id="copy-project-link" aria-label="Copy project link" style="font-size:var(--text-xs);padding:var(--space-1) var(--space-3);"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-right:6px;"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>Copy link</button></div>';
             // What is being reviewed is stated before anything is asked of the
             // visitor, so the answer is given with the context in view.

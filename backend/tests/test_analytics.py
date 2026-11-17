@@ -263,7 +263,8 @@ def test_dashboard_response_contract_with_zero_denominators():
 
         # The complete top-level contract. A key added, removed or renamed in
         # either branch fails here.
-        assert set(data.keys()) == {"totals", "event_ratios"}
+        assert set(data.keys()) == {"totals", "event_ratios", "range"}
+        assert data["range"] == {"start": None, "end": None}
         assert set(data["totals"].keys()) == DASHBOARD_TOTALS_KEYS
         assert set(data["event_ratios"].keys()) == DASHBOARD_RATIO_KEYS
 
