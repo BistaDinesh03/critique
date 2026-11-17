@@ -1135,6 +1135,11 @@
             min-height: 48px;
         }
 
+        .buttons-form {
+            display: flex;
+            gap: 20px;
+        }
+
         .form-reassurance {
             text-align: center;
             font-size: var(--text-xs);
@@ -1564,10 +1569,43 @@
                     </div>
                 </div>
 
+                <div class="buttons-form">
+                <button type="button" class="btn btn-secondary btn-submit" id="preview-btn"> Preview your project</button>
                 <button type="submit" class="btn btn-primary btn-submit" id="submit-btn">Submit for feedback</button>
+                </div>
+
                 <p class="form-reassurance">Free to use. Human feedback. No AI-generated responses.</p>
                 <div class="message" id="message" role="alert" aria-live="polite"></div>
             </form>
+
+            <div id="project-preview" hidden>
+                <h3 style="text-align: center;">Project Preview</h3>
+                <article class="project-card" id="preview" tabindex="0" role="button">
+                    <img id="preview-image" class="project-screenshot" alt="Project screenshot" hidden>
+                    <div class="project-card-body">
+                        <div class="eyebrow">Need feedback on</div>
+                        <h3 class="project-title" id="preview-title">
+                            Your project title
+                        </h3>
+                        <div class="project-description" id="preview-description">
+                            Your description will appear here.
+                        </div>
+                        <div class="project-question" id="preview-question">
+                            Your question will appear here.
+                        </div>
+                    </div>
+                </article>
+                <button type="button" class="btn btn-secondary btn-submit" id="close-preview">
+                    Close Preview
+                </button>
+            </div>
+            <dialog id="full-preview-dialog">
+                <h2 class="preview-heading">Project Preview</h2>
+                <div id="full-preview"> ADDDD HERE </div>
+                <button type="button" id="close-full-preview" class="btn btn-primary">
+                    Close Preview
+                </button>
+            </dialog>
         </section>
 
         <section class="final-cta">
@@ -2026,6 +2064,71 @@
                 e.returnValue = '';
             }
         });
+
+        function updatePreview() {
+            //Updates the preview with the information input
+            var previewTitle = document.getElementById('title').value.trim();
+            var previewDescription = document.getElementById('description').value.trim();
+            var previewUrl = document.getElementById('url').value.trim();
+            var previewImageURL = document.getElementById('image_url').value.trim();
+            var previewQuestion = document.getElementById('question').value.trim()
+
+            document.getElementById('preview-title').textContent = previewTitle || 'Your project title';
+            document.getElementById('preview-description').textContent = previewDescription || 'Description to be provided';
+            document.getElementById('preview-question').textContent = 'Question: ' + (previewQuestion || 'No question provided'); //cant see question
+
+            var previewImage = document.getElementById('preview-image')
+            if(previewImageURL){
+                previewImage.src = previewImageURL;
+                previewImage.hidden = false;
+            }
+            else{
+                previewImage.hidden= true;
+            } 
+        }
+        
+        var preview = document.getElementById('preview-btn');
+        var closePreview = document.getElementById('close-preview');
+        var previewArea = document.getElementById('project-preview');
+        var fullPreview = document.getElementById('preview');
+        var fullPreviewDialog = document.getElementById('full-preview-dialog');
+        var closeFullPreview = document.getElementById('close-full-preview')
+
+        pForm.addEventListener('input', function(){
+            //Live listening
+            if(!previewArea.hidden){
+                updatePreview();
+            }
+        })
+
+        preview.addEventListener('click', function(){
+            updatePreview();
+            previewArea.hidden=false
+        })
+
+        closePreview.addEventListener('click', function(){
+            previewArea.hidden=true;
+            preview.focus();
+        })
+        
+        fullPreview.addEventListener('click', function(){
+            updatePreview();
+            fullPreviewDialog.showModal();
+        })
+
+        fullPreview.addEventListener('keydown', function(e){
+            if (e.key == 'Enter' || e.key == ' '){
+                e.preventDefault();
+                updatePreview();
+                fullPreviewDialog.showModal();
+            }
+        })
+
+        closeFullPreview.addEventListener('click', function(){
+            fullPreviewDialog.close()
+        })
+    
+
 
         document.getElementById('project-form').addEventListener('submit', async function(e) {
             e.preventDefault();
