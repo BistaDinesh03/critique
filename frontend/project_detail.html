@@ -463,7 +463,12 @@
                 if (twImg) twImg.setAttribute('content', p.image_url);
             }
             let html = '';
-            html += '<div class="project-header-row"><h1 class="project-title">' + escapeHtml(p.title) + '</h1>';
+            html += '<div class="project-header-row"><h1 class="project-title">' + escapeHtml(p.title);
+            if (data.is_owner || (Array.isArray(responses) && responses.length > 0)) {
+                const count = responses && responses.length > 0 ? responses.length : (p.response_count || 0);
+                html += ' <span class="badge response-count-badge" id="owner-response-count">' + count + ' ' + (count === 1 ? 'response' : 'responses') + '</span>';
+            }
+            html += '</h1>';
             html += '<button type="button" class="btn btn-secondary" id="copy-project-link" aria-label="Copy project link" style="font-size:var(--text-xs);padding:var(--space-1) var(--space-3);"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-right:6px;"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>Copy link</button></div>';
             // What is being reviewed is stated before anything is asked of the
             // visitor, so the answer is given with the context in view.
@@ -1143,7 +1148,8 @@
             try { checkAuth(); } catch(e) {}
     </script>
     <script src="/static/ui.js"></script>
-    <script src="/static/analytics.js"></script>
+    <script src="/static/analytics_events.js"></script>
+<script src="/static/analytics.js"></script>
     <script>trackPageView();</script>
 
     <footer class="site-footer">
