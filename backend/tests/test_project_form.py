@@ -521,3 +521,97 @@ def test_feedback_form_is_lightweight_on_mobile():
     # Same reduction against the roomier desktop rules.
     assert "padding: var(--space-6)" in first_rule_body(source, ".response-form-card")
     assert "padding: var(--space-5)" in first_rule_body(source, ".question-block")
+
+
+# ---------------------------------------------------------------------------
+# Live character counters (Phase 5 / #767)
+# ---------------------------------------------------------------------------
+
+
+def test_project_form_markup_contains_char_counters():
+    """Assert the HTML source contains character count elements associated with inputs."""
+    source = page_source("index.html")
+    assert 'id="title-char-count"' in source
+    assert 'id="question-char-count"' in source
+    assert 'aria-describedby="title-char-count"' in source
+    assert 'aria-describedby="question-char-count"' in source
+    assert "form-char-count" in source
+
+
+def test_project_form_char_counters_start_at_zero(tmp_path):
+    """The title and question fields expose live character counters starting at 0/200 and 0/500."""
+    result = run(
+        tmp_path,
+        "index.html",
+        [
+            {"fn": "syncProjectFormCharCounts"},
+            {
+                "evaluate": "document.getElementById('title-char-count').textContent",
+                "as": "title_counter",
+            },
+            {
+                "evaluate": "document.getElementById('question-char-count').textContent",
+                "as": "question_counter",
+            },
+        ],
+        fetch={HOMEPAGE_URL: {"status": 200, "body": {"total": 0, "items": []}}},
+    )
+    assert result["values"]["title_counter"] == "0/200"
+    assert result["values"]["question_counter"] == "0/500"
+
+
+def test_project_form_char_counters_update_on_input(tmp_path):
+    """Typing into title and question updates character counters live."""
+    script = (
+        "document.getElementById('title').value = 'Akiya Scout'; "
+        "document.getElementById('question').value = 'Is the price clear?'; "
+        "syncProjectFormCharCounts(); "
+        "'updated'"
+    )
+    result = run(
+        tmp_path,
+        "index.html",
+        [
+            {"evaluate": script, "as": "script_result"},
+            {
+                "evaluate": "document.getElementById('title-char-count').textContent",
+                "as": "title_counter",
+            },
+            {
+                "evaluate": "document.getElementById('question-char-count').textContent",
+                "as": "question_counter",
+            },
+        ],
+        fetch={HOMEPAGE_URL: {"status": 200, "body": {"total": 0, "items": []}}},
+    )
+    assert result["values"]["title_counter"] == "11/200"
+    assert result["values"]["question_counter"] == "19/500"
+
+
+def test_project_form_char_counters_reflect_restored_draft(tmp_path):
+    """Restoring a draft updates the counters so they do not show stale counts."""
+    seed = (
+        "sessionStorage.setItem('critique_project_draft', JSON.stringify("
+        "{title: 'Akiya Scout', question: 'Is the price clear?'}))"
+    )
+    result = run(
+        tmp_path,
+        "index.html",
+        [
+            {"evaluate": seed, "as": "seeded"},
+            {"fn": "restoreProjectDraft"},
+            {
+                "evaluate": "document.getElementById('title-char-count').textContent",
+                "as": "title_counter",
+            },
+            {
+                "evaluate": "document.getElementById('question-char-count').textContent",
+                "as": "question_counter",
+            },
+        ],
+        fetch={HOMEPAGE_URL: {"status": 200, "body": {"total": 0, "items": []}}},
+    )
+    assert result["values"]["title_counter"] == "11/200"
+    assert result["values"]["question_counter"] == "19/500"
+
+

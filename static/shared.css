@@ -460,6 +460,13 @@ img {
     margin-top: var(--space-1);
 }
 
+.form-char-count {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    text-align: right;
+    margin-top: var(--space-1);
+}
+
 .form-input,
 .form-textarea {
     width: 100%;
