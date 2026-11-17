@@ -32,10 +32,13 @@ BACKEND_DIR = Path(__file__).resolve().parent.parent
 FRONTEND_DIR = BACKEND_DIR.parent / "frontend"
 HARNESS = Path(__file__).resolve().parent / "frontend_render_harness.js"
 
-pytestmark = pytest.mark.skipif(
-    shutil.which("node") is None,
-    reason="node is required to run the frontend rendering harness",
-)
+pytestmark = [
+    pytest.mark.frontend_render,
+    pytest.mark.skipif(
+        shutil.which("node") is None,
+        reason="node is required to run the frontend rendering harness",
+    ),
+]
 
 # The exact URL /auth/email/verify redirects to (see app/auth.py).
 ERROR_LOCATION = "/?error=email_link"

@@ -277,7 +277,7 @@ gitignore — nunca subas credenciales reales.
 |---|---|---|
 | `APP_ENV` | `development` o `production` | `development` |
 | `APP_URL` | URL base pública | `http://127.0.0.1:8000` |
-| `SECRET_KEY` | Firma los tokens de sesión y el estado OAuth | Sin valor por defecto — genera: `python -c "import secrets; print(secrets.token_hex(32))"` |
+| `SECRET_KEY` | Firma los tokens de sesión y el estado OAuth | Obligatoria en producción (la aplicación no se inicia si falta). Fuera de producción, si no se define, se usa una clave aleatoria por proceso, por lo que las sesiones no sobreviven a un reinicio. Generar: `python -c "import secrets; print(secrets.token_hex(32))"` |
 | `DATABASE_URL` | Cadena de conexión a la base de datos | `sqlite:///./critique.db`; usa PostgreSQL en producción |
 | `GITHUB_CLIENT_ID` | ID de cliente de la app OAuth de GitHub | Opcional — habilita el inicio de sesión con GitHub |
 | `GITHUB_CLIENT_SECRET` | Secreto de la app OAuth de GitHub | Opcional |
@@ -303,7 +303,7 @@ cd backend
 python -m pytest tests/ -q
 ```
 
-Actualmente pasan 501 pruebas. La suite cubre el comportamiento de la API, CSRF,
+La suite de pruebas pasa correctamente. La suite cubre el comportamiento de la API, CSRF,
 limitación de tasa, comprobaciones de propiedad, reglas de privacidad, ranking,
 XSS, validación analítica, flujos de autenticación, endpoints de SEO y el
 renderizado del frontend mediante un arnés DOM basado en Node (se omite si no
@@ -349,7 +349,7 @@ Critique está diseñado pensando en la seguridad y la privacidad:
 | **Comentarios escritos privados** | Las sugerencias se devuelven solo al dueño del proyecto |
 | **Manejo seguro de redirecciones** | Los valores `return_to` del inicio de sesión se validan contra una lista de rutas locales |
 | **Secretos por entorno** | Las credenciales provienen de variables de entorno y nunca se guardan en el repositorio |
-| **Analítica mínima** | Eventos validados contra una lista permitida en el servidor; sin scripts de terceros; sin direcciones IP en bruto (solo hashes SHA-256 para detectar duplicados) |
+| **Analítica mínima** | Eventos validados contra una lista permitida en el servidor; sin scripts de terceros; sin direcciones IP en bruto (solo resúmenes HMAC-SHA-256 con clave para detectar duplicados, estables mientras no cambie `SECRET_KEY`) |
 
 [SECURITY.md](SECURITY.md) enumera el comportamiento completo y explica cómo
 reportar una vulnerabilidad.

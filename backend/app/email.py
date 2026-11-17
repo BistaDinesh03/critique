@@ -11,11 +11,16 @@ Design notes:
 """
 from __future__ import annotations
 
+import concurrent.futures
+import html
 import logging
+from urllib.parse import urlparse
 
 from app.config import settings
 
 logger = logging.getLogger(__name__)
+
+EMAIL_SEND_TIMEOUT_SECONDS: float = 10.0
 
 
 def _build_client():
@@ -30,15 +35,45 @@ def _build_client():
     return resend.Emails
 
 
+def _app_base_url() -> str:
+    """Normalized APP_URL with trailing slash stripped.
+
+    Empty string if APP_URL is unset. Operator configuration is trusted;
+    callers that interpolate it into HTML must escape.
+    """
+    return (settings.APP_URL or "").rstrip("/")
+
+
+def _app_display_host() -> str:
+    """Host portion of APP_URL for human-readable display (e.g. footer text).
+
+    Falls back to the full base if no netloc can be parsed.
+    """
+    base = _app_base_url()
+    if not base:
+        return "Critique"
+    parsed = urlparse(base)
+    return parsed.netloc or base
+
+
 def _build_login_url(raw_token: str) -> str:
     """Construct the magic-link URL from the configured APP_URL."""
-    base = (settings.APP_URL or "").rstrip("/")
+    base = _app_base_url()
     return f"{base}/auth/email/verify?token={raw_token}"
 
 
 # ===== blue header band + text wordmark email template =====
 def _render_email_html(login_url: str) -> str:
-    """Render the email body. No user-controlled content interpolated."""
+    """Render the email body. No user-controlled content interpolated.
+
+    Absolute URLs (logo, footer) are derived from settings.APP_URL.
+    APP_URL is operator configuration and is therefore trusted, but we
+    still HTML-escape it on interpolation to be defensive.
+    """
+    base = _app_base_url()
+    logo_src = f"{base}/static/logo.png" if base else "/static/logo.png"
+    footer_href = html.escape(base or "#", quote=True)
+    footer_text = html.escape(_app_display_host())
     return (
         '<!DOCTYPE html>'
         '<html lang="en"><head>'
@@ -71,7 +106,7 @@ def _render_email_html(login_url: str) -> str:
         '<table role="presentation" cellpadding="0" cellspacing="0" border="0">'
         '<tr>'
         '<td style="vertical-align:middle;padding-right:12px;">'
-        '<img src="https://critique.page/static/logo.png" alt="Critique" '
+        '<img src="' + html.escape(logo_src, quote=True) + '" alt="Critique" '
         'width="28" height="28" '
         'style="display:block;border:0;outline:none;text-decoration:none;">'
         '</td>'
@@ -143,8 +178,8 @@ def _render_email_html(login_url: str) -> str:
         'If it wasn\'t you, you can safely ignore this message.'
         '<br><br>'
         'Critique &middot; '
-        '<a href="https://critique.page" style="color:#9ca3af;text-decoration:underline;">'
-        'critique.page'
+        '<a href="' + footer_href + '" style="color:#9ca3af;text-decoration:underline;">'
+        + footer_text +
         '</a>'
         '</td></tr>'
 
@@ -155,7 +190,12 @@ def _render_email_html(login_url: str) -> str:
 
 
 def _render_email_text(login_url: str) -> str:
-    """Plain-text fallback. No user-controlled content interpolated."""
+    """Plain-text fallback. No user-controlled content interpolated.
+
+    The footer URL is derived from settings.APP_URL.
+    """
+    base = _app_base_url()
+    footer = base or "Critique"
     return (
         "Critique\n"
         "========\n\n"
@@ -166,11 +206,11 @@ def _render_email_text(login_url: str) -> str:
         "You received this email because someone requested a sign-in link for this\n"
         "address. If it wasn't you, you can safely ignore this message.\n\n"
         "---\n"
-        "Critique \u00b7 https://critique.page\n"
+        f"Critique \u00b7 {footer}\n"
     )
 
-def send_login_link(to_email: str, raw_token: str) -> bool:
-    """Send the magic-link email.
+def send_login_link(to_email: str, raw_token: str, timeout: float = EMAIL_SEND_TIMEOUT_SECONDS) -> bool:
+    """Send the magic-link email with a bounded deadline.
 
     Returns True if the provider accepted the send, False otherwise.
     Never raises. Never logs the token or the recipient address.
@@ -186,15 +226,38 @@ def send_login_link(to_email: str, raw_token: str) -> bool:
 
     try:
         client = _build_client()
-        client.send({
+        payload = {
             "from": settings.EMAIL_FROM,
             "to": [to_email],
             "subject": "Your Critique sign-in link",
             "reply_to": settings.EMAIL_FROM,
             "html": _render_email_html(login_url),
             "text": _render_email_text(login_url),
-        })
-        return True
+        }
+        send_ok = False
+        send_exc = None
+
+        def _worker():
+            nonlocal send_ok, send_exc
+            try:
+                client.send(payload)
+                send_ok = True
+            except Exception as e:
+                send_exc = e
+
+        import threading
+        thread = threading.Thread(target=_worker, daemon=True)
+        thread.start()
+        thread.join(timeout=timeout)
+
+        if thread.is_alive():
+            logger.error("send_login_link: provider call timed out after %s seconds", timeout)
+            return False
+
+        if send_exc is not None:
+            raise send_exc
+
+        return send_ok
     except Exception:
         # Log the failure without including the token or recipient.
         logger.exception("send_login_link: provider call failed")

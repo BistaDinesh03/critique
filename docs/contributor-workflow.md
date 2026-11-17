@@ -155,7 +155,7 @@ touches none of them, the merge is blocked.
 
 ## Testing
 
-All 81 tests in `backend/tests/test_contributor.py` use a fake client. No test
+The tests in `backend/tests/test_contributor.py` all use a fake client. No test
 assigns a real issue, closes a real issue, merges a real pull request, or posts
 a real comment. The fake records writes so the tests assert both what must
 happen and what must never happen: without a volunteer's comment, with someone

@@ -1,4 +1,6 @@
-﻿# Security Policy
+# Security Policy
+
+Canonical machine-readable security contact policy is published at `/.well-known/security.txt` (RFC 9116).
 
 ## Reporting a Vulnerability
 
@@ -29,7 +31,7 @@ are supported. There are no versioned releases.
 These controls exist in the codebase today — useful context when reporting
 or reviewing:
 
-- CSRF protection (double-submit cookie) on all state-changing requests
+- CSRF protection (double-submit cookie) on state-changing mutation requests (`/api/projects/*`, `/auth/email/start`). Lightweight analytics tracking (`POST /api/analytics/track`) is exempt to support browser beacons and unauthenticated event telemetry, and is guarded by IP rate limiting and a strict server-side event allowlist.
 - Session cookies are `HttpOnly`, `SameSite=Lax`, and `Secure` in production
 - Server-side ownership checks on every mutation, based on the session —
   never on client-supplied headers
@@ -38,8 +40,14 @@ or reviewing:
 - Pydantic input validation (length limits, URL scheme checks, enums)
 - HTML escaping of user content in the frontend
 - Analytics events validated against a strict server-side allowlist
-- IP addresses are stored only as SHA-256 hashes for duplicate detection;
-  raw IPs are never persisted
+- IP addresses used for duplicate detection and email-login auditing are
+  stored as HMAC-SHA-256 digests using a dedicated key derived from
+  `SECRET_KEY` with the `critique:ip-hash:key:v1` context. The IP digest
+  uses the separate `critique:ip-hash:value:v1` context. Raw IPs are not
+  persisted by these hashing paths. Hashes remain stable while `SECRET_KEY`
+  is unchanged; rotating the key changes new digests and does not backfill
+  existing records. Configure a persistent `SECRET_KEY` to preserve
+  hash stability across application restarts.
 - No third-party tracking scripts
 
 ## For Contributors

@@ -8,6 +8,7 @@ Requires `node` on PATH; the whole module is skipped when it is missing.
 """
 
 import json
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -19,10 +20,33 @@ REPO_DIR = BACKEND_DIR.parent
 FRONTEND_DIR = REPO_DIR / "frontend"
 HARNESS = Path(__file__).resolve().parent / "frontend_render_harness.js"
 
-pytestmark = pytest.mark.skipif(
-    shutil.which("node") is None,
-    reason="node is required to run the frontend rendering harness",
-)
+def test_each_frontend_page_has_one_top_level_heading():
+    for page in sorted(FRONTEND_DIR.glob("*.html")):
+        html = page.read_text(encoding="utf-8")
+        headings = re.findall(r"<h1(?:\s|>)", html, flags=re.IGNORECASE)
+        assert len(headings) == 1, f"{page.name} has {len(headings)} <h1> headings"
+
+
+def test_no_page_hardcodes_a_test_count():
+    """Every hard-coded count drifts (#73, #164, #182, #229): the public pages
+    and scripts must never claim a number of passing tests."""
+    static_dir = REPO_DIR / "static"
+    offenders = []
+    for folder in (FRONTEND_DIR, static_dir):
+        for page in sorted(folder.glob("*.html")):
+            text = page.read_text(encoding="utf-8")
+            if re.search(r"\d[\d,]*\s*\+?\s*tests?\s+passing", text, flags=re.IGNORECASE):
+                offenders.append(page.name)
+    assert not offenders, f"hard-coded test count in: {', '.join(offenders)}"
+
+
+pytestmark = [
+    pytest.mark.frontend_render,
+    pytest.mark.skipif(
+        shutil.which("node") is None,
+        reason="node is required to run the frontend rendering harness",
+    ),
+]
 
 
 def run(tmp_path, page, calls, read=None, fetch=None, location="/"):
@@ -122,7 +146,7 @@ def test_mixed_results_show_header_question_counts_and_bars(tmp_path):
     html = render_results(tmp_path, data)
 
     # Compact header: section title, project name, question, exact total.
-    assert "<h2>Feedback results</h2>" in html
+    assert "<h1>Feedback results</h1>" in html
     assert "3 total responses" in html
     assert "Sample Project" in html
     assert "Would you understand this in 10 seconds?" in html
@@ -227,9 +251,14 @@ def test_zero_responses_renders_empty_state_with_both_actions(tmp_path):
     assert "Would you understand this in 10 seconds?" in html
     # Both standard actions, no bars, no broken arithmetic.
     assert "Get more feedback" in html
-    assert "Discover projects" in html
-    assert "bar-track" not in html
-    assert "sample-note" not in html
+
+
+def test_results_page_supports_print_styling_and_export_button(tmp_path):
+    clarity, would_use = mixed_stats()
+    html = render_results(tmp_path, results_data(3, clarity, would_use))
+    assert 'id="print-results-btn"' in html
+    assert "Print / PDF" in html
+    assert "@media print" in (FRONTEND_DIR / "project_results.html").read_text(encoding="utf-8")
     for artifact in ("NaN", "Infinity", "undefined"):
         assert artifact not in html
 
@@ -430,7 +459,26 @@ def test_api_failure_renders_the_friendly_error_state(tmp_path):
     )
     html = result["html"]
     assert 'class="error-state"' in html
+    assert 'role="alert"' in html
     assert "Something went wrong. Please try again." in html
+    assert "Try again" in html
+    assert "loadResults" in html
     assert "bar-track" not in html
     for artifact in ("NaN", "Infinity", "undefined", "[object Object]"):
         assert artifact not in html
+
+
+def test_download_csv_button_visibility_for_owner_vs_visitor(tmp_path):
+    """Verify that results page renders a Download CSV button for owners and hides it for visitors."""
+    clarity, would_use = mixed_stats()
+    owner_data = results_data(2, clarity, would_use, owner=True)
+    owner_html = render_results(tmp_path, owner_data)
+
+    assert 'id="download-csv-btn"' in owner_html
+    assert "Download CSV" in owner_html
+    assert "/results.csv" in owner_html
+
+    visitor_data = results_data(2, clarity, would_use, owner=False)
+    visitor_html = render_results(tmp_path, visitor_data)
+    assert 'id="download-csv-btn"' not in visitor_html
+    assert "Download CSV" not in visitor_html

@@ -4,6 +4,8 @@ window.CRITIQUE_VALID_ANALYTICS_EVENTS = [
     "discover_view",
     "email_verification_sent",
     "email_verification_success",
+    "feedback_already_responded",
+    "feedback_form_viewed",
     "feedback_resume",
     "feedback_start",
     "feedback_submit",

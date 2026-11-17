@@ -24,10 +24,13 @@ REPO_DIR = BACKEND_DIR.parent
 FRONTEND_DIR = REPO_DIR / "frontend"
 HARNESS = Path(__file__).resolve().parent / "frontend_render_harness.js"
 
-pytestmark = pytest.mark.skipif(
-    shutil.which("node") is None,
-    reason="node is required to run the frontend rendering harness",
-)
+pytestmark = [
+    pytest.mark.frontend_render,
+    pytest.mark.skipif(
+        shutil.which("node") is None,
+        reason="node is required to run the frontend rendering harness",
+    ),
+]
 
 # Verified payloads (the first one is the exact payload that produced a live
 # onerror attribute before the fix).

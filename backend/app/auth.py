@@ -1,13 +1,15 @@
-﻿import httpx
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.responses import RedirectResponse, JSONResponse
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from app.config import settings
 from app.database import get_db
 from app.models import User
 from app.csrf import generate_csrf_token, set_csrf_cookie, require_csrf
 from app.rate_limit import rate_limit
+from app.ip_hash import hash_ip as _shared_hash_ip
 import hashlib
 import hmac
 import secrets
@@ -70,6 +72,12 @@ def _email_cooldown_check_and_set(normalized_email: str) -> bool:
     _EMAIL_COOLDOWN.move_to_end(normalized_email)
     return False
 
+
+def _clear_email_cooldown(normalized_email: str) -> None:
+    """Clear cooldown entry for an address when email send failed (fixes #314)."""
+    _EMAIL_COOLDOWN.pop(normalized_email, None)
+
+
 serializer = URLSafeTimedSerializer(settings.SECRET_KEY, salt="session")
 
 SESSION_COOKIE_NAME = "critique_session"
@@ -131,24 +139,34 @@ RETURN_TO_COOKIE_NAME = "critique_return_to"
 
 
 def _is_safe_return_path(path: str) -> bool:
-    """Return True if path is a safe same-origin relative path."""
-    if not path:
-        return False
-    # Must start with "/" (relative to origin)
-    if not path.startswith("/"):
-        return False
-    # Reject protocol-relative URLs ("//evil.com")
-    if path.startswith("//"):
-        return False
-    # Reject backslash tricks ("/\evil.com")
-    if path.startswith("/\\"):
-        return False
-    # Reject anything containing a scheme separator
-    if "://" in path:
+    """Return True if path is a safe same-origin relative path.
+
+    The value ends up in a ``Location`` header, so anything a browser could
+    interpret as another origin, a scheme, or a header/line break is rejected:
+    control characters, whitespace, backslashes, protocol-relative URLs and
+    explicit schemes. Percent-encoded characters stay allowed.
+    """
+    if not path or not isinstance(path, str):
         return False
     # Cap length to prevent abuse
     if len(path) > 500:
         return False
+    # Must start with "/" (relative to origin), but never "//" or "/\".
+    if not path.startswith("/"):
+        return False
+    if path.startswith("//"):
+        return False
+    # Reject anything containing a scheme separator or a backslash trick
+    # ("/\evil.com", "\/evil.com").
+    if "://" in path or "\\" in path:
+        return False
+    for ch in path:
+        code = ord(ch)
+        # URL parsers may strip controls before interpreting a redirect
+        # target, so reject C0 and C1 controls plus any Unicode whitespace:
+        # they are malformed here and can be used for header splitting.
+        if code < 0x20 or 0x7F <= code <= 0x9F or ch.isspace():
+            return False
     return True
 
 
@@ -259,53 +277,115 @@ def github_login(
     return response
 
 
+# Indicator appended to the homepage URL when the visitor cancels on GitHub's
+# consent screen. There is no flash-message system, so the callback reports the
+# outcome through the query string and the homepage turns it into a banner.
+AUTH_CANCELLED_INDICATOR = "/?auth=cancelled"
+AUTH_EXPIRED_INDICATOR = "/?auth=expired"
+
+
+def _oauth_expired_response() -> RedirectResponse:
+    """Friendly outcome for an expired, invalid, or replayed OAuth state."""
+    response = RedirectResponse(AUTH_EXPIRED_INDICATOR, status_code=302)
+    response.delete_cookie(RETURN_TO_COOKIE_NAME)
+    response.delete_cookie(OAUTH_STATE_COOKIE_NAME)
+    return response
+
+
+def _oauth_cancelled_response(remaining: list) -> RedirectResponse:
+    """Friendly outcome for a GitHub OAuth attempt the visitor did not complete.
+
+    Pressing "Cancel" on GitHub's consent screen is a normal user action, not a
+    failure of ours, so this is not an error response. Two bookkeeping steps
+    still have to happen, exactly as on the failure path:
+
+    * the accepted state is consumed, so the browser is not left holding an
+      in-flight attempt it can never finish (and which would otherwise linger
+      for the rest of its ten-minute life);
+    * ``critique_return_to`` is cleared, so a later, unrelated login does not
+      suddenly bounce the visitor back to a page they asked for before they
+      changed their mind.
+
+    The target is a fixed literal, so no open-redirect validation is involved.
+    """
+    response = RedirectResponse(AUTH_CANCELLED_INDICATOR)
+    response.delete_cookie(RETURN_TO_COOKIE_NAME)
+    _set_pending_states_cookie(response, remaining)
+    return response
+
+
 @router.get("/callback")
 async def github_callback(
-    code: str,
     request: Request,
+    code: Optional[str] = None,
     state: Optional[str] = None,
+    error: Optional[str] = None,
     db: Session = Depends(get_db),
     _: None = Depends(rate_limit("auth")),
 ):
-    """Handle GitHub OAuth callback, validating state, and create session."""
+    """Handle GitHub OAuth callback, validating state, and create session.
+
+    GitHub sends the browser back in one of two shapes: ``?code=...&state=...``
+    when the visitor authorises the app, and ``?error=access_denied&state=...``
+    with no ``code`` when they press Cancel. Both carry the state we issued, so
+    both are gated on it before anything else happens.
+    """
     # Validate state before contacting GitHub: missing, unknown, expired,
     # forged, or replayed states are rejected outright.
     pending = _load_pending_states(request.cookies.get(OAUTH_STATE_COOKIE_NAME))
     if not _state_is_valid(pending, state):
+        accept = request.headers.get("accept", "")
+        if "text/html" in accept:
+            return _oauth_expired_response()
         raise HTTPException(status_code=400, detail="Invalid or missing OAuth state")
 
     # Single-use: this state is dropped from the browser's pending list on the
     # response we are about to return, success or failure.
     remaining = [s for s in pending if not hmac.compare_digest(s, state)]
 
-    async with httpx.AsyncClient() as client:
-        token_response = await client.post(
-            "https://github.com/login/oauth/access_token",
-            json={
-                "client_id": settings.GITHUB_CLIENT_ID,
-                "client_secret": settings.GITHUB_CLIENT_SECRET,
-                "code": code,
-                "redirect_uri": settings.GITHUB_REDIRECT_URI,
-            },
-            headers={"Accept": "application/json"},
-        )
-        token_data = token_response.json()
-        access_token = token_data.get("access_token")
+    # Cancellation (or any other outcome GitHub reports through `error`), and
+    # the no-code-at-all case, never reach the token exchange. Handling them
+    # here keeps the visitor out of a framework-generated 422 validation blob.
+    # No session is issued on this path, so nothing about it can authenticate
+    # anyone.
+    if error or not code:
+        return _oauth_cancelled_response(remaining)
 
-        if not access_token:
-            # Same status and body as the previous HTTPException, but it also
-            # persists consumption of the accepted state.
-            failure = JSONResponse(
-                status_code=400, content={"detail": "GitHub authentication failed"}
+    def _auth_failed():
+        failure = JSONResponse(
+            status_code=400, content={"detail": "GitHub authentication failed"}
+        )
+        _set_pending_states_cookie(failure, remaining)
+        return failure
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            token_response = await client.post(
+                "https://github.com/login/oauth/access_token",
+                json={
+                    "client_id": settings.GITHUB_CLIENT_ID,
+                    "client_secret": settings.GITHUB_CLIENT_SECRET,
+                    "code": code,
+                    "redirect_uri": settings.GITHUB_REDIRECT_URI,
+                },
+                headers={"Accept": "application/json"},
             )
-            _set_pending_states_cookie(failure, remaining)
-            return failure
+            token_data = token_response.json()
+            if not isinstance(token_data, dict):
+                return _auth_failed()
+            access_token = token_data.get("access_token")
+            if not access_token:
+                return _auth_failed()
 
-        user_response = await client.get(
-            "https://api.github.com/user",
-            headers={"Authorization": f"Bearer {access_token}"},
-        )
-        github_user = user_response.json()
+            user_response = await client.get(
+                "https://api.github.com/user",
+                headers={"Authorization": f"Bearer {access_token}"},
+            )
+            github_user = user_response.json()
+            if not isinstance(github_user, dict) or "id" not in github_user:
+                return _auth_failed()
+    except (httpx.RequestError, ValueError, KeyError):
+        return _auth_failed()
 
     user = db.query(User).filter(User.github_id == github_user["id"]).first()
     if not user:
@@ -315,8 +395,33 @@ async def github_callback(
             avatar_url=github_user.get("avatar_url"),
         )
         db.add(user)
-        db.commit()
-        db.refresh(user)
+        try:
+            db.commit()
+            db.refresh(user)
+        except IntegrityError:
+            db.rollback()
+            failure = JSONResponse(
+                status_code=400, content={"detail": "GitHub authentication failed"}
+            )
+            _set_pending_states_cookie(failure, remaining)
+            return failure
+    else:
+        new_username = github_user.get("login")
+        new_avatar_url = github_user.get("avatar_url")
+        if new_username and (user.username != new_username or user.avatar_url != new_avatar_url):
+            existing_conflict = (
+                db.query(User)
+                .filter(User.username == new_username, User.id != user.id)
+                .first()
+            )
+            if not existing_conflict:
+                user.username = new_username
+            user.avatar_url = new_avatar_url
+            try:
+                db.commit()
+                db.refresh(user)
+            except IntegrityError:
+                db.rollback()
 
     session_token = create_session_token(user.id)
     csrf_token = generate_csrf_token()
@@ -356,7 +461,7 @@ def logout():
 @router.get("/check")
 def check_auth(user: User = Depends(get_current_user)):
     """Check if the current user is authenticated."""
-    return {"authenticated": True, "username": user.username}
+    return {"authenticated": True, "username": user.username, "id": user.id}
 
 
 @router.get("/csrf-token")
@@ -398,7 +503,8 @@ def _hash_token(raw_token: str) -> str:
 
 
 def _hash_ip(ip: str) -> str:
-    return hashlib.sha256(ip.encode("utf-8")).hexdigest()
+    """Hash an IP address using the shared keyed hashing helper."""
+    return _shared_hash_ip(ip)
 
 
 def _client_ip_for_hash(request: Request) -> str:
@@ -434,6 +540,7 @@ def email_start(
     if payload.return_to and _is_safe_return_path(payload.return_to):
         return_to = payload.return_to
 
+    sent = False
     if _is_plausible_email(normalized) and not cooldown_active:
         raw_token = secrets.token_urlsafe(32)
         token_hash = _hash_token(raw_token)
@@ -454,17 +561,21 @@ def email_start(
 
         # Send. Failure is swallowed intentionally; the response is identical either way.
         try:
-            send_login_link(normalized, raw_token)
-        except Exception:
-            pass
+            dispatched = send_login_link(normalized, raw_token)
+            if dispatched:
+                sent = True
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning("Failed to send login link to %s: %s", normalized, e)
+            _clear_email_cooldown(normalized)
 
     # Generic response regardless of whether email exists, is valid, or is on cooldown.
-    return {"ok": True}
+    return {"ok": True, "sent": sent}
 
 
 @router.get("/email/verify")
 def email_verify(
-    token: str,
+    token: Optional[str] = None,
     db: Session = Depends(get_db),
     _: None = Depends(rate_limit("email_login_verify")),
 ):
@@ -500,10 +611,11 @@ def email_verify(
     # Find or create the user.
     user = db.query(User).filter(User.email == normalized_email).first()
     if not user:
-        # Synthetic username derived from SHA-256 of normalized email.
+        # Synthetic username derived from HMAC-SHA256 of normalized email keyed with SECRET_KEY.
         # "email_" prefix cannot collide with GitHub logins (GitHub usernames
-        # may only contain alphanumerics and hyphens).
-        synthetic = "email_" + hashlib.sha256(normalized_email.encode("utf-8")).hexdigest()[:16]
+        # may only contain alphanumerics and hyphens). Keyed to prevent account-existence oracles (fixes #199).
+        secret = (settings.SECRET_KEY or "fallback_secret").encode("utf-8")
+        synthetic = "email_" + hmac.new(secret, normalized_email.encode("utf-8"), hashlib.sha256).hexdigest()[:16]
         user = User(
             email=normalized_email,
             username=synthetic,

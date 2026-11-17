@@ -10,8 +10,10 @@ Design notes:
 """
 
 import uuid
+from http.cookies import SimpleCookie
 from urllib.parse import parse_qs, quote, urlparse
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
 
@@ -49,10 +51,14 @@ def client():
 
 
 class _FakeResponse:
-    def __init__(self, payload):
+    def __init__(self, payload, json_error=False):
         self._payload = payload
+        self._json_error = json_error
 
     def json(self):
+        if self._json_error:
+            import json
+            raise json.JSONDecodeError("Expecting value", "<html>502 Bad Gateway</html>", 0)
         return self._payload
 
 
@@ -65,13 +71,18 @@ class GithubStub:
         self.login = login
         self.token_calls = []
         self.user_calls = []
+        self.post_exc = None
+        self.get_exc = None
+        self.token_json_error = False
+        self.user_payload = None
+        self.client_kwargs = {}
 
     def install(self, monkeypatch):
         outer = self
 
         class FakeAsyncClient:
             def __init__(self, *args, **kwargs):
-                pass
+                outer.client_kwargs = kwargs
 
             async def __aenter__(self):
                 return self
@@ -81,12 +92,20 @@ class GithubStub:
 
             async def post(self, url, **kwargs):
                 outer.token_calls.append({"url": url, "json": kwargs.get("json")})
+                if outer.post_exc:
+                    raise outer.post_exc
+                if outer.token_json_error:
+                    return _FakeResponse(None, json_error=True)
                 if outer.access_token is None:
                     return _FakeResponse({"error": "bad_verification_code"})
                 return _FakeResponse({"access_token": outer.access_token})
 
             async def get(self, url, **kwargs):
                 outer.user_calls.append({"url": url, "headers": kwargs.get("headers")})
+                if outer.get_exc:
+                    raise outer.get_exc
+                if outer.user_payload is not None:
+                    return _FakeResponse(outer.user_payload)
                 return _FakeResponse(
                     {
                         "id": outer.github_id,
@@ -129,6 +148,14 @@ def start_login(browser, return_to=None):
 
 def callback(browser, state=None, code="test-code"):
     query = "code=" + code
+    if state is not None:
+        query += "&state=" + quote(state, safe="")
+    return browser.get("/auth/callback?" + query, follow_redirects=False)
+
+
+def cancelled_callback(browser, state=None, error="access_denied"):
+    """The shape GitHub uses when the visitor presses Cancel: `error`, no `code`."""
+    query = "error=" + error
     if state is not None:
         query += "&state=" + quote(state, safe="")
     return browser.get("/auth/callback?" + query, follow_redirects=False)
@@ -242,6 +269,7 @@ def test_unsigned_attacker_supplied_state_cookie_is_rejected(client, github):
     because a cookie carrying it is present (cookie-tossing defense)."""
     _, state, _ = start_login(client)
     # Attacker overwrites the cookie with the raw state, unsigned.
+    client.cookies.clear()
     client.cookies.set(OAUTH_STATE_COOKIE_NAME, state)
 
     response = callback(client, state=state)
@@ -373,13 +401,137 @@ def test_oldest_pending_state_is_evicted_after_the_cap(client, github):
     assert ok.status_code in (302, 307)
 
 
-def test_github_error_redirect_without_code_is_unaffected(client, github):
-    """GitHub cancellation/error redirect never reaches the handler (no `code`),
-    exactly as before this change."""
-    response = client.get("/auth/callback?error=access_denied", follow_redirects=False)
-    assert response.status_code == 422
+def test_cancellation_without_a_valid_state_is_still_rejected(client, github):
+    """The denial path must not weaken state validation.
+
+    GitHub's cancellation redirect carries no `code`, so before this change
+    FastAPI rejected the request with a 422 before the handler ran. The
+    handler now runs, but the state gate is still the very first thing in it:
+    a cancellation with a missing/forged state is a 400 like any other.
+    """
+    start_login(client)  # gives this browser a pending state we do not use
+    response = cancelled_callback(client, state=None)
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Invalid or missing OAuth state"
     assert github.token_calls == []
     assert "critique_session" not in response.cookies
+    # The browser's own pending state was not consumed by the bogus request.
+    assert client.cookies.get(OAUTH_STATE_COOKIE_NAME) not in (None, "", '""')
+
+
+# ---------------------------------------------------------------------------
+# 9. Cancellation on GitHub's consent screen (issue #70)
+#
+# GitHub redirects back with ?error=access_denied&state=... and no `code`.
+# Cancelling is a normal user action, so it must produce a friendly outcome
+# and do the same bookkeeping the failure path does, without ever issuing a
+# session and without relaxing the state gate.
+# ---------------------------------------------------------------------------
+
+
+def test_cancellation_redirects_instead_of_returning_422(client, github):
+    _, state, _ = start_login(client)
+    response = cancelled_callback(client, state=state)
+
+    assert response.status_code in (302, 307), response.text
+    assert response.headers["location"] == "/?auth=cancelled"
+    # Cancelling must never sign anyone in.
+    assert "critique_session" not in response.cookies
+    assert "critique_csrf" not in response.cookies
+    assert client.get("/auth/check", follow_redirects=False).status_code == 401
+    # And there is nothing to exchange, so GitHub is never contacted.
+    assert github.token_calls == []
+
+
+def test_cancellation_consumes_the_state(client, github):
+    """A cancelled attempt must not leave a usable state behind (replay test)."""
+    _, state, _ = start_login(client)
+    assert cancelled_callback(client, state=state).status_code in (302, 307)
+
+    replay = cancelled_callback(client, state=state)
+    assert replay.status_code == 400
+    assert replay.json()["detail"] == "Invalid or missing OAuth state"
+
+
+def test_cancellation_clears_return_to(client, github):
+    _, state, _ = start_login(client, return_to="/project/5")
+    assert client.cookies.get(RETURN_TO_COOKIE_NAME) not in (None, "", '""')
+
+    response = cancelled_callback(client, state=state)
+    assert response.status_code in (302, 307)
+
+    # The visitor changed their mind: a later login must not bounce them back
+    # to /project/5 because of an attempt they abandoned.
+    assert client.cookies.get(RETURN_TO_COOKIE_NAME) in (None, "", '""')
+
+
+def test_cancellation_with_a_forged_state_is_rejected(client, github):
+    start_login(client)
+    response = cancelled_callback(client, state="attacker-guessed-state")
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Invalid or missing OAuth state"
+    assert "critique_session" not in response.cookies
+
+
+def test_cancellation_with_another_browsers_state_is_rejected(client, github):
+    """Login-CSRF through the denial path: state must still be per-browser."""
+    _, attacker_state, _ = start_login(client)
+    victim = TestClient(app, follow_redirects=False)
+    start_login(victim)
+
+    response = cancelled_callback(victim, state=attacker_state)
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Invalid or missing OAuth state"
+    assert "critique_session" not in response.cookies
+
+
+def test_any_github_error_value_is_handled(client, github):
+    """`error` is treated by value, not by matching access_denied literally."""
+    _, state, _ = start_login(client)
+    response = cancelled_callback(client, state=state, error="redirect_uri_mismatch")
+
+    assert response.status_code in (302, 307)
+    assert response.headers["location"] == "/?auth=cancelled"
+    assert "critique_session" not in response.cookies
+
+
+def test_missing_code_without_error_is_not_a_crash(client, github):
+    """Neither `code` nor `error`: nothing to exchange, so treat as cancelled."""
+    _, state, _ = start_login(client)
+    response = client.get(
+        "/auth/callback?state=" + quote(state, safe=""), follow_redirects=False
+    )
+
+    assert response.status_code in (302, 307)
+    assert "critique_session" not in response.cookies
+    assert github.token_calls == []
+
+
+def test_sibling_attempts_survive_a_cancellation(client, github):
+    """Cancelling one tab must not break a login still in flight in another."""
+    _, cancelled_state, _ = start_login(client)
+    _, live_state, _ = start_login(client)
+
+    assert cancelled_callback(client, state=cancelled_state).status_code in (302, 307)
+
+    ok = callback(client, state=live_state)
+    assert ok.status_code in (302, 307)
+    assert "critique_session" in ok.cookies
+
+
+def test_success_path_is_unchanged_by_the_denial_branch(client, github):
+    """The normal code+state exchange still behaves exactly as before."""
+    _, state, _ = start_login(client, return_to="/project/5")
+    response = callback(client, state=state)
+
+    assert response.status_code in (302, 307)
+    assert response.headers["location"] == "/project/5"
+    assert "critique_session" in response.cookies
+    assert len(github.token_calls) == 1
+    assert github.token_calls[0]["json"]["code"] == "test-code"
+    assert client.get("/auth/check", follow_redirects=False).json()["authenticated"] is True
 
 
 # ---------------------------------------------------------------------------
@@ -427,3 +579,161 @@ def test_email_login_works_while_an_oauth_state_is_pending(client, github):
     assert client.get("/auth/check", follow_redirects=False).status_code == 200
     # The pending OAuth state was left alone by the email flow.
     assert client.cookies.get(OAUTH_STATE_COOKIE_NAME) not in (None, "", '""')
+
+
+# ---------------------------------------------------------------------------
+# 9. GitHub API misbehavior and failure handling (Issue #197)
+# ---------------------------------------------------------------------------
+
+
+def test_github_callback_handles_non_json_token_response(client, github):
+    """HTML 502 or non-JSON from token endpoint takes the handled 400 failure path."""
+    github.token_json_error = True
+    _, state, _ = start_login(client)
+
+    response = callback(client, state=state)
+    assert response.status_code == 400
+    assert response.json() == {"detail": "GitHub authentication failed"}
+    assert "critique_session" not in response.cookies
+    assert client.get("/auth/check", follow_redirects=False).status_code == 401
+    assert github.client_kwargs.get("timeout") == 10.0
+
+
+def test_github_callback_handles_user_payload_without_id(client, github):
+    """GitHub /user error payload without id (e.g. rate limited) takes the handled 400 path."""
+    github.user_payload = {"message": "API rate limit exceeded"}
+    _, state, _ = start_login(client)
+
+    response = callback(client, state=state)
+    assert response.status_code == 400
+    assert response.json() == {"detail": "GitHub authentication failed"}
+    assert "critique_session" not in response.cookies
+    assert client.get("/auth/check", follow_redirects=False).status_code == 401
+
+
+def test_github_callback_handles_transport_network_exception(client, github):
+    """Network failure or timeout during GitHub API exchange returns handled 400."""
+    github.post_exc = httpx.ConnectTimeout("Connection timed out")
+    _, state, _ = start_login(client)
+
+    response = callback(client, state=state)
+    assert response.status_code == 400
+    assert response.json() == {"detail": "GitHub authentication failed"}
+    assert "critique_session" not in response.cookies
+    assert client.get("/auth/check", follow_redirects=False).status_code == 401
+
+# 9. Profile sync and username collision handling (Issue #218)
+# ---------------------------------------------------------------------------
+
+
+def test_github_callback_refreshes_username_and_avatar_on_rename(client, github):
+    """When a GitHub user changes username/avatar, next login updates their existing row."""
+    github_id = 900_123_456
+    github.github_id = github_id
+    github.login = "handle_alpha"
+
+    # First login creates row
+    _, state1, _ = start_login(client)
+    res1 = callback(client, state=state1)
+    assert res1.status_code in (302, 307)
+
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.github_id == github_id).first()
+        assert user is not None
+        assert user.username == "handle_alpha"
+        user_id = user.id
+    finally:
+        db.close()
+
+    # User renames on GitHub
+    github.login = "handle_bravo"
+    client2 = TestClient(app, follow_redirects=False)
+    _, state2, _ = start_login(client2)
+    res2 = callback(client2, state=state2)
+    assert res2.status_code in (302, 307)
+
+    db = SessionLocal()
+    try:
+        users = db.query(User).filter(User.github_id == github_id).all()
+        assert len(users) == 1
+        assert users[0].id == user_id
+        assert users[0].username == "handle_bravo"
+    finally:
+        db.close()
+
+
+def test_github_callback_recycled_username_collision_fails_gracefully(client, github):
+    """When GitHub frees an old login and another person signs up with it, handle gracefully."""
+    db = SessionLocal()
+    try:
+        existing = User(github_id=900_999_001, username="recycled_hero")
+        db.add(existing)
+        db.commit()
+    finally:
+        db.close()
+
+    # Different person with different github_id tries to log in with "recycled_hero"
+    github.github_id = 900_999_002
+    github.login = "recycled_hero"
+
+    _, state, _ = start_login(client)
+    res = callback(client, state=state)
+
+    # Must fail gracefully with 400 (not 500 IntegrityError)
+    assert res.status_code == 400
+    assert res.json() == {"detail": "GitHub authentication failed"}
+    assert "critique_session" not in res.cookies
+
+
+def test_github_callback_rename_to_existing_username_preserves_old_handle(client, github):
+    """If user tries to rename to a handle that is already taken by another user, collision is avoided."""
+    db = SessionLocal()
+    try:
+        other_user = User(github_id=900_888_001, username="taken_handle")
+        db.add(other_user)
+        db.commit()
+    finally:
+        db.close()
+
+    user_github_id = 900_888_002
+    github.github_id = user_github_id
+    github.login = "original_handle"
+
+    _, state1, _ = start_login(client)
+    res1 = callback(client, state=state1)
+    assert res1.status_code in (302, 307)
+
+    # Renamed to "taken_handle" on GitHub
+    github.login = "taken_handle"
+    client2 = TestClient(app, follow_redirects=False)
+    _, state2, _ = start_login(client2)
+    res2 = callback(client2, state=state2)
+    assert res2.status_code in (302, 307)
+
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.github_id == user_github_id).first()
+        assert user is not None
+        assert user.username == "original_handle"
+    finally:
+        db.close()
+
+
+@pytest.mark.parametrize("secure", [False, True])
+def test_github_callback_session_cookie_attributes(monkeypatch, github, secure):
+    monkeypatch.setattr(auth_module.settings, "SESSION_COOKIE_SECURE", secure)
+    client = TestClient(app, base_url="https://testserver", follow_redirects=False)
+    _, state, _ = start_login(client)
+    response = callback(client, state=state)
+    assert response.status_code in (302, 307)
+
+    cookie = SimpleCookie()
+    for header in response.headers.get_list("set-cookie"):
+        cookie.load(header)
+    assert auth_module.SESSION_COOKIE_NAME in cookie
+    session_cookie = cookie[auth_module.SESSION_COOKIE_NAME]
+    assert session_cookie["httponly"]
+    assert session_cookie["samesite"] == "lax"
+    assert bool(session_cookie["secure"]) is secure
+    assert session_cookie["path"] == "/"

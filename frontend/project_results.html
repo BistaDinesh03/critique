@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Feedback Results — Critique</title>
+    <title>Feedback Results - Critique</title>
+    <meta name="description" content="View feedback responses and clarity ratings on Critique.">
+    <meta name="robots" content="noindex, nofollow">
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link rel="stylesheet" href="/static/shared.css">
     <style>
@@ -33,7 +35,35 @@
             gap: var(--space-3);
         }
 
-        .results-title-row h2 {
+        .print-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-2);
+            cursor: pointer;
+        }
+
+        @media print {
+            .navbar, .footer, .print-btn, .back-link, .action-buttons {
+                display: none !important;
+            }
+            body {
+                background: #ffffff !important;
+                color: #000000 !important;
+            }
+            .container {
+                max-width: 100% !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            .summary-card, .question-card, .response-card {
+                page-break-inside: avoid;
+                break-inside: avoid;
+                box-shadow: none !important;
+                border: 1px solid #d0d7de !important;
+            }
+        }
+
+        .results-title-row h1 {
             margin: 0;
             font-size: var(--text-2xl);
             font-weight: 700;
@@ -252,6 +282,40 @@
             justify-content: center;
         }
 
+        /* ---------- Written feedback clarity filters ---------- */
+        .filter-bar {
+            display: flex;
+            gap: var(--space-2);
+            flex-wrap: wrap;
+            margin: var(--space-3) 0 var(--space-4);
+        }
+        .filter-btn {
+            background: var(--surface-muted);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: var(--space-1) var(--space-3);
+            font-size: var(--text-xs);
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .filter-btn:hover {
+            color: var(--text-primary);
+            border-color: var(--text-muted);
+        }
+        .filter-btn.active, .filter-btn[aria-pressed="true"] {
+            background: var(--accent);
+            color: #ffffff;
+            border-color: var(--accent);
+        }
+        .empty-filter-msg {
+            color: var(--text-muted);
+            font-style: italic;
+            padding: var(--space-3) 0;
+            list-style: none;
+        }
+
         @media (max-width: 600px) {
             .summary-grid {
                 grid-template-columns: 1fr;
@@ -272,6 +336,7 @@
     </style>
 </head>
 <body>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
     <header class="navbar">
         <a href="/" class="navbar-brand">
             <img src="/static/logo.svg" alt="Critique" width="32" height="32">
@@ -289,7 +354,7 @@
         </nav>
     </header>
 
-    <main class="container-wide">
+    <main id="main-content" class="container-wide">
         <a id="back-link" href="/" class="back-link">Back to project</a>
         <div id="content">
             <div class="loading-state"><div class="loading-spinner"></div><p>Loading results...</p></div>
@@ -467,11 +532,15 @@
             return 'Based on ' + total + ' responses. Percentages are simple shares of these answers, not statistical measures.';
         }
 
-        function renderActions() {
-            return '<div class="action-buttons">' +
-                '<a href="/project/' + escapeHtml(projectId) + '" class="btn btn-primary">Get more feedback</a>' +
-                '<a href="/discover" class="btn btn-secondary">Discover projects</a>' +
+        function renderActions(isOwner) {
+            let html = '<div class="action-buttons no-print">' +
+                '<a href="/project/' + escapeHtml(projectId) + '" class="btn btn-primary">Get more feedback</a>';
+            if (isOwner) {
+                html += '<a href="/api/projects/' + escapeHtml(projectId) + '/results.csv" class="btn btn-secondary" id="download-csv-btn" download>Download CSV</a>';
+            }
+            html += '<a href="/discover" class="btn btn-secondary">Discover projects</a>' +
                 '</div>';
+            return html;
         }
 
         function renderPage(data) {
@@ -486,8 +555,16 @@
             // Compact header: title + total, project name, the question.
             html += '<header class="results-header">';
             html += '<div class="results-title-row">';
-            html += '<h2>Feedback results</h2>';
+            html += '<div style="display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap;">';
+            html += '<h1>Feedback results</h1>';
             html += '<span class="total-badge">' + total + ' total response' + (total !== 1 ? 's' : '') + '</span>';
+            html += '</div>';
+            if (total > 0) {
+                html += '<button type="button" class="btn btn-secondary print-btn" id="print-results-btn" aria-label="Print or save feedback as PDF">';
+                html += '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>';
+                html += 'Print / PDF';
+                html += '</button>';
+            }
             html += '</div>';
             html += '<p class="project-name">' + escapeHtml(data.project_title) + '</p>';
             if (data.question_text) {
@@ -527,11 +604,25 @@
             if (data.is_owner && data.responses.length > 0) {
                 const withSuggestions = data.responses.filter(function (r) { return r.suggestion; });
                 if (withSuggestions.length > 0) {
+                    const countsByClarity = { all: withSuggestions.length, very_clear: 0, mostly_clear: 0, confusing: 0 };
+                    withSuggestions.forEach(function (r) {
+                        if (countsByClarity[r.clarity] !== undefined) {
+                            countsByClarity[r.clarity]++;
+                        }
+                    });
+
                     html += '<section class="written-feedback" aria-labelledby="written-feedback-title">';
                     html += '<h3 id="written-feedback-title">Written feedback</h3>';
-                    html += '<ul class="feedback-list">';
+                    html += '<div class="filter-bar" role="group" aria-label="Filter feedback by clarity">';
+                    html += '<button type="button" class="filter-btn active" data-filter="all" aria-pressed="true">All (' + countsByClarity.all + ')</button>';
+                    html += '<button type="button" class="filter-btn" data-filter="very_clear" aria-pressed="false">Very clear (' + countsByClarity.very_clear + ')</button>';
+                    html += '<button type="button" class="filter-btn" data-filter="mostly_clear" aria-pressed="false">Mostly clear (' + countsByClarity.mostly_clear + ')</button>';
+                    html += '<button type="button" class="filter-btn" data-filter="confusing" aria-pressed="false">Confusing (' + countsByClarity.confusing + ')</button>';
+                    html += '</div>';
+
+                    html += '<ul class="feedback-list" id="feedback-list">';
                     withSuggestions.forEach(function (r) {
-                        html += '<li class="feedback-card">';
+                        html += '<li class="feedback-card" data-clarity="' + escapeHtml(r.clarity) + '">';
                         html += '<blockquote class="feedback-text">' + escapeHtml(r.suggestion) + '</blockquote>';
                         html += '<p class="feedback-meta">' +
                             '<span>Clarity: ' + escapeHtml(clarityLabel(r.clarity)) + '</span>' +
@@ -544,9 +635,56 @@
                 }
             }
 
-            html += renderActions();
+            html += renderActions(data.is_owner);
 
             content.innerHTML = html;
+
+            // Delegated filtering (no inline onclick handlers).
+            var filterBar = content.querySelector('.filter-bar');
+            if (filterBar) {
+                filterBar.addEventListener('click', function (e) {
+                    var btn = e.target && e.target.closest ? e.target.closest('.filter-btn') : null;
+                    if (!btn) return;
+                    var clarity = btn.getAttribute('data-filter');
+                    if (!clarity) return;
+                    var buttons = filterBar.querySelectorAll('.filter-btn');
+                    for (var b = 0; b < buttons.length; b++) {
+                        buttons[b].classList.remove('active');
+                        buttons[b].setAttribute('aria-pressed', 'false');
+                    }
+                    btn.classList.add('active');
+                    btn.setAttribute('aria-pressed', 'true');
+                    var list = document.getElementById('feedback-list');
+                    if (!list) return;
+                    var cards = list.querySelectorAll('.feedback-card');
+                    var visibleCount = 0;
+                    for (var i = 0; i < cards.length; i++) {
+                        var card = cards[i];
+                        var cardClarity = card.getAttribute('data-clarity');
+                        if (clarity === 'all' || cardClarity === clarity) {
+                            card.style.display = '';
+                            visibleCount++;
+                        } else {
+                            card.style.display = 'none';
+                        }
+                    }
+                    var existingEmpty = list.querySelector('.empty-filter-msg');
+                    if (existingEmpty) existingEmpty.remove();
+                    if (visibleCount === 0) {
+                        var emptyLi = document.createElement('li');
+                        emptyLi.className = 'empty-filter-msg';
+                        emptyLi.textContent = 'No feedback matching this clarity filter.';
+                        list.appendChild(emptyLi);
+                    }
+                });
+            }
+
+            const printBtn = document.getElementById('print-results-btn');
+            if (printBtn) {
+                printBtn.addEventListener('click', function () {
+                    window.print();
+                });
+            }
         }
 
         async function loadResults() {
@@ -560,7 +698,7 @@
                 countResponses(data);
                 renderPage(data);
             } catch (error) {
-                content.innerHTML = '<div class="error-state"><p>Something went wrong. Please try again.</p></div>';
+                content.innerHTML = '<div class="error-state" role="alert"><p>Something went wrong. Please try again.</p><button type="button" class="btn btn-secondary" onclick="loadResults()" style="margin-top:var(--space-3);">Try again</button></div>';
             }
         }
 
@@ -586,7 +724,7 @@
     </script>
     <script src="/static/ui.js"></script>
     <script src="/static/analytics_events.js"></script>
-    <script src="/static/analytics.js"></script>
+<script src="/static/analytics.js"></script>
     <script>trackPageView();</script>
 
     <footer class="site-footer">
@@ -600,19 +738,28 @@
             </div>
             <div class="footer-links">
                 <div class="footer-col">
-                    <h4>Product</h4>
+                    <h4>Explore</h4>
                     <ul>
                         <li><a href="/discover">Discover</a></li>
                         <li><a href="/#submit">Submit a project</a></li>
                     </ul>
                 </div>
                 <div class="footer-col">
-                    <h4>Connect</h4>
+                    <h4>Community</h4>
                     <ul>
-                        <li><a href="https://github.com/BistaDinesh03/critique" target="_blank" rel="noopener" aria-label="Critique on GitHub"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>GitHub</a></li>
+                        <li><a href="https://github.com/BistaDinesh03/critique/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">Contribute</a></li>
+                        <li><a href="https://github.com/BistaDinesh03/critique" target="_blank" rel="noopener noreferrer" aria-label="Critique on GitHub"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>GitHub</a></li>
+                        <li><a href="https://github.com/BistaDinesh03/critique/issues/new" target="_blank" rel="noopener noreferrer">Report an issue</a></li>
                     </ul>
                 </div>
             </div>
+        </div>
+        <div class="footer-contribute">
+            <div class="footer-contribute-copy">
+                <h4>Want to help improve Critique?</h4>
+                <p>Contribute code, report an issue, or help make feedback better for everyone.</p>
+            </div>
+            <a href="https://github.com/BistaDinesh03/critique/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer" class="btn btn-secondary footer-contribute-btn">Explore contributions</a>
         </div>
         <div class="footer-bottom">
             <span>© 2026 Critique · Open source · Free to use</span>

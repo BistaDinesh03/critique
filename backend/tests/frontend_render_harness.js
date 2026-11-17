@@ -1,4 +1,4 @@
-﻿// Test-only harness: executes every <script> a frontend page declares (inline
+// Test-only harness: executes every <script> a frontend page declares (inline
 // blocks and local /static/*.js assets) inside a minimal DOM stub and returns
 // the HTML the page actually produced.
 //
@@ -22,7 +22,7 @@
 //   }
 //
 // Prints a single JSON object on stdout:
-//   { errors: [], html, created, createdMeta, flags, requests, storage, ids, values }
+//   { errors: [], html, created, createdMeta, flags, requests, storage, ids, values, focused }
 // `created`/`createdMeta` only contain elements that are actually attached to
 // the document (a node the page built but never appended is never shown to
 // anyone); `createdMeta` exposes reflected properties (href, type, name,
@@ -52,6 +52,129 @@ function detachChildren(el) {
     if (child) child.parentNode = null;
   });
   el.children = [];
+}
+
+// The last element the page moved to with .focus(). Focus management is part
+// of the auth UX (each screen moves a keyboard user to its heading or first
+// field), so the harness records it instead of throwing the call away.
+let focusedElement = null;
+
+// ------------------------------------------------------------------
+// innerHTML hydration
+//
+// Assigning innerHTML parses the markup far enough to make the created
+// elements real children: ids are registered, classes are set, and
+// void tags are honoured. That is what lets document.getElementById and
+// querySelectorAll('input, textarea, button') see the markup a page
+// built (issue #238) instead of fabricating answers that always succeed.
+// ------------------------------------------------------------------
+let harnessElements = null;
+
+const VOID_TAGS = new Set(['img', 'br', 'hr', 'meta', 'link', 'input']);
+
+function matchesSimpleSelector(el, part) {
+  if (!el) return false;
+  if (part.startsWith('.')) {
+    return !!(el.classList && el.classList.contains(part.slice(1)));
+  }
+  if (part.startsWith('#')) {
+    return el.id === part.slice(1);
+  }
+  return (
+    el.tagName &&
+    el.tagName.toLowerCase() === part.toLowerCase()
+  );
+}
+
+function queryHydrated(scope, selector) {
+  const out = [];
+  const parts = String(selector || '')
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (!parts.length) return out;
+  const walk = (node) => {
+    (node.children || []).forEach((child) => {
+      for (const part of parts) {
+        if (matchesSimpleSelector(child, part)) {
+          if (out.indexOf(child) === -1) out.push(child);
+          break;
+        }
+      }
+      walk(child);
+    });
+  };
+  if (scope) walk(scope);
+  return out;
+}
+
+function hydrateElement(parent, html) {
+  const source = String(html || '');
+  if (!source) return;
+  const stack = [parent];
+  const tagRe = /<(\/?)([a-zA-Z][a-zA-Z0-9-]*)([^<>]*)>/g;
+  let m;
+  while ((m = tagRe.exec(source)) !== null) {
+    const closing = m[1] === '/';
+    const tagName = m[2].toLowerCase();
+    const attrText = m[3] || '';
+    if (closing) {
+      // Pop back to the matching open tag; ignore unmatched closers.
+      for (let i = stack.length - 1; i > 0; i -= 1) {
+        if (stack[i].tagName && stack[i].tagName.toLowerCase() === tagName) {
+          stack.length = i;
+          break;
+        }
+      }
+      continue;
+    }
+    const child = makeElement(tagName);
+    const attrRe =
+      /([a-zA-Z-][a-zA-Z0-9-]*)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g;
+    let attr;
+    while ((attr = attrRe.exec(attrText)) !== null) {
+      const name = attr[1].toLowerCase();
+      const value =
+        attr[2] !== undefined
+          ? attr[2]
+          : attr[3] !== undefined
+            ? attr[3]
+            : attr[4] !== undefined
+              ? attr[4]
+              : '';
+      if (name === 'id') {
+        child.id = value || '';
+        if (value && harnessElements) {
+          // A hydrated element is the real thing: prefer it if a test asked
+          // for this id before the markup was parsed.
+          harnessElements.set(value, child);
+        }
+      } else if (name === 'class') {
+        child.className = value;
+      } else if (name === 'disabled') {
+        child.disabled = true;
+      } else if (name === 'checked') {
+        child.checked = true;
+      } else if (name === 'value') {
+        child.value = value;
+      } else if (name === 'name') {
+        child.name = value;
+      } else if (name === 'placeholder') {
+        child.placeholder = value;
+      } else if (name === 'type') {
+        child.type = value;
+      } else if (name === 'maxlength') {
+        child.maxLength = Number(value) || 0;
+      } else {
+        child.setAttribute(name, value);
+      }
+    }
+    const stackTop = stack[stack.length - 1];
+    stackTop.appendChild(child);
+    if (!VOID_TAGS.has(tagName) && !/\/\s*>$/.test(m[0])) {
+      stack.push(child);
+    }
+  }
 }
 
 function makeElement(tagName, created) {
@@ -166,13 +289,14 @@ function makeElement(tagName, created) {
     dispatchEvent() {
       return true;
     },
-    querySelector() {
-      return null;
+    querySelector(sel) {
+      const found = queryHydrated(el, sel);
+      return found.length ? found[0] : null;
     },
-    querySelectorAll() {
-      return [];
+    querySelectorAll(sel) {
+      return queryHydrated(el, sel);
     },
-    focus() {},
+    focus() { focusedElement = el; },
     blur() {},
     click() {},
     reset() {},
@@ -211,6 +335,7 @@ function makeElement(tagName, created) {
         // children, so the old ones leave the document (their click targets are
         // detached by the time outer listeners run).
         detachChildren(el);
+        hydrateElement(el, state.html);
       },
     },
     textContent: {
@@ -277,7 +402,18 @@ function makeFetch(routes) {
       body: options && options.body ? String(options.body) : '',
     });
     const key = Object.keys(routes).find((k) => target.indexOf(k) !== -1);
-    const spec = key ? routes[key] : { status: 404, body: {} };
+    let spec = key ? routes[key] : { status: 404, body: {} };
+    // A route can also be a list of responses consumed in order, which models
+    // a first send followed by a rejected resend.
+    if (Array.isArray(spec)) spec = spec.length > 1 ? spec.shift() : spec[0];
+    // A scenario may simulate the server never being reached (offline, DNS
+    // failure, browser refusing the request) with a rejected promise.
+    if (spec && spec.networkError) {
+      const error = new Error(spec.message || 'Failed to fetch');
+      return Promise.reject(error);
+    }
+    // A scenario can leave a request in flight to observe the sending state.
+    if (spec.pending) return new Promise(() => {});
     const status = spec.status || 200;
     return Promise.resolve({
       ok: status >= 200 && status < 300,
@@ -311,6 +447,9 @@ function pageScripts(html, root) {
   let m;
   while ((m = re.exec(html)) !== null) {
     const attrs = m[1] || '';
+    // JSON-LD is a data block; browsers do not execute it as JavaScript.
+    const typeMatch = attrs.match(/\btype\s*=\s*["']([^"']+)["']/i);
+    if (typeMatch && typeMatch[1].trim().toLowerCase() === 'application/ld+json') continue;
     const srcMatch = attrs.match(/\bsrc\s*=\s*["']([^"']+)["']/i);
     if (srcMatch) {
       const src = srcMatch[1].split('?')[0];
@@ -343,6 +482,7 @@ async function main() {
   const errors = [];
   const created = [];
   const elements = new Map();
+  harnessElements = elements;
 
   const documentHandlers = [];
 
@@ -396,20 +536,32 @@ async function main() {
     querySelector(sel) {
       // Narrow but real: the only attribute selectors any page uses are on the
       // feedback form's radios, whose group state has no element object here.
-      // Every other selector keeps the old not-found behaviour.
       const m = /^input\[name="([^"]+)"\](?:\[value="([^"]*)"\])?(:checked)?$/.exec(String(sel || ''));
-      if (!m) return null;
-      const name = m[1];
-      const value = m[2];
-      if (m[3] === ':checked') {
-        if (!checkedInputs.has(name)) return null;
-        return inputProxy(name, checkedInputs.get(name));
+      if (m) {
+        const name = m[1];
+        const value = m[2];
+        if (m[3] === ':checked') {
+          if (!checkedInputs.has(name)) return null;
+          return inputProxy(name, checkedInputs.get(name));
+        }
+        if (value !== undefined) return inputProxy(name, value);
+        return checkedInputs.has(name) ? inputProxy(name, checkedInputs.get(name)) : null;
       }
-      if (value !== undefined) return inputProxy(name, value);
-      return checkedInputs.has(name) ? inputProxy(name, checkedInputs.get(name)) : null;
+      const found = documentStub.body ? queryHydrated(documentStub.body, sel) : [];
+      return found.length ? found[0] : null;
     },
-    querySelectorAll() {
-      return [];
+    querySelectorAll(sel) {
+      const m = /^input\[name="([^"]+)"\](?:\[value="([^"]*)"\])?(:checked)?$/.exec(String(sel || ''));
+      if (m) {
+        const name = m[1];
+        const value = m[2];
+        if (m[3] === ':checked') {
+          return checkedInputs.has(name) ? [inputProxy(name, checkedInputs.get(name))] : [];
+        }
+        if (value !== undefined) return [inputProxy(name, value)];
+        return checkedInputs.has(name) ? [inputProxy(name, checkedInputs.get(name))] : [];
+      }
+      return documentStub.body ? queryHydrated(documentStub.body, sel) : [];
     },
     addEventListener(type, fn) {
       documentHandlers.push({ type, fn });
@@ -486,8 +638,11 @@ async function main() {
       clearTimeout(id);
     },
     navigator: {
-      clipboard: {
+      clipboard: scenario.clipboard === false ? null : {
         writeText(text) {
+          if (scenario.clipboardReject) {
+            return Promise.reject(new Error('Clipboard write rejected'));
+          }
           clipboardWrites.push(String(text));
           return Promise.resolve();
         },
@@ -667,6 +822,9 @@ async function main() {
         el = makeElement(tag);
         el.id = idMatch[1];
         if (classMatch) el.className = classMatch[1];
+        // Honour the real hidden attribute: it is page-visible state (the
+        // expired-link notice ships hidden and is revealed by script).
+        if (/(^|\s)hidden(\s|=|$)/.test(attrs)) el.hidden = true;
         elements.set(idMatch[1], el);
         parentOf().appendChild(el);
       }
@@ -774,6 +932,9 @@ async function main() {
       if (event.bubbles && !event.propagationStopped) {
         bubbleAlongPath(event, errors);
       }
+      // Let async handlers (fetch -> re-render) settle before the scenario's
+      // next action, the way a person waits for the screen to change.
+      await settle(0);
       continue;
     }
 
@@ -796,6 +957,21 @@ async function main() {
         continue;
       }
       bubbleToDocument(makeEvent('click', target, eventPathOf(target)), errors);
+      await settle(0);
+      continue;
+    }
+
+    if (call.dispatchKeydown) {
+      const key = typeof call.dispatchKeydown === 'string' ? call.dispatchKeydown : (call.dispatchKeydown.key || 'Escape');
+      const event = { type: 'keydown', key: key };
+      documentHandlers.filter((h) => h.type === 'keydown').forEach((h) => {
+        try {
+          h.fn(event);
+        } catch (e) {
+          errors.push(`keydown: ${e && e.message ? e.message : String(e)}`);
+        }
+      });
+      await settle(0);
       continue;
     }
 
@@ -857,11 +1033,23 @@ async function main() {
   const createdHtml = rendered.map((el) => el.ownInnerHTML()).filter(Boolean);
   const createdMeta = rendered.map((el) => ({
     tag: el.tagName,
+    id: el.id,
     className: el.className,
     href: el.href,
     type: el.type,
     name: el.name,
     placeholder: el.placeholder,
+    // Form-control state used by the auth flows: a sending button is disabled
+    // and marked busy, errors are linked to their input, and the email input
+    // advertises its autocomplete/inputmode contract.
+    disabled: !!el.disabled,
+    autocomplete: el.getAttribute ? el.getAttribute('autocomplete') : null,
+    inputMode: el.getAttribute ? el.getAttribute('inputmode') : null,
+    ariaInvalid: el.getAttribute ? el.getAttribute('aria-invalid') : null,
+    ariaDescribedBy: el.getAttribute ? el.getAttribute('aria-describedby') : null,
+    ariaBusy: el.getAttribute ? el.getAttribute('aria-busy') : null,
+    ariaLive: el.getAttribute ? el.getAttribute('aria-live') : null,
+    role: el.getAttribute ? el.getAttribute('role') : null,
     text: el.textContent,
     // Form-control state: a textarea's content lives in .value, never in
     // textContent, so editable text is only assertable through this.
@@ -881,6 +1069,7 @@ async function main() {
   const flags = {};
   const flagOf = (el) => ({
     hidden: !!el.hidden,
+    role: el.getAttribute ? el.getAttribute('role') : null,
     ariaExpanded: el.getAttribute ? el.getAttribute('aria-expanded') : null,
     ariaLabel: el.getAttribute ? el.getAttribute('aria-label') : null,
     // Loading placeholders are announced through aria-busy and hidden with
@@ -933,6 +1122,16 @@ async function main() {
       storage: { session: dumpStorage(sessionStorage), local: dumpStorage(localStorage) },
       ids,
       values,
+      // Which element last received focus, so keyboard-navigation contracts
+      // (each auth screen starts at its heading) are testable.
+      focused: focusedElement
+        ? {
+            tag: focusedElement.tagName,
+            id: focusedElement.id,
+            className: focusedElement.className,
+            text: focusedElement.textContent,
+          }
+        : null,
     })
   );
 }

@@ -20,8 +20,10 @@ What this script does not do:
 
 Authentication and repository identity come from the `gh` CLI and the local
 `origin` remote. When the suite is run, it runs in a throwaway clone with a
-stripped environment, so contributor code never sees the maintainer's tokens
-or `.env`.
+stripped environment, so contributor code never sees the maintainer's token
+environment variables or `.env`. Note: environment variables are stripped, but
+the filesystem is not sandboxed — use a dedicated low-privilege account or
+container for untrusted code.
 
 Exit codes:
     0   review completed and the pull request is READY (or a merge was done)
@@ -42,7 +44,7 @@ import sys
 import tempfile
 import time
 from dataclasses import dataclass, field
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
 # Left on every review and comment we post, so a later run can tell its own
 # notes from a human's and avoid saying the same thing twice.
@@ -189,7 +191,7 @@ class ReviewResult:
     test_head: Optional[Dict[str, Any]] = None
     test_base: Optional[Dict[str, Any]] = None
     repo: Dict[str, Any] = field(default_factory=dict)
-    protection: Optional[Dict[str, Any]] = None
+    protection: Union[Dict[str, Any], BranchProtectionUnreadable, None] = None
     notes: List[str] = field(default_factory=list)
 
     @property
@@ -244,6 +246,18 @@ class ReviewResult:
 
 class ReviewError(Exception):
     """The review could not run. Deliberately distinct from "has problems"."""
+
+
+class BranchProtectionUnreadable:
+    """The token cannot read branch protection (401/403).
+
+    That is "could not verify", not "nothing is configured": reporting it as
+    a missing configuration would tell a maintainer to enable something that
+    may already be enabled.
+    """
+
+    def __init__(self, status: int) -> None:
+        self.status = status
 
 
 # ---------------------------------------------------------------------------
@@ -376,30 +390,43 @@ class GitHub:
             args += ["--repo", self.repo]
         return self.gh(args, timeout=180)
 
+    def _paginate(self, path: str) -> List[Dict[str, Any]]:
+        page = 1
+        items: List[Dict[str, Any]] = []
+        sep = "&" if "?" in path else "?"
+        while True:
+            status, body = self.api("GET", f"{path}{sep}per_page=100&page={page}")
+            if status != 200 or not body.strip():
+                break
+            try:
+                page_items = json.loads(body)
+            except json.JSONDecodeError:
+                break
+            if not isinstance(page_items, list) or not page_items:
+                break
+            items.extend(page_items)
+            if len(page_items) < 100:
+                break
+            page += 1
+        return items
+
     def reviews(self, number: int) -> List[Dict[str, Any]]:
-        status, body = self.api("GET", f"repos/{self.repo}/pulls/{number}/reviews")
-        if status != 200 or not body.strip():
-            return []
-        try:
-            return json.loads(body)
-        except json.JSONDecodeError:
-            return []
+        return self._paginate(f"repos/{self.repo}/pulls/{number}/reviews")
 
     def issue_comments(self, number: int) -> List[Dict[str, Any]]:
-        status, body = self.api("GET", f"repos/{self.repo}/issues/{number}/comments")
-        if status != 200 or not body.strip():
-            return []
-        try:
-            return json.loads(body)
-        except json.JSONDecodeError:
-            return []
+        return self._paginate(f"repos/{self.repo}/issues/{number}/comments")
 
-    def branch_protection(self, branch: str) -> Optional[Dict[str, Any]]:
+    def branch_protection(
+        self, branch: str
+    ) -> Union[Dict[str, Any], BranchProtectionUnreadable, None]:
         """None means "nothing is configured", which is worth reporting --
-        it is not the same thing as "protection passed"."""
+        it is not the same thing as "protection passed". A 401/403 means the
+        token cannot read the setting at all, so the state is unknown."""
         status, body = self.api(
             "GET", f"repos/{self.repo}/branches/{branch}/protection"
         )
+        if status in (401, 403):
+            return BranchProtectionUnreadable(status)
         if status != 200 or not body.strip():
             return None
         try:
@@ -975,10 +1002,15 @@ def approval_state(reviews: Sequence[Dict[str, Any]], head_oid: Optional[str] = 
 
 
 def protection_requirements(
-    protection: Optional[Dict[str, Any]]
+    protection: Union[Dict[str, Any], BranchProtectionUnreadable, None]
 ) -> Dict[str, Any]:
     """What the repository actually requires. No protection means nothing is
-    required -- a fact about the repository, not a pass."""
+    required -- a fact about the repository, not a pass. An unreadable
+    protection setting is unknown rather than absent."""
+    if isinstance(protection, BranchProtectionUnreadable):
+        return {"configured": False, "required_approvals": 0,
+                "required_checks": [], "strict": False, "dismiss_stale": False,
+                "unreadable": protection.status}
     if not protection:
         return {"configured": False, "required_approvals": 0,
                 "required_checks": [], "strict": False, "dismiss_stale": False}
@@ -1009,16 +1041,23 @@ def _git(args: Sequence[str], cwd: str, timeout: int = 300):
 
 
 def _sanitized_env() -> Dict[str, str]:
-    """Just enough environment to run Python, and nothing that carries a
-    credential, so contributor code cannot read a token even if it wanted to.
+    """Just enough environment to run Python, with sensitive token variables
+    stripped (e.g. GITHUB_TOKEN, GH_TOKEN, cloud keys). Preserves system paths
+    like HOME/USERPROFILE so Python and Git can locate their runtime files;
+    the user's home directory is not sandboxed.
     """
     keep = [
         "PATH", "PATHEXT", "HOME", "USERPROFILE", "HOMEPATH", "APPDATA",
         "LOCALAPPDATA", "SYSTEMROOT", "SYSTEMDRIVE", "COMSPEC", "WINDIR",
         "TEMP", "TMP", "NUMBER_OF_PROCESSORS", "LANG", "LC_ALL",
+        # Public OAuth client id, not a secret: tests.yml sets it for the suite
+        # (docs/pull-request-review.md documents the contract), so the review
+        # tool must carry it through or the OAuth state test fails spuriously.
+        "GITHUB_CLIENT_ID",
     ]
     env = {k: os.environ[k] for k in keep if os.environ.get(k)}
     env["PYTHONIOENCODING"] = "utf-8"
+    env["GITHUB_CLIENT_ID"] = os.environ.get("GITHUB_CLIENT_ID") or "ci-test-client-id"
     for name in ("GITHUB_TOKEN", "GH_TOKEN", "GIT_ASKPASS", "AWS_ACCESS_KEY_ID",
                  "AWS_SECRET_ACCESS_KEY"):
         env.pop(name, None)
@@ -1132,8 +1171,8 @@ def run_suite(source_dir: str, commit: str, fetch_url: Optional[str] = None,
     """Check out `commit` in a throwaway clone and run the suite there.
 
     The clone has no `.env`, no database files and no local git config, and
-    the child process receives `_sanitized_env()`, so contributor code runs
-    with none of the maintainer's secrets available to it.
+    the child process receives `_sanitized_env()` with token environment
+    variables stripped.
     """
     tmp = tempfile.mkdtemp(prefix="critique-pr-")
     result: Dict[str, Any] = {
@@ -1444,7 +1483,10 @@ def build_gates(result: ReviewResult, pr: Dict[str, Any],
     decision = (pr.get("reviewDecision") or "").upper()
     approvals_ok = len(approvals) >= required_count
     detail = (f"{len(approvals)} present"
-              + ("" if required_count else " -- the repository requires none"))
+              + ("" if required_count else
+                 (" -- requirements unknown"
+                  if required.get("unreadable")
+                  else " -- the repository requires none")))
     # GitHub computes reviewDecision itself; when it says a review is still
     # required or that changes were requested, its word fails this gate even
     # if our own count disagrees.
@@ -1457,7 +1499,18 @@ def build_gates(result: ReviewResult, pr: Dict[str, Any],
         detail,
     ))
 
-    if not required.get("configured"):
+    unreadable = required.get("unreadable")
+    if unreadable:
+        gates.append(Gate(
+            "Branch protection on the default branch",
+            False,
+            "could not verify: the token cannot read branch protection "
+            f"(HTTP {unreadable}); it needs admin or maintainer rights",
+            manual_fix="Re-run with a token that can read repository "
+                       "administration (admin or maintainer). Do not change "
+                       "the repository's rules based on this result.",
+        ))
+    elif not required.get("configured"):
         gates.append(Gate(
             "Branch protection on the default branch",
             False,

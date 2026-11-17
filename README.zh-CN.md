@@ -256,7 +256,7 @@ uvicorn app.main:app --reload
 |---|---|---|
 | `APP_ENV` | `development` 或 `production` | `development` |
 | `APP_URL` | 公开的基础 URL | `http://127.0.0.1:8000` |
-| `SECRET_KEY` | 为会话令牌和 OAuth state 签名 | 无默认值 —— 生成：`python -c "import secrets; print(secrets.token_hex(32))"` |
+| `SECRET_KEY` | 为会话令牌和 OAuth state 签名 | 生产环境必填（未设置时应用拒绝启动）；非生产环境中，未设置时会使用随机的进程级密钥，因此重启后会话不会保留。生成命令：`python -c "import secrets; print(secrets.token_hex(32))"` |
 | `DATABASE_URL` | 数据库连接字符串 | `sqlite:///./critique.db`；生产环境使用 PostgreSQL |
 | `GITHUB_CLIENT_ID` | GitHub OAuth 应用客户端 ID | 可选 —— 启用 GitHub 登录 |
 | `GITHUB_CLIENT_SECRET` | GitHub OAuth 应用密钥 | 可选 |
@@ -280,7 +280,7 @@ cd backend
 python -m pytest tests/ -q
 ```
 
-目前有 501 个测试通过。测试套件覆盖 API 行为、CSRF、限流、所有权检查、
+测试套件通过所有测试。测试套件覆盖 API 行为、CSRF、限流、所有权检查、
 隐私规则、排序、XSS、分析校验、身份验证流程、SEO 端点，以及通过基于 Node 的
 DOM 测试装置进行的前端渲染测试（无 Node.js 时跳过）。
 
@@ -322,7 +322,7 @@ Critique 在设计上充分考虑了安全与隐私：
 | **私密文字反馈** | 建议仅返回给项目所有者 |
 | **安全的重定向处理** | 登录的 `return_to` 值会针对本地路径白名单进行校验 |
 | **基于环境的密钥** | 凭据来自环境变量，绝不存放在仓库中 |
-| **极简分析** | 事件按服务端白名单校验；无第三方跟踪脚本；不存储原始 IP 地址（仅存储用于去重的 SHA-256 哈希） |
+| **极简分析** | 事件按服务端白名单校验；无第三方跟踪脚本；不存储原始 IP 地址（仅存储用于去重的带密钥 HMAC-SHA-256 摘要，`SECRET_KEY` 不变时摘要保持稳定） |
 
 [SECURITY.md](SECURITY.md) 列出了完整行为，并说明如何报告漏洞。
 

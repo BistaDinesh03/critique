@@ -28,10 +28,13 @@ BACKEND_DIR = Path(__file__).resolve().parent.parent
 FRONTEND_DIR = BACKEND_DIR.parent / "frontend"
 HARNESS = Path(__file__).resolve().parent / "frontend_render_harness.js"
 
-pytestmark = pytest.mark.skipif(
-    shutil.which("node") is None,
-    reason="node is required to run the frontend rendering harness",
-)
+pytestmark = [
+    pytest.mark.frontend_render,
+    pytest.mark.skipif(
+        shutil.which("node") is None,
+        reason="node is required to run the frontend rendering harness",
+    ),
+]
 
 PROJECTS_URL = "/api/projects/?page=1&page_size=6"
 
@@ -146,6 +149,8 @@ def test_discover_skeleton_resolves_to_real_project_cards(tmp_path):
     assert any(meta["className"] == "project-card" for meta in result["createdMeta"])
     assert "Ship the thing" in result["html"]
     assert result["flags"]["project-list"]["ariaBusy"] == "false"
+    assert result["flags"]["project-list"]["role"] == "list"
+    assert result["flags"]["project-list"]["ariaLabel"] == "Projects asking for feedback"
     # The busy announcement is cleared with the message, not left spinning.
     assert result["ids"]["project-list-status"] == ""
 
@@ -178,6 +183,27 @@ def test_discover_skeleton_resolves_to_a_retryable_error(tmp_path):
     assert "Try again" in result["ids"]["project-list"]
     assert result["flags"]["project-list"]["ariaBusy"] == "false"
     assert result["ids"]["project-list-status"] == "Couldn't load projects."
+    # Error state drops role=list to satisfy aria-required-children for non-card content.
+    assert result["flags"]["project-list"]["role"] is None
+    assert result["flags"]["project-list"]["ariaLabel"] is None
+
+
+def test_discover_empty_state_drops_list_role(tmp_path):
+    result = run(
+        tmp_path,
+        "discover.html",
+        [{"fn": "loadProjects", "args": [1]}],
+        fetch={
+            "/api/projects/": {
+                "status": 200,
+                "body": {"items": [], "total": 0, "page": 1, "total_pages": 1},
+            }
+        },
+    )
+    assert "empty-state" in result["ids"]["project-list"]
+    assert result["flags"]["project-list"]["role"] is None
+    assert result["flags"]["project-list"]["ariaLabel"] is None
+    assert result["flags"]["project-list"]["ariaBusy"] == "false"
 
 
 def test_project_page_reports_an_error_when_the_project_fails_to_load(tmp_path):
@@ -210,7 +236,7 @@ def test_loading_state_never_resolves_by_staying_on_a_spinner(tmp_path):
         assert busy_ids == [], f"{page} left {busy_ids} marked busy after a failure"
 
 
-def test_social_proof_placeholder_resolves_to_the_real_row(tmp_path):
+def test_social_proof_placeholder_resolves_to_real_avatars(tmp_path):
     result = run(
         tmp_path,
         "index.html",
@@ -218,13 +244,19 @@ def test_social_proof_placeholder_resolves_to_the_real_row(tmp_path):
         fetch={
             "/api/stats": {
                 "status": 200,
-                "body": {"total_builders": 2, "total_projects": 1, "builders": []},
+                "body": {
+                    "total_builders": 2,
+                    "total_projects": 1,
+                    "builders": [
+                        {"username": "alice", "avatar_url": "https://avatars.githubusercontent.com/u/1?v=4"},
+                    ],
+                },
             }
         },
     )
     assert result["flags"]["social-proof"]["ariaBusy"] == "false"
     assert result["flags"]["social-proof"]["display"] == "flex"
-    assert result["ids"]["social-proof-text"] == "Join 2 builders already using Critique"
+    assert 'src="https://avatars.githubusercontent.com/u/1?v=4"' in result["ids"]["avatar-stack"]
 
 
 def test_social_proof_placeholder_is_hidden_when_stats_fail(tmp_path):
@@ -232,8 +264,53 @@ def test_social_proof_placeholder_is_hidden_when_stats_fail(tmp_path):
     result = run(tmp_path, "index.html", [{"fn": "loadSocialProof", "args": []}])
     assert result["flags"]["social-proof"]["ariaBusy"] == "false"
     assert result["flags"]["social-proof"]["display"] == "none"
-    # The placeholder stays silent: no builder sentence is invented on failure.
-    assert "Join" not in result["ids"]["social-proof-text"]
+
+
+def test_homepage_real_activity_reflects_global_stats(tmp_path):
+    """The homepage stats strip reflects platform-wide totals from /api/stats,
+    never the page-scoped project count from /api/projects/?page=1&page_size=6."""
+    result = run(
+        tmp_path,
+        "index.html",
+        [{"fn": "loadSocialProof", "args": []}],
+        fetch={
+            "/api/stats": {
+                "status": 200,
+                "body": {
+                    "total_builders": 5,
+                    "total_projects": 12,
+                    "total_questions": 10,
+                    "total_responses": 45,
+                    "builders": [],
+                },
+            }
+        },
+    )
+    assert result["ids"]["stat-projects"] == "12"
+    assert result["ids"]["stat-questions"] == "10"
+    assert result["ids"]["stat-responses"] == "45"
+    assert result["flags"]["real-activity"]["display"] == "grid"
+
+
+def test_homepage_real_activity_hidden_when_zero_projects(tmp_path):
+    result = run(
+        tmp_path,
+        "index.html",
+        [{"fn": "loadSocialProof", "args": []}],
+        fetch={
+            "/api/stats": {
+                "status": 200,
+                "body": {
+                    "total_builders": 0,
+                    "total_projects": 0,
+                    "total_questions": 0,
+                    "total_responses": 0,
+                    "builders": [],
+                },
+            }
+        },
+    )
+    assert result["flags"]["real-activity"]["display"] == "none"
 
 
 # ---------------------------------------------------------------------------

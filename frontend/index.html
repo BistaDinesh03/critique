@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
     <meta name="description" content="Stop getting &quot;Looks good.&quot; Ask one question about what you built. Get focused feedback from real people.">
 
     <!-- Open Graph -->
@@ -10,17 +11,48 @@
     <meta property="og:url" content="https://critique.page/">
     <meta property="og:title" content="Critique — Ask one question. Get real answers.">
     <meta property="og:description" content="Stop getting &quot;Looks good.&quot; Get focused feedback from real people who actually take the time to look.">
-    <meta property="og:image" content="https://critique.page/static/og-image.png">
+    <meta property="og:image" content="https://critique.page/static/og-image.webp">
+    <meta property="og:image:type" content="image/webp">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Critique — Ask one question. Get real answers.">
+    <meta property="og:image" content="https://critique.page/static/og-image.png">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Critique — Ask one question. Get real answers.">
     <meta property="og:site_name" content="Critique">
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Critique — Ask one question. Get real answers.">
     <meta name="twitter:description" content="Stop getting &quot;Looks good.&quot; Get focused feedback from real people who actually take the time to look.">
-    <meta name="twitter:image" content="https://critique.page/static/og-image.png">
+    <meta name="twitter:image" content="https://critique.page/static/og-image.webp">
+    <meta name="twitter:image:alt" content="Critique — Ask one question. Get real answers.">
     <title>Critique — Ask one question. Get real answers.</title>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@graph": [
+            {
+                "@type": "SoftwareApplication",
+                "@id": "https://critique.page/#application",
+                "name": "Critique",
+                "url": "https://critique.page/",
+                "description": "Ask one question about what you built. Get focused feedback from real people.",
+                "applicationCategory": "DeveloperApplication",
+                "operatingSystem": "Web browser",
+                "publisher": {"@id": "https://critique.page/#organization"}
+            },
+            {
+                "@type": "Organization",
+                "@id": "https://critique.page/#organization",
+                "name": "Critique",
+                "url": "https://critique.page/"
+            }
+        ]
+    }
+    </script>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link rel="stylesheet" href="/static/shared.css">
     <style>
@@ -30,13 +62,13 @@
             padding-top: var(--space-8);
         }
 
-        .hero h2 {
+        .hero h1 {
             font-size: var(--text-3xl);
-            font-weight: 700;
+            font-weight: 800;
             color: var(--text-primary);
             margin-bottom: var(--space-3);
-            letter-spacing: -0.02em;
-            line-height: 1.2;
+            letter-spacing: -0.03em;
+            line-height: 1.15;
         }
 
         .hero .subheadline {
@@ -152,8 +184,7 @@
             box-sizing: border-box;
         }
 
-        /* "+N" bubble for builders who are not pictured. Keeps the avatar row
-           consistent with the real builder count in the sentence next to it. */
+        /* "+N" bubble for builders who are not pictured. */
         .avatar-stack .avatar-more {
             display: inline-flex;
             align-items: center;
@@ -277,7 +308,7 @@
         .project-title {
             font-size: var(--text-lg);
             font-weight: 700;
-            margin-bottom: var(--space-2);
+            margin: 0 0 var(--space-2) 0;
             color: var(--text-primary);
             overflow-wrap: anywhere;
         }
@@ -293,7 +324,7 @@
         }
 
         .project-question {
-            font-size: var(--text-sm);
+            font-size: var(--text-base);
             font-weight: 600;
             color: var(--text-primary);
             margin-bottom: var(--space-4);
@@ -302,6 +333,7 @@
             border-left: 3px solid var(--accent);
             border-radius: 0 var(--radius-md) var(--radius-md) 0;
             overflow-wrap: anywhere;
+            line-height: 1.5;
         }
 
         .project-footer {
@@ -526,6 +558,12 @@
             margin: 0 auto;
         }
 
+        @media (max-width: 900px) {
+            .fb-carousel[data-enhanced="true"] .fb-slide {
+                flex: 0 0 calc((100% - var(--fb-gap)) / 2);
+            }
+        }
+
         @media (max-width: 600px) {
             .benefits {
                 grid-template-columns: 1fr;
@@ -564,7 +602,7 @@
 
 
         .real-feedback {
-            max-width: 800px;
+            max-width: 1100px;
             margin: 0 auto var(--space-8);
         }
 
@@ -589,21 +627,156 @@
         }
 
         .review-card {
+            position: relative;
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 16px;
-            padding: var(--space-5);
+            padding: var(--space-6);
+            /* Flex column so the quote/summary absorbs the slack that equal-
+               height stretching leaves behind, keeping the metadata row pinned
+               to the bottom of every card instead of pooling empty space. */
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            overflow: hidden;
         }
 
-        .review-card + .review-card {
+        /* ===== Testimonial carousel =====
+           Progressive by design: without JavaScript the track wraps and every
+           card stays reachable; once the script runs it marks the carousel
+           data-enhanced and the row becomes a single clipped, paged track. */
+        .fb-carousel {
+            --fb-gap: var(--space-5);
+            position: relative;
+        }
+
+        .fb-viewport {
+            overflow: visible;
+            touch-action: pan-y;
+        }
+
+        .fb-track {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: stretch;
+            gap: var(--fb-gap);
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .fb-slide {
+            flex: 1 1 300px;
+            min-width: 0;
+            display: flex;
+        }
+
+        .fb-slide .review-card {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .fb-carousel[data-enhanced="true"] .fb-viewport {
+            overflow: hidden;
+        }
+
+        .fb-carousel[data-enhanced="true"] .fb-track {
+            flex-wrap: nowrap;
+            transition: transform 420ms cubic-bezier(0.22, 0.61, 0.36, 1);
+        }
+
+        .fb-carousel[data-enhanced="true"] .fb-slide {
+            flex: 0 0 calc((100% - var(--fb-gap) * 2) / 3);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .fb-carousel[data-enhanced="true"] .fb-track {
+                transition: none;
+            }
+        }
+
+        .fb-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: var(--space-3);
             margin-top: var(--space-6);
         }
 
-        .review-header {
+        .fb-controls[hidden] {
+            display: none;
+        }
+
+        .fb-nav {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            padding: 0;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: border-color var(--transition-fast), color var(--transition-fast), background-color var(--transition-fast);
+        }
+
+        .fb-nav svg {
+            display: block;
+            width: 18px;
+            height: 18px;
+        }
+
+        .fb-nav:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: rgba(37, 99, 235, 0.06);
+        }
+
+        .fb-dots {
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .fb-dot {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            border: 0;
+            background: transparent;
+            cursor: pointer;
+        }
+
+        .fb-dot::before {
+            content: "";
+            display: block;
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: var(--border);
+            transition: width 180ms ease, background-color 180ms ease;
+        }
+
+        .fb-dot:hover::before {
+            background: var(--text-muted);
+        }
+
+        .fb-dot[aria-current="true"]::before {
+            width: 26px;
+            background: var(--accent);
+        }
+
+                .review-header {
             display: flex;
             align-items: flex-start;
             justify-content: space-between;
-            gap: var(--space-4);
+            gap: var(--space-3);
             margin-bottom: var(--space-4);
             flex-wrap: wrap;
         }
@@ -612,50 +785,82 @@
             display: flex;
             align-items: center;
             gap: var(--space-3);
+            min-width: 0;
+        }
+
+        .review-author-text {
+            min-width: 0;
         }
 
         .review-avatar {
-            width: 40px;
-            height: 40px;
+            width: 44px;
+            height: 44px;
             border-radius: 50%;
             background: var(--surface-muted);
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 700;
-            font-size: var(--text-base);
+            font-size: var(--text-sm);
             color: var(--text-primary);
             flex-shrink: 0;
             border: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        /* Deterministic identicon (SVG injected by JS; the initial above is
+           the no-JavaScript fallback). */
+        .review-avatar svg {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .fb-id-bg {
+            fill: var(--surface-muted);
+        }
+
+        .fb-id-neutral {
+            fill: var(--text-muted);
+        }
+
+        .fb-id-accent {
+            fill: var(--accent);
         }
 
         .review-name {
             font-size: var(--text-base);
             font-weight: 700;
             color: var(--text-primary);
+            line-height: 1.3;
+            letter-spacing: -0.01em;
             margin: 0;
         }
 
         .review-role {
             font-size: var(--text-xs);
             color: var(--text-secondary);
-            margin: 2px 0 0;
+            line-height: 1.4;
+            margin: 3px 0 0;
         }
 
         .review-score-block {
             display: flex;
             flex-direction: column;
             align-items: flex-end;
-            gap: 3px;
+            gap: 2px;
             text-align: right;
             margin-left: auto;
+            padding: 6px 10px;
+            background: var(--surface-muted);
+            border-radius: var(--radius-md);
         }
 
         .review-score {
             font-size: var(--text-sm);
-            font-weight: 600;
+            font-weight: 700;
             color: var(--text-primary);
-            line-height: 1;
+            line-height: 1.1;
             white-space: nowrap;
         }
 
@@ -666,29 +871,45 @@
 
         .review-score-label {
             font-size: var(--text-xs);
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
             color: var(--text-secondary);
+        }
+
+        /* The body absorbs the height left over by the tallest card in the
+           row and centres short quotes inside it, so a one-line testimonial
+           reads as a pull quote rather than an empty card. */
+        .review-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: var(--space-1) 0 var(--space-5);
+            min-width: 0;
         }
 
         .review-summary {
             font-size: var(--text-sm);
             color: var(--text-secondary);
-            line-height: 1.6;
-            margin: 0 0 var(--space-3);
-            max-width: 72ch;
+            line-height: 1.7;
+            margin: 0;
+            max-width: 60ch;
         }
 
         .review-quote {
-            margin: 0 0 var(--space-3);
+            margin: 0;
             padding-left: var(--space-4);
-            border-left: 2px solid var(--border);
+            border-left: 3px solid var(--accent);
+            border-radius: 2px;
         }
 
         .review-quote p {
             margin: 0;
-            font-size: var(--text-base);
+            font-size: var(--text-lg);
             color: var(--text-primary);
-            line-height: 1.65;
-            max-width: 65ch;
+            line-height: 1.7;
+            letter-spacing: -0.005em;
+            max-width: 60ch;
         }
 
         .review-meta {
@@ -698,6 +919,10 @@
             flex-wrap: wrap;
             font-size: var(--text-xs);
             color: var(--text-secondary);
+            line-height: 1.5;
+            margin-top: auto;
+            padding-top: var(--space-4);
+            border-top: 1px solid var(--border-light);
         }
 
         .review-meta-dot {
@@ -713,26 +938,54 @@
 
         .review-tag {
             display: inline-block;
-            font-size: var(--text-xs);
-            font-weight: 500;
+            font-size: 0.6875rem;
+            font-weight: 600;
+            letter-spacing: 0.01em;
             color: var(--text-secondary);
-            padding: 2px 8px;
+            padding: 3px 9px;
             background: var(--surface-muted);
-            border-radius: var(--radius-sm);
+            border-radius: 999px;
         }
 
         .review-tag.accent {
-            background: #f0fdf4;
+            background: var(--success-bg);
             color: #166534;
+        }
+
+        @media (max-width: 900px) {
+            .review-card {
+                padding: var(--space-5);
+            }
+
+            .fb-carousel[data-enhanced="true"] .fb-slide {
+                flex: 0 0 calc((100% - var(--fb-gap)) / 2);
+            }
         }
 
         @media (max-width: 600px) {
             .review-card {
-                padding: var(--space-4);
+                padding: var(--space-5);
             }
 
             .review-header {
-                gap: var(--space-3);
+                gap: var(--space-2);
+            }
+
+            .review-body {
+                padding-bottom: var(--space-4);
+            }
+
+            .review-quote p {
+                font-size: var(--text-base);
+            }
+
+            .fb-nav {
+                width: 40px;
+                height: 40px;
+            }
+
+            .fb-carousel[data-enhanced="true"] .fb-slide {
+                flex: 0 0 100%;
             }
         }
 
@@ -743,7 +996,7 @@
             margin-bottom: var(--space-5);
         }
 
-        .form-header h2 {
+        .form-header h3 {
             font-size: var(--text-xl);
             font-weight: 700;
             margin-bottom: var(--space-1);
@@ -818,9 +1071,17 @@
             font-weight: 600;
         }
 
-        .example-good {
-            color: var(--success);
-            font-weight: 600;
+        .question-examples {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: var(--space-2);
+            margin-top: var(--space-3);
+        }
+
+        .question-examples .btn {
+            white-space: normal;
+            text-align: left;
         }
 
         /* The question is the point of Critique, so its section carries the
@@ -921,15 +1182,16 @@
             .stats-grid { grid-template-columns: 1fr; }
             .trust-row { gap: var(--space-3); font-size: var(--text-xs); }
             .hero { padding-top: var(--space-4); margin-bottom: var(--space-6); }
-            .hero h2 { font-size: var(--text-2xl); }
+            .hero h1 { font-size: var(--text-2xl); }
             .hero .subheadline { font-size: var(--text-lg); }
             .hero-actions { margin-bottom: var(--space-3); }
         }
     </style>
 </head>
 <body>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
     <header class="navbar">
-        <a href="/" class="navbar-brand">
+        <a href="/" class="navbar-brand" aria-current="page">
             <img src="/static/logo.svg" alt="Critique" width="32" height="32">
             Critique
         </a>
@@ -945,15 +1207,27 @@
         </nav>
     </header>
 
-    <main class="container-wide" style="max-width: 1100px;">
+    <main id="main-content" class="container-wide" style="max-width: 1100px;">
         <!-- Shown on load when the backend redirects here with ?error=email_link
              (expired, already-used, or invalid magic link). It sits at the very
              top of the page, outside the submit form and before the script that
              fills it, so it is the first thing a returning visitor sees. -->
         <div id="auth-error-banner" class="auth-error-banner" role="alert"></div>
 
+        <!-- Shown on load when the backend redirects here with ?auth=cancelled
+             (the visitor pressed Cancel on GitHub's consent screen). Same slot
+             as the banner above, but neutral rather than alarming: cancelling
+             is a normal choice, not a failure. -->
+        <div id="auth-cancelled-banner" class="alert alert-warning" role="status"
+             style="display: none; max-width: 72ch; margin-left: auto; margin-right: auto;"></div>
+
+        <!-- Shown on load when the backend redirects here with ?auth=expired
+             (the GitHub OAuth state expired or was invalid). -->
+        <div id="auth-expired-banner" class="alert alert-warning" role="status"
+             style="display: none; max-width: 72ch; margin-left: auto; margin-right: auto;"></div>
+
         <section class="hero">
-            <h2>Stop getting "Looks good."</h2>
+            <h1>Stop getting "Looks good."</h1>
             <p class="subheadline">Ask one question. Get real answers.</p>
             <p class="supporting">Share what you built, ask one specific question, and get focused feedback from other builders.</p>
             <div class="hero-actions">
@@ -966,7 +1240,7 @@
                 <div class="avatar-stack" id="avatar-stack" aria-hidden="true"><span class="avatar-skeleton skeleton"></span><span class="avatar-skeleton skeleton"></span><span class="avatar-skeleton skeleton"></span><span class="avatar-skeleton skeleton"></span></div>
                 <p class="social-proof-text" id="social-proof-text"><span class="skeleton social-proof-skeleton-line"></span></p>
                 <p class="social-proof-sub">
-                    Real builders &middot; Real projects &middot; Human feedback
+                    Discover real projects. Share thoughtful feedback. Build better together.
                 </p>
             </div>
         </section>
@@ -1061,83 +1335,134 @@
             </div>
         </section>
 
-        <section class="real-feedback">
-            <h2>What builders say</h2>
+        <section class="real-feedback" aria-labelledby="real-feedback-title">
+            <h2 id="real-feedback-title">What builders say</h2>
             <p class="subtitle">Feedback from builders who took a look at Critique.</p>
 
-            <article class="review-card" aria-labelledby="review-josh-name">
-                <div class="review-header">
-                    <div class="review-author">
-                        <div class="review-avatar" aria-hidden="true">J</div>
-                        <div>
-                            <h3 class="review-name" id="review-josh-name">Josh Clark</h3>
-                            <p class="review-role">Founder of Disband</p>
-                        </div>
-                    </div>
-                    <div class="review-score-block">
-                        <div class="review-score">6.9 <span class="review-score-total">/ 10</span></div>
-                        <div class="review-score-label">Overall</div>
-                    </div>
+            <div class="fb-carousel" id="fb-carousel" role="region" aria-roledescription="carousel" aria-label="What builders say">
+                <div class="fb-viewport" id="fb-viewport">
+                    <ul class="fb-track" id="fb-track" role="list">
+                        <li class="fb-slide">
+                            <article class="review-card" aria-labelledby="review-josh-name">
+                                <div class="review-header">
+                                    <div class="review-author">
+                                        <div class="review-avatar" data-name="Josh Clark" aria-hidden="true">J</div>
+                                        <div class="review-author-text">
+                                            <h3 class="review-name" id="review-josh-name">Josh Clark</h3>
+                                            <p class="review-role">Founder of Disband</p>
+                                        </div>
+                                    </div>
+                                    <div class="review-score-block">
+                                        <div class="review-score">6.9 <span class="review-score-total">/ 10</span></div>
+                                        <div class="review-score-label">Overall</div>
+                                    </div>
+                                </div>
+
+                                <div class="review-body">
+                                    <p class="review-summary">
+                                        Praised the concept, flagged submission friction, inconsistent icons, UI mismatches, and concerns around analytics and security.
+                                    </p>
+                                </div>
+
+                                <div class="review-meta">
+                                    <span>External review</span>
+                                    <span class="review-meta-dot" aria-hidden="true">·</span>
+                                    <span>Sept 2026</span>
+                                    <span class="review-meta-dot" aria-hidden="true">·</span>
+                                    <span>Feedback received → improvements shipped</span>
+                                </div>
+
+                                <div class="review-tags">
+                                    <span class="review-tag">Security</span>
+                                    <span class="review-tag">UI</span>
+                                    <span class="review-tag">Analytics</span>
+                                    <span class="review-tag accent">Automated test suite</span>
+                                </div>
+                            </article>
+                        </li>
+
+                        <li class="fb-slide">
+                            <article class="review-card" aria-labelledby="review-alex-name">
+                                <div class="review-header">
+                                    <div class="review-author">
+                                        <div class="review-avatar" data-name="Alex Lovesyuk" aria-hidden="true">A</div>
+                                        <div class="review-author-text">
+                                            <h3 class="review-name" id="review-alex-name">Alex Lovesyuk</h3>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="review-body">
+                                    <blockquote class="review-quote">
+                                        <p>“Critique's focus on honest feedback for builders caught my eye.”</p>
+                                    </blockquote>
+                                </div>
+
+                                <div class="review-meta">
+                                    <span>External review</span>
+                                    <span class="review-meta-dot" aria-hidden="true">·</span>
+                                    <span>Twitter</span>
+                                    <span class="review-meta-dot" aria-hidden="true">·</span>
+                                    <span>Oct 2026</span>
+                                </div>
+                            </article>
+                        </li>
+
+                        <li class="fb-slide">
+                            <article class="review-card" aria-labelledby="review-dennis-name">
+                                <div class="review-header">
+                                    <div class="review-author">
+                                        <div class="review-avatar" data-name="Dennis" aria-hidden="true">D</div>
+                                        <div class="review-author-text">
+                                            <h3 class="review-name" id="review-dennis-name">Dennis</h3>
+                                            <p class="review-role">DEV</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="review-body">
+                                    <blockquote class="review-quote">
+                                        <p>“I like the idea behind Critique, especially the focus on helping builders improve their products through real feedback. I appreciate that you took my suggestions seriously and actually implemented improvements based on them. That kind of responsiveness makes a real difference. I'd definitely recommend Critique to other builders who want honest feedback and want to improve their products.”</p>
+                                    </blockquote>
+                                </div>
+                            </article>
+                        </li>
+
+                        <li class="fb-slide">
+                            <article class="review-card" aria-labelledby="review-peter-name">
+                                <div class="review-header">
+                                    <div class="review-author">
+                                        <div class="review-avatar" data-name="Peter" aria-hidden="true">P</div>
+                                        <div class="review-author-text">
+                                            <h3 class="review-name" id="review-peter-name">Peter</h3>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="review-body">
+                                    <blockquote class="review-quote">
+                                        <p>I tried Critique and left feedback on a project. Nice concept, especially the focus on asking one specific question rather than requesting a generic review. Keep building!</p>
+                                    </blockquote>
+                                </div>
+
+                                <div class="review-meta">
+                                    <span>Community feedback</span>
+                                </div>
+                            </article>
+                        </li>
+                    </ul>
                 </div>
 
-                <p class="review-summary">
-                    Praised the concept, flagged submission friction, inconsistent icons, UI mismatches, and concerns around analytics and security.
-                </p>
-
-                <div class="review-meta">
-                    <span>External review</span>
-                    <span class="review-meta-dot" aria-hidden="true">·</span>
-                    <span>Sept 2026</span>
-                    <span class="review-meta-dot" aria-hidden="true">·</span>
-                    <span>Feedback received → improvements shipped</span>
+                <div class="fb-controls" id="fb-controls" hidden>
+                    <button type="button" class="fb-nav" id="fb-prev" aria-label="Previous testimonials" aria-controls="fb-track">
+                        <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M10 3 5 8l5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <div class="fb-dots" id="fb-dots" role="group" aria-label="Testimonial pages"></div>
+                    <button type="button" class="fb-nav" id="fb-next" aria-label="Next testimonials" aria-controls="fb-track">
+                        <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
                 </div>
-
-                <div class="review-tags">
-                    <span class="review-tag">Security</span>
-                    <span class="review-tag">UI</span>
-                    <span class="review-tag">Analytics</span>
-                    <span class="review-tag accent">70 tests passing</span>
-                </div>
-            </article>
-
-            <article class="review-card" aria-labelledby="review-alex-name">
-                <div class="review-header">
-                    <div class="review-author">
-                        <div class="review-avatar" aria-hidden="true">A</div>
-                        <div>
-                            <h3 class="review-name" id="review-alex-name">Alex Lovesyuk</h3>
-                        </div>
-                    </div>
-                </div>
-
-                <blockquote class="review-quote">
-                    <p>“Critique's focus on honest feedback for builders caught my eye.”</p>
-                </blockquote>
-
-                <div class="review-meta">
-                    <span>External review</span>
-                    <span class="review-meta-dot" aria-hidden="true">·</span>
-                    <span>Twitter</span>
-                    <span class="review-meta-dot" aria-hidden="true">·</span>
-                    <span>Oct 2026</span>
-                </div>
-            </article>
-
-            <article class="review-card" aria-labelledby="review-dennis-name">
-                <div class="review-header">
-                    <div class="review-author">
-                        <div class="review-avatar" aria-hidden="true">D</div>
-                        <div>
-                            <h3 class="review-name" id="review-dennis-name">Dennis</h3>
-                            <p class="review-role">DEV</p>
-                        </div>
-                    </div>
-                </div>
-
-                <blockquote class="review-quote">
-                    <p>“I like the idea behind Critique, especially the focus on helping builders improve their products through real feedback. I appreciate that you took my suggestions seriously and actually implemented improvements based on them. That kind of responsiveness makes a real difference. I'd definitely recommend Critique to other builders who want honest feedback and want to improve their products.”</p>
-                </blockquote>
-            </article>
+            </div>
 
             <div class="feedback-cta">
                 <a href="#submit" class="btn btn-primary">Get feedback on my project</a>
@@ -1157,32 +1482,13 @@
             <a href="/discover" class="btn btn-secondary">Explore projects</a>
         </section>
 
-        <section class="early-community">
-            <p class="eyebrow">Built something?</p>
-            <h2>Your project deserves more than "Looks good."</h2>
-            <p class="supporting">Share what you're building, ask one question, and get real feedback from people who actually take the time to look.</p>
-
-            <div class="benefits">
-                <div class="benefit"><span class="benefit-icon">✓</span> Find what people actually understand</div>
-                <div class="benefit"><span class="benefit-icon">✓</span> Discover what's confusing before you launch</div>
-                <div class="benefit"><span class="benefit-icon">✓</span> Get honest opinions from real builders</div>
-            </div>
-
-            <div class="cta-wrapper">
-                <a href="#submit" class="btn btn-primary" style="font-size:var(--text-base);padding:var(--space-3) var(--space-6);">Get feedback on my project →</a>
-                <p class="cta-sub">Free · One question · Real people</p>
-            </div>
-
-            <p class="reciprocity">Give feedback to a builder. Get feedback on your own.</p>
-        </section>
-
         <!-- Hierarchy: what the project is -> what it does -> the one question
              worth answering -> anything extra. The question gets the emphasis,
              because it is the reason this form exists. -->
         <section id="submit" class="card" style="max-width: 620px; margin: 0 auto;">
-            <form id="project-form">
+            <form id="project-form" aria-describedby="message">
                 <div class="form-header">
-                    <h2>Share your project</h2>
+                    <h3>Share your project</h3>
                     <p class="form-subtitle">Tell us what you're building and what you want to learn.</p>
                 </div>
 
@@ -1195,8 +1501,8 @@
                     </div>
 
                     <div class="form-group">
-                        <label class="form-label" for="url">Project URL <span class="form-required">(required)</span></label>
-                        <input class="form-input" type="url" id="url" name="url" maxlength="500" placeholder="https://your-project.com">
+                        <label class="form-label" for="url">Project URL <span class="form-optional-tag">optional</span></label>
+                        <input class="form-input" type="url" id="url" name="url" maxlength="500" placeholder="https://your-project.com" autocomplete="url">
                     </div>
                 </div>
 
@@ -1204,7 +1510,7 @@
                     <h3 class="section-heading">About it</h3>
 
                     <div class="form-group">
-                        <label class="form-label" for="description">Short description <span class="form-required">(required)</span></label>
+                        <label class="form-label" for="description">Short description <span class="form-optional-tag">optional</span></label>
                         <textarea class="form-textarea" id="description" name="description" maxlength="5000" placeholder="What does your project do? One or two sentences is enough." style="min-height:72px;"></textarea>
                     </div>
                 </div>
@@ -1220,7 +1526,7 @@
 
                     <div class="form-examples">
                         <p><span class="example-bad">Too broad:</span> "What do you think of my app?"</p>
-                        <p><span class="example-good">Better:</span> "Is it immediately clear what my app does?"</p>
+                        <div id="question-examples" class="question-examples" role="group" aria-label="Example questions"></div>
                     </div>
                 </div>
 
@@ -1230,14 +1536,14 @@
                     <div class="form-group">
                         <label class="form-label" for="image_url">Project screenshot <span class="form-optional-tag">optional</span></label>
                         <p class="form-helper">Help others see what you've built.</p>
-                        <input class="form-input" type="url" id="image_url" name="image_url" maxlength="500" placeholder="https://example.com/screenshot.png">
+                        <input class="form-input" type="url" id="image_url" name="image_url" maxlength="500" placeholder="https://example.com/screenshot.png" autocomplete="url">
                         <p class="form-helper">Paste a direct link to an image. Leave blank if you don't have one.</p>
                     </div>
                 </div>
 
                 <button type="submit" class="btn btn-primary btn-submit" id="submit-btn">Submit for feedback</button>
                 <p class="form-reassurance">Free to use. Human feedback. No AI-generated responses.</p>
-                <div class="message" id="message"></div>
+                <div class="message" id="message" role="alert" aria-live="polite"></div>
             </form>
         </section>
 
@@ -1348,8 +1654,23 @@
 
             banner.style.display = 'block';
             banner.textContent = "That email sign-in link is no longer valid. " +
-                "Links expire after a short time and can only be used once. " +
-                "Please request a new one from the Login menu.";
+                "Links expire after 15 minutes and can only be used once. " +
+                "You can request a new one below.";
+
+            // Give the visitor the next step instead of asking them to find
+            // the Login menu: this opens the same auth-choice menu.
+            const action = document.createElement('button');
+            action.type = 'button';
+            action.className = 'btn btn-secondary auth-error-action';
+            action.textContent = 'Request a new link';
+            action.addEventListener('click', function() {
+                banner.style.display = 'none';
+                const loginBtn = document.getElementById('login-btn');
+                if (!loginBtn) return;
+                if (typeof loginBtn.click === 'function') loginBtn.click();
+                if (typeof loginBtn.focus === 'function') loginBtn.focus();
+            });
+            banner.appendChild(action);
 
             // Drop the flag from the URL so a refresh (or the browser's own
             // reload) does not replay the same banner, keeping any other
@@ -1362,8 +1683,57 @@
             window.history.replaceState(null, '', window.location.pathname + cleaned + window.location.hash);
         }
 
+        // The GitHub OAuth callback sends visitors back to the homepage with
+        // ?auth=cancelled when they press Cancel on GitHub's consent screen
+        // (see /auth/callback). Cancelling is a normal choice, so this says
+        // what happened in a neutral tone and, unlike the email-link banner,
+        // leaves no impression that something went wrong. The flag is stripped
+        // from the URL for the same reason: a refresh should not replay it.
+        const AUTH_CANCELLED = /[?&]auth=cancelled(?=&|$)/;
+
+        function showAuthCancelledBanner() {
+            const search = window.location.search || '';
+            if (!AUTH_CANCELLED.test(search)) return;
+
+            const banner = document.getElementById('auth-cancelled-banner');
+            if (!banner) return;
+
+            banner.style.display = 'block';
+            banner.textContent = "GitHub sign-in was cancelled, so you're not " +
+                "signed in. Nothing went wrong — you can try again whenever " +
+                "you like.";
+
+            const cleaned = search
+                .replace(AUTH_CANCELLED, '')
+                .replace(/^&/, '?')
+                .replace(/\?$/, '');
+            window.history.replaceState(null, '', window.location.pathname + cleaned + window.location.hash);
+        }
+
+        const AUTH_EXPIRED = /[?&]auth=expired(?=&|$)/;
+
+        function showAuthExpiredBanner() {
+            const search = window.location.search || '';
+            if (!AUTH_EXPIRED.test(search)) return;
+
+            const banner = document.getElementById('auth-expired-banner');
+            if (!banner) return;
+
+            banner.style.display = 'block';
+            banner.textContent = "Your sign-in attempt timed out or was interrupted. " +
+                "Please try signing in again.";
+
+            const cleaned = search
+                .replace(AUTH_EXPIRED, '')
+                .replace(/^&/, '?')
+                .replace(/\?$/, '');
+            window.history.replaceState(null, '', window.location.pathname + cleaned + window.location.hash);
+        }
+
         // Run auth check immediately on script load
         checkAuth();
+        showAuthCancelledBanner();
+        showAuthExpiredBanner();
         showAuthErrorBanner();
 
         async function loadHomepageProjects() {
@@ -1372,15 +1742,6 @@
                 const response = await fetch('/api/projects/?page=1&page_size=6');
                 if (!response.ok) throw new Error('Request failed: ' + response.status);
                 const data = await response.json();
-
-                const totalProjects = data.total || 0;
-                let totalResponses = 0;
-                data.items.forEach(function(p) { totalResponses += (p.response_count || 0); });
-
-                document.getElementById('stat-projects').textContent = totalProjects;
-                document.getElementById('stat-responses').textContent = totalResponses;
-                document.getElementById('stat-questions').textContent = totalProjects;
-                document.getElementById('real-activity').style.display = 'grid';
 
                 if (data.items.length === 0) {
                     container.innerHTML = '<p style="color:var(--text-muted);grid-column:1/-1;text-align:center;">No projects waiting for feedback yet. Be the first to ask a question.</p>';
@@ -1405,7 +1766,7 @@
                     html += screenshot;
                     html += '<div class="project-card-body">';
                     html += '<div class="eyebrow">Need feedback on</div>';
-                    html += '<div class="project-title">' + escapeHtml(project.title) + '</div>';
+                    html += '<h3 class="project-title">' + escapeHtml(project.title) + '</h3>';
                     html += description;
                     html += '<div class="project-question">Question: ' + escapeHtml(question) + '</div>';
                     html += '<div class="project-footer">';
@@ -1415,6 +1776,9 @@
                     html += '</div></div>';
                 });
                 container.innerHTML = html;
+                container.querySelectorAll('.project-screenshot').forEach(function(img) {
+                    img.addEventListener('error', function() { this.style.display = 'none'; });
+                });
             } catch (e) {
                 // The placeholder may never be the end state: report the failure
                 // and give the visitor a way to retry instead of showing an
@@ -1439,6 +1803,31 @@
         }
 
         // ===== Project form state persistence =====
+        function renderQuestionExamples() {
+            var container = document.getElementById('question-examples');
+            container.innerHTML = '';
+            [
+                'Is the main purpose of this website clear within the first 5 seconds?',
+                'Which part of this onboarding flow feels confusing?',
+                'Does my portfolio communicate my skills and experience clearly?',
+                'Is the navigation easy to understand?',
+                'Would you understand what this product offers and who it is for?'
+            ].forEach(function (text) {
+                var button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'btn btn-secondary';
+                button.textContent = text;
+                button.addEventListener('click', function () {
+                    var question = document.getElementById('question');
+                    question.value = text;
+                    question.focus();
+                    saveProjectDraft();
+                });
+                container.appendChild(button);
+            });
+        }
+        renderQuestionExamples();
+
         function projectStorageKey() {
             return 'critique_project_draft';
         }
@@ -1485,6 +1874,7 @@
         // it and stays completely optional.
         function showProjectLive(data) {
             var msg = document.getElementById('message');
+            if (msg) msg.setAttribute('role', 'status');
             var project = data && data.project;
             if (!project || !project.id || typeof CritiqueShare === 'undefined') {
                 // The 201 still confirms creation even if the body is not the
@@ -1503,6 +1893,7 @@
         function showProjectInlineLoginPrompt(msg, message) {
             msg = msg || document.getElementById('message');
             if (!msg) return;
+            msg.setAttribute('role', 'alert');
             // The prompt re-renders whenever the gate appears again (the submit
             // handler clears #message first) but the analytics event fires only
             // once per page.
@@ -1544,6 +1935,32 @@
             } catch (e) {}
         }
 
+        var projectFormDirty = false;
+        function updateProjectFormDirty() {
+            var titleEl = document.getElementById('title');
+            var descEl = document.getElementById('description');
+            var urlEl = document.getElementById('url');
+            var qEl = document.getElementById('question');
+            var title = (titleEl && titleEl.value) ? titleEl.value.trim() : '';
+            var desc = (descEl && descEl.value) ? descEl.value.trim() : '';
+            var url = (urlEl && urlEl.value) ? urlEl.value.trim() : '';
+            var question = (qEl && qEl.value) ? qEl.value.trim() : '';
+            projectFormDirty = Boolean(title || desc || url || question);
+        }
+
+        var pForm = document.getElementById('project-form');
+        if (pForm) {
+            pForm.addEventListener('input', updateProjectFormDirty);
+            pForm.addEventListener('change', updateProjectFormDirty);
+        }
+
+        window.addEventListener('beforeunload', function(e) {
+            if (projectFormDirty) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        });
+
         document.getElementById('project-form').addEventListener('submit', async function(e) {
             e.preventDefault();
             const msg = document.getElementById('message');
@@ -1579,20 +1996,29 @@
                     window.CritiqueAnalytics.trackEvent('project_submit', null);
                     CritiqueUI.showToast('Project submitted', 'success');
                     clearProjectDraft();
+                    projectFormDirty = false;
                     document.getElementById('project-form').reset();
                     showProjectLive(data);
                 } else if (response.status === 401) {
                     saveProjectDraft();
                     showProjectInlineLoginPrompt(msg);
                 } else if (response.status === 403) {
+                    // Refreshing fixes a stale CSRF/session pair but reloads
+                    // the page, so keep the project first.
+                    saveProjectDraft();
                     msg.className = 'alert alert-error';
-                    msg.textContent = 'Session expired. Please refresh and try again.';
+                    msg.setAttribute('role', 'alert');
+                    msg.textContent = 'Session expired. Your project is saved — refresh and try again.';
                 } else {
                     msg.className = 'alert alert-error';
-                    msg.textContent = 'Error: ' + JSON.stringify(data);
+                    msg.setAttribute('role', 'alert');
+                    msg.textContent = (data && typeof data.detail === 'string')
+                        ? data.detail
+                        : 'Failed to submit project. Please try again.';
                 }
             } catch (error) {
                 msg.className = 'alert alert-error';
+                msg.setAttribute('role', 'alert');
                 msg.textContent = 'Network error.';
             } finally {
                 const submitBtn = document.getElementById('submit-btn');
@@ -1611,9 +2037,9 @@
             if (window.location.search.indexOf('resume=project_submit') === -1) return;
             var form = document.getElementById('submit');
             if (!form) return;
-            // Scroll smoothly to the submit section
+            // Honor motion preferences when returning to the submit section
             setTimeout(function() {
-                form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                form.scrollIntoView({ behavior: CritiqueUI.scrollBehavior(), block: 'start' });
                 // Focus the first input for immediate typing
                 var firstInput = document.getElementById('title');
                 if (firstInput) {
@@ -1623,6 +2049,17 @@
             // Clean the URL so refreshing doesn't re-trigger
             if (window.history && window.history.replaceState) {
                 window.history.replaceState({}, '', '/');
+            }
+        }
+
+        // Defence in depth: only an absolute https image may be loaded.
+        function isSafeAvatarSrc(url) {
+            if (typeof url !== 'string') return false;
+            try {
+                var parsed = new URL(url);
+                return parsed.protocol === 'https:' && !!parsed.hostname;
+            } catch (e) {
+                return false;
             }
         }
 
@@ -1666,17 +2103,6 @@
                 '<g fill="' + fill + '">' + cells + '</g></svg>';
         }
 
-        // Defence in depth: only an absolute https image may be loaded.
-        function isSafeAvatarSrc(url) {
-            if (typeof url !== 'string') return false;
-            try {
-                var parsed = new URL(url);
-                return parsed.protocol === 'https:' && !!parsed.hostname;
-            } catch (e) {
-                return false;
-            }
-        }
-
         async function loadSocialProof() {
             const proofContainer = document.getElementById('social-proof');
             let resolved = false;
@@ -1700,42 +2126,45 @@
                         avatarsHtml += '<span class="avatar-fallback">' + fallbackAvatarSvg(seedValue) + '</span>';
                     }
                 });
-                // The row pictures at most four builders while the sentence
-                // states the real total, so the rest are accounted for with a
-                // "+N" bubble: the avatars and the number then describe the
-                // same real set of builders instead of looking inconsistent.
                 const remaining = (data.total_builders || 0) - shown.length;
                 if (remaining > 0) {
                     avatarsHtml += '<span class="avatar-more">+' + remaining + '</span>';
                 }
                 avatarStack.innerHTML = avatarsHtml;
 
-                if (data.total_builders === 1) {
-                    proofText.textContent = 'Join 1 builder already using Critique';
-                } else if (data.total_builders > 1) {
-                    proofText.textContent = 'Join ' + data.total_builders + ' builders already using Critique';
+                const total = data.total_builders || 0;
+                if (total > 0) {
+                    proofText.textContent = 'Join ' + total + ' members on Critique.';
                 } else {
-                    proofText.textContent = 'Be one of the first builders to use Critique';
+                    proofText.textContent = 'Be one of the first developers to share a project on Critique';
                 }
 
-                // Nothing to show yet: hide the row, exactly as it behaved
-                // before the placeholder existed.
-                proofContainer.style.display = data.total_builders > 0 ? 'flex' : 'none';
+                proofContainer.style.display = total > 0 ? 'flex' : 'none';
+
+                const statProjects = document.getElementById('stat-projects');
+                if (statProjects) statProjects.textContent = data.total_projects || 0;
+                const statResponses = document.getElementById('stat-responses');
+                if (statResponses) statResponses.textContent = data.total_responses || 0;
+                const statQuestions = document.getElementById('stat-questions');
+                if (statQuestions) statQuestions.textContent = data.total_questions || 0;
+                const realActivity = document.getElementById('real-activity');
+                if (realActivity) {
+                    realActivity.style.display = (data.total_projects || 0) > 0 ? 'grid' : 'none';
+                }
             } catch (e) {
                 // Silently fail - social proof is enhancement
             } finally {
-                // A placeholder must never be the final state: on success the
-                // real row is in place, otherwise the block is hidden.
                 proofContainer.setAttribute('aria-busy', 'false');
                 if (!resolved) {
                     proofContainer.style.display = 'none';
                 }
             }
         }
+
     </script>
     <script src="/static/ui.js"></script>
     <script src="/static/analytics_events.js"></script>
-    <script src="/static/analytics.js"></script>
+<script src="/static/analytics.js"></script>
     <script src="/static/share.js"></script>
     <script>trackPageView();</script>
 
@@ -1750,19 +2179,28 @@
             </div>
             <div class="footer-links">
                 <div class="footer-col">
-                    <h4>Product</h4>
+                    <h4>Explore</h4>
                     <ul>
                         <li><a href="/discover">Discover</a></li>
                         <li><a href="/#submit">Submit a project</a></li>
                     </ul>
                 </div>
                 <div class="footer-col">
-                    <h4>Connect</h4>
+                    <h4>Community</h4>
                     <ul>
-                        <li><a href="https://github.com/BistaDinesh03/critique" target="_blank" rel="noopener" aria-label="Critique on GitHub"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>GitHub</a></li>
+                        <li><a href="https://github.com/BistaDinesh03/critique/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">Contribute</a></li>
+                        <li><a href="https://github.com/BistaDinesh03/critique" target="_blank" rel="noopener noreferrer" aria-label="Critique on GitHub"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>GitHub</a></li>
+                        <li><a href="https://github.com/BistaDinesh03/critique/issues/new" target="_blank" rel="noopener noreferrer">Report an issue</a></li>
                     </ul>
                 </div>
             </div>
+        </div>
+        <div class="footer-contribute">
+            <div class="footer-contribute-copy">
+                <h4>Want to help improve Critique?</h4>
+                <p>Contribute code, report an issue, or help make feedback better for everyone.</p>
+            </div>
+            <a href="https://github.com/BistaDinesh03/critique/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer" class="btn btn-secondary footer-contribute-btn">Explore contributions</a>
         </div>
         <div class="footer-bottom">
             <span>© 2026 Critique · Open source · Free to use</span>
@@ -1798,6 +2236,353 @@
                 toggle.focus();
             }
         });
+    })();
+    </script>
+
+<script>
+    // Homepage testimonials: local deterministic identicons plus a paged
+    // carousel. Progressive by design -- with JavaScript disabled the cards
+    // wrap in the static grid from the stylesheet and the controls stay
+    // hidden, so every testimonial remains reachable. Autoplay is disabled;
+    // navigation is controlled explicitly by the visitor.
+    var CritiqueTestimonials = (function () {
+        'use strict';
+
+        var GAP_FALLBACK_PX = 24; // matches --fb-gap: var(--space-5)
+
+        // --- Deterministic identicons -------------------------------------
+        // FNV-1a over the normalised name: the same name always replays the
+        // same avatar, generated locally with SVG only -- no network calls and
+        // no external images.
+        function hashName(name) {
+            var text = String(name === null || name === undefined ? '' : name).trim().toLowerCase();
+            var hash = 2166136261;
+            for (var i = 0; i < text.length; i++) {
+                hash = Math.imul(hash ^ text.charCodeAt(i), 16777619) >>> 0;
+            }
+            return hash >>> 0;
+        }
+
+        // mulberry32: a tiny deterministic PRNG so a name replays the exact
+        // same sequence of cells on every visit and every machine.
+        function mulberry32(seed) {
+            var a = seed >>> 0;
+            return function () {
+                a = (a + 0x6D2B79F5) | 0;
+                var t = Math.imul(a ^ (a >>> 15), 1 | a);
+                t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+                return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+            };
+        }
+
+        // A 5x5 grid mirrored across the vertical axis, drawn as rounded
+        // cells over a circle. Neutral tokens carry the pattern; a share of
+        // cells picks up the blue accent.
+        function identicon(name) {
+            var rand = mulberry32(hashName(name) || 0x9e3779b9);
+            var cell = 8;
+            var rects = '';
+            var filled = 0;
+            for (var row = 0; row < 5; row++) {
+                for (var col = 0; col < 3; col++) {
+                    if (rand() < 0.5) {
+                        var tone = rand() < 0.35 ? 'fb-id-accent' : 'fb-id-neutral';
+                        var y = row * cell + 1;
+                        var x = col * cell + 1;
+                        rects += '<rect class="' + tone + '" x="' + x + '" y="' + y + '" width="6" height="6" rx="1"/>';
+                        filled++;
+                        if (col < 2) {
+                            var mirrorX = (4 - col) * cell + 1;
+                            rects += '<rect class="' + tone + '" x="' + mirrorX + '" y="' + y + '" width="6" height="6" rx="1"/>';
+                        }
+                    }
+                }
+            }
+            if (!filled) {
+                rects = '<rect class="fb-id-neutral" x="17" y="17" width="6" height="6" rx="1"/>';
+            }
+            return '<svg viewBox="0 0 40 40" aria-hidden="true" focusable="false">' +
+                '<rect class="fb-id-bg" width="40" height="40" rx="20"/>' + rects + '</svg>';
+        }
+
+        // --- Carousel controller ------------------------------------------
+        function byId(id) {
+            return document.getElementById(id);
+        }
+
+        function init() {
+            var root = byId('fb-carousel');
+            var viewport = byId('fb-viewport');
+            var track = byId('fb-track');
+            var controls = byId('fb-controls');
+            var dotsEl = byId('fb-dots');
+            var prevBtn = byId('fb-prev');
+            var nextBtn = byId('fb-next');
+            if (!root || !track || !controls) return null;
+
+            var state = {
+                page: 0,
+                pages: 1,
+                perView: 3,
+                slideCount: 0,
+                reducedMotion: CritiqueUI.readReducedMotion()
+            };
+
+            function applyMotionPreference() {
+                if (track.style) {
+                    track.style.transition = state.reducedMotion ? 'none' : '';
+                }
+                if (root.setAttribute) {
+                    root.setAttribute('data-reduced-motion', state.reducedMotion ? 'true' : 'false');
+                }
+            }
+
+            function slidesOf() {
+                var out = [];
+                var kids = track.children || [];
+                for (var i = 0; i < kids.length; i++) {
+                    var kid = kids[i];
+                    if (kid && kid.classList && kid.classList.contains('fb-slide')) out.push(kid);
+                }
+                return out;
+            }
+
+            function gapPx() {
+                try {
+                    if (window.getComputedStyle) {
+                        var cs = window.getComputedStyle(track);
+                        var parsed = cs && cs.getPropertyValue ? parseFloat(cs.getPropertyValue('column-gap')) : NaN;
+                        if (!isNaN(parsed) && parsed > 0) return parsed;
+                    }
+                } catch (e) {
+                    // Fall through to the token value.
+                }
+                return GAP_FALLBACK_PX;
+            }
+
+            function measurePerView() {
+                try {
+                    if (viewport && viewport.getBoundingClientRect && slidesOf) {
+                        var vw = viewport.getBoundingClientRect().width;
+                        var first = slidesOf()[0];
+                        if (vw > 0 && first && first.getBoundingClientRect) {
+                            var sw = first.getBoundingClientRect().width;
+                            if (sw > 0) {
+                                var gap = gapPx();
+                                return Math.max(1, Math.round((vw + gap) / (sw + gap)));
+                            }
+                        }
+                    }
+                } catch (e) {
+                    // Layout not measurable: assume three across.
+                }
+                return 3;
+            }
+
+            function renderDots() {
+                if (!dotsEl) return;
+                if (state.pages <= 1) {
+                    dotsEl.innerHTML = '';
+                    return;
+                }
+                var html = '';
+                for (var i = 0; i < state.pages; i++) {
+                    html += '<button type="button" class="fb-dot" data-page="' + i +
+                        '" aria-label="Show testimonial page ' + (i + 1) + ' of ' + state.pages + '"' +
+                        (i === state.page ? ' aria-current="true"' : '') + '></button>';
+                }
+                dotsEl.innerHTML = html;
+            }
+
+            function applyTransform() {
+                if (!track.style) return;
+                try {
+                    track.style.transform = state.pages <= 1
+                        ? ''
+                        : 'translateX(calc(-1 * ' + state.page + ' * (100% + ' + gapPx() + 'px)))';
+                } catch (e) {
+                    // Inline styles unavailable; the static grid still shows all cards.
+                }
+            }
+
+            function goTo(index) {
+                if (state.pages <= 1) return;
+                var target = index % state.pages;
+                if (target < 0) target += state.pages;
+                state.page = target;
+                renderDots();
+                applyTransform();
+            }
+
+            var touchOrigin = null;
+
+            function onTouchStart(e) {
+                var t = e && e.touches && e.touches[0];
+                if (t) touchOrigin = { x: t.clientX, y: t.clientY };
+            }
+
+            function onTouchMove(e) {
+                if (!touchOrigin) return;
+                var t = e && e.touches && e.touches[0];
+                if (!t) return;
+                var dx = t.clientX - touchOrigin.x;
+                var dy = t.clientY - touchOrigin.y;
+                if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy) && e.preventDefault) {
+                    e.preventDefault();
+                }
+            }
+
+            function onTouchEnd(e) {
+                var t = e && e.changedTouches && e.changedTouches[0];
+                if (touchOrigin && t) {
+                    var dx = t.clientX - touchOrigin.x;
+                    var dy = t.clientY - touchOrigin.y;
+                    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+                        goTo(state.page + (dx < 0 ? 1 : -1));
+                    }
+                }
+                touchOrigin = null;
+            }
+
+            function onKeyDown(e) {
+                var key = e && e.key;
+                if (key !== 'ArrowLeft' && key !== 'ArrowRight') return;
+                if (e.preventDefault) e.preventDefault();
+                goTo(state.page + (key === 'ArrowRight' ? 1 : -1));
+            }
+
+            function snapshot() {
+                return {
+                    slideCount: state.slideCount,
+                    perView: state.perView,
+                    pages: state.pages,
+                    page: state.page,
+                    controlsVisible: !controls.hidden,
+                    reducedMotion: state.reducedMotion
+                };
+            }
+
+            function refresh() {
+                var slideCount = slidesOf().length;
+                state.slideCount = slideCount;
+                state.perView = measurePerView();
+                state.pages = Math.max(1, Math.ceil(slideCount / state.perView));
+                if (state.page > state.pages - 1) state.page = state.pages - 1;
+                if (state.page < 0) state.page = 0;
+                controls.hidden = state.pages <= 1;
+                renderDots();
+                applyTransform();
+                return snapshot();
+            }
+
+            function setMotionPreference(reduced) {
+                state.reducedMotion = !!reduced;
+                applyMotionPreference();
+            }
+
+            // Keep the inline transition in sync with the OS preference so
+            // reduced-motion users never get a slide animation, even after
+            // the page has loaded.
+            try {
+                if (window.matchMedia) {
+                    var mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+                    if (mq && mq.addEventListener) {
+                        mq.addEventListener('change', function (e) {
+                            setMotionPreference(!!(e && e.matches));
+                        });
+                    } else if (mq && mq.addListener) {
+                        mq.addListener(function (e) {
+                            setMotionPreference(!!(e && e.matches));
+                        });
+                    }
+                }
+            } catch (e) {
+                // Ignore an unusable media query.
+            }
+
+            function applyIdenticons() {
+                if (!document.querySelectorAll) return;
+                var avatars = document.querySelectorAll('.review-avatar[data-name]');
+                for (var i = 0; i < avatars.length; i++) {
+                    var avatar = avatars[i];
+                    var name = avatar.getAttribute ? avatar.getAttribute('data-name') : '';
+                    if (!name) continue;
+                    avatar.innerHTML = identicon(name);
+                }
+            }
+
+            if (root.addEventListener) {
+                root.addEventListener('touchstart', onTouchStart, { passive: true });
+                root.addEventListener('touchmove', onTouchMove, { passive: false });
+                root.addEventListener('touchend', onTouchEnd);
+                root.addEventListener('touchcancel', onTouchEnd);
+                root.addEventListener('keydown', onKeyDown);
+            }
+            if (prevBtn && prevBtn.addEventListener) {
+                prevBtn.addEventListener('click', function () { goTo(state.page - 1); });
+            }
+            if (nextBtn && nextBtn.addEventListener) {
+                nextBtn.addEventListener('click', function () { goTo(state.page + 1); });
+            }
+            if (dotsEl && dotsEl.addEventListener) {
+                dotsEl.addEventListener('click', function (e) {
+                    var target = e && e.target;
+                    while (target && target !== dotsEl) {
+                        if (target.classList && target.classList.contains && target.classList.contains('fb-dot')) {
+                            var page = target.getAttribute ? target.getAttribute('data-page') : null;
+                            if (page !== null && page !== undefined && page !== '') {
+                                goTo(parseInt(page, 10));
+                            }
+                            break;
+                        }
+                        target = target.parentNode;
+                    }
+                });
+            }
+            if (window.addEventListener) {
+                window.addEventListener('resize', function () {
+                    setTimeout(refresh, 120);
+                });
+            }
+
+            if (root.setAttribute) {
+                root.setAttribute('data-enhanced', 'true');
+                root.setAttribute('data-initialized', 'true');
+            }
+            applyIdenticons();
+            applyMotionPreference();
+            refresh();
+
+            return {
+                refresh: refresh,
+                state: snapshot,
+                goTo: goTo,
+                setMotionPreference: setMotionPreference,
+                touchStart: onTouchStart,
+                touchEnd: onTouchEnd
+            };
+        }
+
+        var instance = init();
+
+        function withInstance(fn) {
+            return function () {
+                if (!instance) return null;
+                return fn.apply(instance, arguments);
+            };
+        }
+
+        return {
+            init: function () { return instance; },
+            refresh: withInstance(function () { return this.refresh(); }),
+            state: withInstance(function () { return this.state(); }),
+            goTo: withInstance(function (index) { this.goTo(index); }),
+            setMotionPreference: withInstance(function (reduced) { this.setMotionPreference(reduced); }),
+            touchStart: withInstance(function (e) { this.touchStart(e); }),
+            touchEnd: withInstance(function (e) { this.touchEnd(e); }),
+            identicon: identicon,
+            hashName: hashName
+        };
     })();
     </script>
 

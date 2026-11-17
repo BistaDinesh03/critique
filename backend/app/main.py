@@ -1,11 +1,16 @@
-﻿from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager
+import mimetypes
+import re
+import uuid
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.exception_handlers import http_exception_handler
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.auth import router as auth_router
@@ -20,8 +25,30 @@ from app.routes_badge import router as badge_router
 from app.routes_projects import router as projects_router
 from app.routes_responses import router as responses_router
 from app.routes_results import router as results_router
-from app.routes_seo import router as seo_router
+from app.routes_seo import router as seo_router, site_url
 from app.routes_stats import router as stats_router
+
+
+_REQUEST_ID_RE = re.compile(r"^[A-Za-z0-9-]{1,64}$")
+
+
+class RequestIDMiddleware(BaseHTTPMiddleware):
+    """Ensure every response carries a safe X-Request-ID for correlation.
+
+    Incoming IDs are validated against a strict allowlist; anything missing or
+    invalid is replaced with a server-generated UUID4 hex string.
+    """
+
+    async def dispatch(self, request, call_next):
+        incoming = request.headers.get("X-Request-ID")
+        if incoming and _REQUEST_ID_RE.fullmatch(incoming):
+            request_id = incoming
+        else:
+            request_id = uuid.uuid4().hex
+        request.state.request_id = request_id
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = request_id
+        return response
 
 
 class CacheControlMiddleware(BaseHTTPMiddleware):
@@ -35,14 +62,45 @@ class CacheControlMiddleware(BaseHTTPMiddleware):
                 response.headers["Cache-Control"] = "no-cache"
             else:
                 response.headers["Cache-Control"] = "public, max-age=86400"
+        # Baseline security headers for every response.
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        if settings.HSTS_ENABLED or settings.is_production:
+            hsts_val = f"max-age={settings.HSTS_MAX_AGE}"
+            if settings.HSTS_INCLUDE_SUBDOMAINS:
+                hsts_val += "; includeSubDomains"
+            if settings.HSTS_PRELOAD:
+                hsts_val += "; preload"
+            response.headers.setdefault("Strict-Transport-Security", hsts_val)
+        csp = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline'; "
+            "style-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data: https:; "
+            "font-src 'self' data:; "
+            "connect-src 'self'; "
+            "frame-ancestors 'none'; "
+            "frame-src 'none'; "
+            "object-src 'none'; "
+            "base-uri 'self'; "
+            "form-action 'self'"
+        )
+        response.headers.setdefault("Content-Security-Policy", csp)
         return response
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Initialize database on startup."""
+    """Initialize database on startup and gracefully clean up on shutdown."""
     init_db()
     yield
+    # Graceful shutdown: release database pool connections
+    try:
+        from app.database import engine
+        engine.dispose()
+    except Exception:
+        pass
 
 
 app = FastAPI(
@@ -53,6 +111,7 @@ app = FastAPI(
 )
 
 app.add_middleware(CacheControlMiddleware)
+app.add_middleware(RequestIDMiddleware)
 
 app.include_router(auth_router)
 app.include_router(projects_router)
@@ -63,6 +122,8 @@ app.include_router(stats_router)
 app.include_router(analytics_router)
 app.include_router(analytics_dashboard_router)
 app.include_router(seo_router)
+
+mimetypes.add_type("image/webp", ".webp")
 
 static_dir = Path(__file__).resolve().parent.parent.parent / "static"
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
@@ -90,15 +151,36 @@ _EARLY_AUTH_STYLE = (
 )
 
 
-def _page_response(request: Request, filename: str) -> HTMLResponse:
+def _page_response(
+    request: Request,
+    filename: str,
+    status_code: int = 200,
+    title: Optional[str] = None,
+    description: Optional[str] = None,
+) -> HTMLResponse:
     """Serve a frontend page, stamping early auth state when a valid session
     cookie accompanies the request (signature + age only, no DB lookup)."""
     html = _read_frontend_file(filename)
+    if title:
+        import re
+        html = re.sub(r"<title>.*?</title>", f"<title>{title}</title>", html, count=1)
+    if description:
+        import re
+        if "<meta name=\"description\"" in html:
+            html = re.sub(r'<meta name="description" content=".*?">', f'<meta name="description" content="{description}">', html, count=1)
+        else:
+            html = html.replace("</head>", f'    <meta name="description" content="{description}">\n</head>', 1)
+    if status_code != 404 and filename != "404.html":
+        clean_path = request.url.path or "/"
+        canonical_url = f"{site_url()}{clean_path}"
+        canonical_tag = f'<link rel="canonical" href="{canonical_url}">'
+        if "</head>" in html and 'rel="canonical"' not in html:
+            html = html.replace("</head>", f"    {canonical_tag}\n</head>", 1)
     if session_cookie_is_valid(request):
         html = html.replace(
             "</head>", _EARLY_AUTH_SCRIPT + _EARLY_AUTH_STYLE + "</head>", 1
         )
-    response = HTMLResponse(content=html)
+    response = HTMLResponse(content=html, status_code=status_code)
     # The body varies with the session cookie (the early-auth stamp), so no
     # cache -- shared or browser -- may replay one visitor's page to another.
     response.headers["Cache-Control"] = "private, no-store"
@@ -111,6 +193,24 @@ def _page_response(request: Request, filename: str) -> HTMLResponse:
 async def unhandled_exception_handler(request, exc):
     """Generic error handler that doesn't leak stack traces."""
     return JSONResponse(status_code=500, content={"detail": "Internal server error"})
+
+
+def _wants_html(request: Request) -> bool:
+    """A browser navigation wants an HTML page; a JSON client (or anything
+    under /api/) wants the JSON detail shape."""
+    if request.url.path.startswith("/api/"):
+        return False
+    return "text/html" in request.headers.get("accept", "")
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler_custom(request: Request, exc: StarletteHTTPException):
+    """Serve a branded HTML 404 for browser navigation to an unknown route,
+    while every JSON client -- and every /api/* route -- keeps the default
+    {"detail": ...} body, status, and headers."""
+    if exc.status_code == 404 and _wants_html(request):
+        return _page_response(request, "404.html", status_code=404)
+    return await http_exception_handler(request, exc)
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -130,24 +230,42 @@ def discover_page(request: Request):
 
 @app.get("/project/{project_id}", response_class=HTMLResponse)
 def project_detail_page(request: Request, project_id: str, db: Annotated[Session, Depends(get_db)]):
-    _require_project(project_id, db)
-    return _page_response(request, "project_detail.html")
+    project = _require_project(project_id, db)
+    import html as html_lib
+    safe_title = html_lib.escape(project.title[:60])
+    safe_desc = html_lib.escape((project.description or "Give honest feedback on Critique.")[:160])
+    return _page_response(
+        request,
+        "project_detail.html",
+        title=f"{safe_title} — Critique",
+        description=safe_desc,
+    )
 
 
 @app.get("/project/{project_id}/results", response_class=HTMLResponse)
 def project_results_page(request: Request, project_id: str, db: Annotated[Session, Depends(get_db)]):
-    _require_project(project_id, db)
-    return _page_response(request, "project_results.html")
+    project = _require_project(project_id, db)
+    import html as html_lib
+    safe_title = html_lib.escape(project.title[:60])
+    return _page_response(
+        request,
+        "project_results.html",
+        title=f"Results: {safe_title} — Critique",
+    )
 
 
-def _require_project(project_id: str, db: Session) -> None:
+def _require_project(project_id: str, db: Session) -> Project:
     """Reject absent or malformed IDs before serving a successful HTML shell."""
     try:
         parsed_id = int(project_id)
     except ValueError:
         raise HTTPException(status_code=404, detail="Project not found") from None
-    if not in_int64_range(parsed_id) or db.get(Project, parsed_id) is None:
+    if not in_int64_range(parsed_id):
         raise HTTPException(status_code=404, detail="Project not found")
+    proj = db.get(Project, parsed_id)
+    if proj is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return proj
 
 
 
@@ -157,7 +275,19 @@ def google_verification():
     """Serve Google Search Console verification file."""
     static_dir = Path(__file__).resolve().parent.parent.parent / "static"
     file_path = static_dir / "google8ffd0ae5f931d1e6.html"
+    if not file_path.is_file():
+        raise HTTPException(status_code=404, detail="Verification file not found")
     return HTMLResponse(content=file_path.read_text(encoding="utf-8"))
+
+
+@app.get("/.well-known/security.txt", response_class=PlainTextResponse)
+def security_txt():
+    """Serve RFC 9116 security.txt contact and disclosure policy."""
+    static_dir = Path(__file__).resolve().parent.parent.parent / "static"
+    file_path = static_dir / ".well-known" / "security.txt"
+    if not file_path.is_file():
+        raise HTTPException(status_code=404, detail="security.txt not found")
+    return PlainTextResponse(content=file_path.read_text(encoding="utf-8"), media_type="text/plain")
 
 
 @app.get("/health")

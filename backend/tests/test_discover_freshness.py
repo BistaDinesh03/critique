@@ -27,10 +27,13 @@ BACKEND_DIR = Path(__file__).resolve().parent.parent
 FRONTEND_DIR = BACKEND_DIR.parent / "frontend"
 HARNESS = Path(__file__).resolve().parent / "frontend_render_harness.js"
 
-pytestmark = pytest.mark.skipif(
-    shutil.which("node") is None,
-    reason="node is required to run the frontend rendering harness",
-)
+pytestmark = [
+    pytest.mark.frontend_render,
+    pytest.mark.skipif(
+        shutil.which("node") is None,
+        reason="node is required to run the frontend rendering harness",
+    ),
+]
 
 HOMEPAGE_URL = "/api/projects/?page=1&page_size=6"
 # Both lists render projects, so both pages carry the same formatter.
@@ -215,6 +218,38 @@ def test_discover_card_invents_nothing_when_the_api_omits_data(tmp_path):
     assert "<time" not in html
     assert "·" not in html
     assert "Just now" not in html
+
+
+def test_discover_card_displays_response_count_when_greater_than_zero(tmp_path):
+    """Discover cards display response counts to signal social proof (fixes #332)."""
+    item_single = {
+        "id": 10,
+        "title": "Solo feedback project",
+        "description": "A nice project",
+        "question_text": "Is the pricing reasonable?",
+        "response_count": 1,
+        "image_url": None,
+    }
+    item_multiple = {
+        "id": 11,
+        "title": "Popular project",
+        "description": "Another project",
+        "question_text": "Does this work?",
+        "response_count": 5,
+        "image_url": None,
+    }
+
+    result = run(
+        tmp_path,
+        "discover.html",
+        [{"fn": "showProjects", "args": [[item_single, item_multiple]]}],
+    )
+    html = " ".join(result["created"])
+
+    assert "1 response" in html
+    assert "5 responses" in html
+    assert "response-count" in html
+
 
 
 def test_homepage_preview_shows_description_question_count_and_age(tmp_path):

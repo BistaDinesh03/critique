@@ -40,10 +40,13 @@ BACKEND_DIR = Path(__file__).resolve().parent.parent
 FRONTEND_DIR = BACKEND_DIR.parent / "frontend"
 HARNESS = Path(__file__).resolve().parent / "frontend_render_harness.js"
 
-pytestmark = pytest.mark.skipif(
-    shutil.which("node") is None,
-    reason="node is required to run the frontend rendering harness",
-)
+pytestmark = [
+    pytest.mark.frontend_render,
+    pytest.mark.skipif(
+        shutil.which("node") is None,
+        reason="node is required to run the frontend rendering harness",
+    ),
+]
 
 PROJECT = {
     "project": {
@@ -124,7 +127,7 @@ def help_links(result):
     return [
         m
         for m in result["createdMeta"]
-        if m.get("text") and "Help another builder" in str(m["text"])
+        if m.get("id") == "help-another-builder"
     ]
 
 
@@ -179,7 +182,12 @@ def test_csrf_failure_is_still_a_submit_error(tmp_path):
 
     assert len(events(result, "feedback_submit_error")) == 1
     assert events(result, "feedback_submit") == []
-    assert "Session expired. Please refresh." in result["ids"]["message"]
+    assert "Session expired." in result["ids"]["message"]
+    # Refreshing is the only fix for a stale CSRF/session pair, so the answers
+    # must already be in the draft before the visitor is told to refresh.
+    draft = json.loads(result["storage"]["session"]["critique_feedback_1"])
+    assert draft["clarity"] == "very_clear"
+    assert draft["would_use"] == "yes"
 
 
 def test_server_error_is_still_a_submit_error(tmp_path):
@@ -233,12 +241,23 @@ def test_success_offers_the_next_real_project_and_keeps_the_confirmation(tmp_pat
 
     assert len(events(result, "feedback_submit")) == 1
     assert events(result, "feedback_submit_error") == []
-    assert "Thank you! Your feedback has been submitted." in result["ids"]["message"]
+    assert "Feedback submitted successfully!" in result["ids"]["message"]
 
     links = help_links(result)
     assert links, f"no next-step link built: {result['createdMeta']}"
     # Points at a *different* real project, never back at the answered one.
     assert links[0]["href"] == "/project/2"
+    # When a project title is available, the link text shows it.
+    assert links[0]["text"] == "Help Biohome \u2192"
+
+    # Confirms live README badge link is offered for viral project promotion
+    badge_links = [m for m in result["createdMeta"] if m.get("id") == "project-badge-link"]
+    assert badge_links, f"no project badge link found in {result['createdMeta']}"
+    assert badge_links[0]["href"] == "/badge/1.svg"
+
+    # Confirmation panel features: discover link and accessible dismiss button (fixes #331)
+    assert any("Discover more projects" in (m.get("text") or "") for m in result["createdMeta"])
+    assert any(m.get("ariaLabel") == "Dismiss confirmation" for m in result["createdMeta"])
 
     # The success state must not be wiped by a background reload.
     assert "critique_responded_1" in result["storage"]["session"]
@@ -288,7 +307,7 @@ def test_reload_after_success_shows_recorded_state_not_the_form(tmp_path):
     )
 
     thanks = result["ids"].get("feedback-thanks", "")
-    assert "Thank you! Your feedback has been submitted." in thanks
+    assert "Feedback submitted successfully!" in thanks
     links = help_links(result)
     assert links, f"no next-step link built: {result['createdMeta']}"
     assert links[0]["href"] == "/project/2"
@@ -371,6 +390,56 @@ def test_draft_is_restored_into_the_form_field_for_field(tmp_path):
     assert events(result, "email_verification_success") == []
 
 
+def test_draft_restore_updates_suggestion_char_count(tmp_path):
+    """The counter must reflect a restored draft, not only typed input.
+
+    ``restoreFeedbackDraft()`` assigns ``textarea.value`` directly, which does
+    not fire an ``input`` event. Without a refresh after the restore paths a
+    visitor returning to a saved answer still sees "0 / 2000".
+    """
+    seed = (
+        "sessionStorage.setItem('critique_feedback_1', JSON.stringify("
+        "{clarity: 'confusing', would_use: 'no', suggestion: 'spell out the pricing'}))"
+    )
+    result = run(
+        tmp_path,
+        "project_detail.html",
+        [
+            {"evaluate": seed, "as": "seeded"},
+            {"fn": "renderProject", "args": [PROJECT, []]},
+            {"evaluate": "document.getElementById('suggestion').value", "as": "suggestion"},
+            {
+                "evaluate": "document.getElementById('suggestion-char-count').textContent",
+                "as": "counter",
+            },
+        ],
+        fetch=DETAIL_ROUTES,
+        location="/project/1",
+    )
+
+    assert result["values"]["suggestion"] == "spell out the pricing"
+    assert result["values"]["counter"] == "21 / 2000"
+
+
+def test_suggestion_char_count_starts_at_zero_without_a_draft(tmp_path):
+    """A fresh form starts at 0 / 2000, so the counter never shows a stale value."""
+    result = run(
+        tmp_path,
+        "project_detail.html",
+        [
+            {"fn": "renderProject", "args": [PROJECT, []]},
+            {
+                "evaluate": "document.getElementById('suggestion-char-count').textContent",
+                "as": "counter",
+            },
+        ],
+        fetch=DETAIL_ROUTES,
+        location="/project/1",
+    )
+
+    assert result["values"]["counter"] == "0 / 2000"
+
+
 # ---------------------------------------------------------------------------
 # Returning from sign-in continues the submission (Phase 2 / Phase 11)
 # ---------------------------------------------------------------------------
@@ -423,7 +492,7 @@ def test_returning_from_github_continues_the_submission(tmp_path):
     assert events(result, "feedback_submit_error") == []
     assert len(events(result, "feedback_resume")) == 1
     assert len(events(result, "login_success")) == 1
-    assert "Thank you! Your feedback has been submitted." in result["ids"]["message"]
+    assert "Feedback submitted successfully!" in result["ids"]["message"]
     assert "critique_responded_1" in result["storage"]["session"]
 
 
@@ -453,7 +522,7 @@ def test_returning_from_the_email_link_continues_the_submission(tmp_path):
     assert len(events(result, "feedback_resume")) == 1
     assert len(events(result, "feedback_submit")) == 1
     assert events(result, "feedback_submit_error") == []
-    assert "Thank you! Your feedback has been submitted." in result["ids"]["message"]
+    assert "Feedback submitted successfully!" in result["ids"]["message"]
 
 
 def test_an_incomplete_draft_is_not_sent_automatically(tmp_path):
@@ -530,8 +599,9 @@ def test_duplicate_response_is_a_completed_state_not_a_red_error(tmp_path):
     ]
     assert explore, f"no onward link built: {result['createdMeta']}"
     assert explore[0]["href"] == "/project/2"
-    # The attempt created nothing, so it stays counted as a rejected submit.
-    assert len(events(result, "feedback_submit_error")) == 1
+    # A 409 emits feedback_already_responded, not feedback_submit_error (#270).
+    assert len(events(result, "feedback_already_responded")) == 1
+    assert events(result, "feedback_submit_error") == []
     assert events(result, "feedback_submit") == []
 
 
@@ -564,3 +634,84 @@ def test_sign_in_events_fire_only_on_a_real_return(tmp_path):
     # the session is still anonymous, it lands on the gate again as designed.
     assert len(events(returned, "feedback_submit_attempt")) == 1
     assert events(returned, "feedback_submit_error") == []
+
+
+def test_feedback_draft_and_responded_keys_are_namespaced_per_account(tmp_path):
+    """Different accounts in the same tab get independent draft and responded state (fixes #315)."""
+    fetch = {
+        "/api/projects/1": {"status": 200, "body": PROJECT},
+    }
+    result = run(
+        tmp_path,
+        "project_detail.html",
+        [
+            {"fn": "renderProject", "args": [PROJECT, []]},
+            # User A
+            {"fn": "setCurrentUserId", "args": ["user_123"]},
+            {"evaluate": "feedbackStorageKey()", "as": "userA_storageKey"},
+            {"evaluate": "feedbackSubmittedKey()", "as": "userA_submittedKey"},
+            # User B
+            {"fn": "setCurrentUserId", "args": ["user_456"]},
+            {"evaluate": "feedbackStorageKey()", "as": "userB_storageKey"},
+            {"evaluate": "feedbackSubmittedKey()", "as": "userB_submittedKey"},
+            # Anonymous
+            {"fn": "setCurrentUserId", "args": [None]},
+            {"evaluate": "feedbackStorageKey()", "as": "anon_storageKey"},
+            {"evaluate": "feedbackSubmittedKey()", "as": "anon_submittedKey"},
+        ],
+        fetch=fetch,
+        location="/project/1",
+    )
+    assert result["values"]["userA_storageKey"] == "critique_feedback_user_123_1"
+    assert result["values"]["userA_submittedKey"] == "critique_responded_user_123_1"
+    assert result["values"]["userB_storageKey"] == "critique_feedback_user_456_1"
+    assert result["values"]["userB_submittedKey"] == "critique_responded_user_456_1"
+    assert result["values"]["anon_storageKey"] == "critique_feedback_1"
+    assert result["values"]["anon_submittedKey"] == "critique_responded_1"
+
+
+# ---------------------------------------------------------------------------
+# Client-side validation before submission
+# ---------------------------------------------------------------------------
+
+
+def test_missing_required_selection_shows_validation_message(tmp_path):
+    """Submitting without both ratings never leaves the page or fires an attempt."""
+    fetch = {
+        "/api/projects/1/responses": {"status": 201, "body": {}},
+        "/api/projects/1": {"status": 200, "body": PROJECT},
+    }
+    result = run(
+        tmp_path,
+        "project_detail.html",
+        [{"submitId": "response-form"}, {"evaluate": "document.getElementById('submit-btn').disabled", "as": "btn_disabled"}],
+        fetch=fetch,
+        location="/project/1",
+    )
+
+    assert "Please answer both required questions before submitting." in result["ids"]["message"]
+    # No attempt event and no request were produced.
+    assert events(result, "feedback_submit_attempt") == []
+    posts = [r for r in result["requests"] if r["method"] == "POST" and r["url"].endswith("/responses")]
+    assert posts == []
+    # Button stays enabled so the visitor can fix and retry.
+    assert result["values"]["btn_disabled"] is False
+
+
+def test_feedback_form_has_progress_indicator(tmp_path):
+    """The feedback form displays an accessible progress indicator (fixes #329)."""
+    fetch = {
+        "/api/projects/1": {"status": 200, "body": PROJECT},
+    }
+    result = run(
+        tmp_path,
+        "project_detail.html",
+        [{"fn": "renderProject", "args": [PROJECT, []]}],
+        fetch=fetch,
+        location="/project/1",
+        read={"byId": "content"},
+    )
+    assert 'role="progressbar"' in result["html"]
+    assert 'aria-label="Feedback progress"' in result["html"]
+    assert 'aria-valuenow="0"' in result["html"]
+    assert "Step 0 of 3 completed" in result["html"]

@@ -9,10 +9,19 @@ router = APIRouter(prefix="/badge", tags=["badge"])
 
 
 def format_count(count: int) -> str:
-    """Format count for display. 1000+ shows as 1k+."""
-    if count >= 1000:
-        return "1k+"
-    return str(count)
+    """Format a response count for badge display.
+
+    Below 1,000 the exact number; 1,000-9,999 one decimal in k with a
+    trimmed trailing ``.0`` (``1.2k``); 10,000-999,999 whole thousands
+    (``12k``); a million or more one decimal in m (``1.2m``).
+    """
+    if count < 1000:
+        return str(count)
+    if count < 10_000:
+        return f"{count / 1000:.1f}".removesuffix(".0") + "k"
+    if count < 1_000_000:
+        return f"{count // 1000}k"
+    return f"{count / 1_000_000:.1f}".removesuffix(".0") + "m"
 
 
 @router.get("/{project_id}.svg")

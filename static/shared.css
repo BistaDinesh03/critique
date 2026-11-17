@@ -1,4 +1,4 @@
-﻿/* ============================================
+/* ============================================
    Critique Design System
    ============================================ */
 
@@ -9,7 +9,7 @@
     --surface-muted: #f5f5f5;
     --text-primary: #111111;
     --text-secondary: #555555;
-    --text-muted: #888888;
+    --text-muted: #6b6b6b;
     --border: #e0e0e0;
     --border-light: #eeeeee;
     --primary: #1a1a1a;
@@ -19,6 +19,9 @@
     --success: #16a34a;
     --success-bg: #f0fdf4;
     --success-border: #86efac;
+    --success-text: #166534;
+    --danger-text: #991b1b;
+    --warning-text: #92400e;
     --warning: #d97706;
     --warning-bg: #fffbeb;
     --warning-border: #fcd34d;
@@ -63,6 +66,39 @@
     --transition-normal: 200ms ease;
 }
 
+@media (prefers-color-scheme: dark) {
+    :root {
+        --background: #0f172a;
+        --surface: #1e293b;
+        --surface-muted: #334155;
+        --text-primary: #f8fafc;
+        --text-secondary: #cbd5e1;
+        --text-muted: #94a3b8;
+        --border: #334155;
+        --border-light: #1e293b;
+        --primary: #f8fafc;
+        --primary-hover: #e2e8f0;
+        --accent: #3b82f6;
+        --accent-hover: #60a5fa;
+        --success: #22c55e;
+        --success-bg: #064e3b;
+        --success-border: #059669;
+    --success-text: #bbf7d0;
+    --danger-text: #fecaca;
+    --warning-text: #fde68a;
+        --warning: #f59e0b;
+        --warning-bg: #78350f;
+        --warning-border: #d97706;
+        --danger: #ef4444;
+        --danger-bg: #7f1d1d;
+        --danger-border: #dc2626;
+        --focus: #60a5fa;
+
+        --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+        --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.6);
+    }
+}
+
 /* ============================================
    Base
    ============================================ */
@@ -78,6 +114,7 @@
 html {
     font-size: 16px;
     -webkit-text-size-adjust: 100%;
+    color-scheme: light dark;
 }
 
 body {
@@ -110,6 +147,61 @@ img {
     outline: 2px solid var(--focus);
     outline-offset: 2px;
     border-radius: 2px;
+}
+
+/* Skip to main content link — visually hidden until focused. */
+.skip-link {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    z-index: 1000;
+    padding: var(--space-2) var(--space-4);
+    background: var(--primary);
+    color: var(--surface);
+    font-weight: 600;
+    text-decoration: none;
+    border-radius: 0 0 var(--radius-md) 0;
+    transition: top 0.15s ease;
+}
+
+.skip-link:focus {
+    top: 0;
+}
+
+/* ============================================
+   Pagination
+   ============================================ */
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--space-4);
+    margin-top: var(--space-6);
+}
+
+.pagination button {
+    padding: var(--space-2) var(--space-4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    background: var(--surface);
+    color: var(--text-primary);
+    transition: background-color var(--transition-fast), opacity var(--transition-fast);
+}
+
+.pagination button:hover:not(:disabled) {
+    background: var(--surface-muted);
+}
+
+.pagination button:disabled,
+.pagination button[aria-disabled="true"] {
+    opacity: 0.45;
+    cursor: not-allowed;
+    background: var(--surface-muted);
+    color: var(--text-muted);
 }
 
 /* ============================================
@@ -195,7 +287,8 @@ img {
     top: calc(100% + 8px);
     right: 0;
     z-index: 200;
-    width: 264px;
+    width: 320px;
+    max-width: calc(100vw - 32px);
 }
 
 .nav-login-menu .login-prompt {
@@ -211,8 +304,12 @@ img {
     margin-bottom: var(--space-2);
 }
 
+.nav-login-menu .login-prompt-text {
+    font-size: var(--text-sm);
+}
+
 .nav-login-menu .login-prompt-actions {
-    margin-top: 0;
+    margin-top: var(--space-3);
 }
 
 .nav-login-menu .login-prompt-actions .btn {
@@ -378,9 +475,14 @@ img {
 
 .form-input:focus,
 .form-textarea:focus {
-    outline: none;
     border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+}
+
+.form-input:focus-visible,
+.form-textarea:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
 }
 
 .form-textarea {
@@ -390,7 +492,7 @@ img {
 
 .form-input::placeholder,
 .form-textarea::placeholder {
-    color: #999999;
+    color: #6b6b6b;
 }
 
 /* ============================================
@@ -422,19 +524,21 @@ img {
 .alert-success {
     background: var(--success-bg);
     border: 1px solid var(--success-border);
-    color: #166534;
+    border-left: 4px solid var(--success);
+    color: var(--success-text);
+    padding: var(--space-4) var(--space-5);
 }
 
 .alert-error {
     background: var(--danger-bg);
     border: 1px solid var(--danger-border);
-    color: #991b1b;
+    color: var(--danger-text);
 }
 
 .alert-warning {
     background: var(--warning-bg);
     border: 1px solid var(--warning-border);
-    color: #92400e;
+    color: var(--warning-text);
 }
 
 /* Full-width status banner for auth failures the backend reports through a
@@ -622,9 +726,13 @@ img {
 }
 
 .share-post:focus {
-    outline: none;
     border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+}
+
+.share-post:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
 }
 
 /* The native share sheet — rendered only where a browser offers one — sits
@@ -904,6 +1012,27 @@ img {
 
 .toast-text {
     color: var(--text-primary);
+}
+
+.toast-dismiss {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: var(--text-base);
+    line-height: 1;
+    padding: var(--space-1);
+    margin-left: auto;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.toast-dismiss:hover,
+.toast-dismiss:focus-visible {
+    color: var(--text-primary);
+    background: var(--surface-muted);
 }
 
 /* ============================================
@@ -1259,6 +1388,58 @@ img {
     border-radius: 2px;
 }
 
+
+.footer-contribute {
+    max-width: 1100px;
+    margin: var(--space-4) auto 0;
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface-muted);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    flex-wrap: wrap;
+}
+
+.footer-contribute-copy h4 {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 2px;
+}
+
+.footer-contribute-copy p {
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+    margin: 0;
+    line-height: 1.5;
+    max-width: 480px;
+}
+
+.footer-contribute-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-sm);
+    padding: var(--space-2) var(--space-4);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+@media (max-width: 600px) {
+    .footer-contribute {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-3);
+    }
+    .footer-contribute-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
 .footer-bottom {
     max-width: 1100px;
     margin: var(--space-5) auto 0;
@@ -1358,6 +1539,27 @@ img {
 
 .toast-text {
     color: var(--text-primary);
+}
+
+.toast-dismiss {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: var(--text-base);
+    line-height: 1;
+    padding: var(--space-1);
+    margin-left: auto;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.toast-dismiss:hover,
+.toast-dismiss:focus-visible {
+    color: var(--text-primary);
+    background: var(--surface-muted);
 }
 
 /* ============================================
@@ -1633,94 +1835,67 @@ img {
 
 
 /* ============================================
-   Login Prompt (inline, when 401)
+   Login Prompt (auth choice, email form, confirmation)
    ============================================ */
 
 .login-prompt {
     display: block;
-    background: var(--surface-muted);
+    background: var(--surface);
+    color: var(--text-primary);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
-    padding: var(--space-4) var(--space-5);
+    padding: var(--space-6);
     margin-top: var(--space-4);
+    text-align: left;
 }
 
 .login-prompt-title {
-    font-size: var(--text-base);
-    font-weight: 700;
-    color: var(--text-primary);
-    margin-bottom: var(--space-1);
-}
-
-.login-prompt-text {
-    font-size: var(--text-sm);
-    color: var(--text-secondary);
-    margin-bottom: var(--space-3);
-    line-height: 1.5;
-}
-
-.login-prompt .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-2);
-}
-
-@media (max-width: 600px) {
-    .login-prompt {
-        padding: var(--space-3) var(--space-4);
-    }
-    .login-prompt .btn {
-        width: 100%;
-        justify-content: center;
-    }
-}
-
-/* ===== Login prompt layout (email + GitHub auth choice) ===== */
-.login-prompt {
-    padding: var(--space-6, 32px);
-    background: #ffffff;
-    border: 1px solid #e5e7eb;
-    border-radius: var(--radius-lg, 12px);
-}
-
-.login-prompt-title {
-    font-size: 22px;
+    font-size: 20px;
     line-height: 1.3;
     font-weight: 700;
-    color: var(--text-primary, #111);
-    margin: 0 0 var(--space-2, 8px) 0;
+    color: var(--text-primary);
+    margin: 0 0 var(--space-2);
     letter-spacing: -0.015em;
 }
 
+.login-prompt-title:focus {
+    outline: none;
+}
+
 .login-prompt-text {
-    color: var(--text-secondary, #4b5563);
-    font-size: var(--text-base, 16px);
-    line-height: 1.5;
+    color: var(--text-secondary);
+    font-size: var(--text-base);
+    line-height: 1.55;
     margin: 0;
 }
 
-.login-prompt-label {
-    display: none;
+.login-prompt-email {
+    color: var(--text-primary);
+    font-weight: 600;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .login-prompt-actions {
     display: flex;
     flex-direction: column;
-    gap: var(--space-3, 12px);
-    margin: var(--space-5, 24px) 0 0 0;
+    gap: var(--space-3);
+    margin: var(--space-5) 0 0;
 }
 
-.login-prompt-actions .btn {
+.login-prompt-actions .btn,
+.login-prompt-form .btn,
+.login-prompt > .btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: var(--space-3, 12px);
+    gap: var(--space-3);
     width: 100%;
-    min-height: 48px;
-    padding: 12px 20px;
-    font-size: var(--text-base, 16px);
+    min-height: 46px;
+    padding: 11px 18px;
+    font-size: var(--text-base);
     font-weight: 600;
-    border-radius: var(--radius-md, 8px);
+    border-radius: var(--radius-md);
     text-decoration: none;
     box-sizing: border-box;
     line-height: 1.2;
@@ -1734,82 +1909,117 @@ img {
 }
 
 .login-prompt-actions .btn-secondary {
-    background: #ffffff;
-    color: var(--text-primary, #111);
-    border: 1px solid #d1d5db;
+    background: var(--surface-muted);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
 }
 
 .login-prompt-actions .btn-secondary:hover {
     background: #ffffff;
-    border-color: var(--accent, #2563eb);
-    color: var(--accent, #2563eb);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.login-prompt .btn:focus-visible,
+.login-prompt .btn-link:focus-visible,
+.login-prompt-form .form-input:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+}
+
+.login-prompt .btn[disabled],
+.login-prompt .btn[aria-busy="true"] {
+    opacity: 0.6;
+    cursor: default;
+}
+
+.login-prompt .btn-link[disabled] {
+    opacity: 0.55;
+    cursor: default;
+    text-decoration: none;
 }
 
 .login-prompt-note {
-    color: var(--text-secondary, #6b7280);
-    font-size: var(--text-sm, 14px);
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
     line-height: 1.5;
-    margin: var(--space-3, 12px) 0 0 0;
+    margin: var(--space-2) 0 0;
 }
 
 .login-prompt-note:first-of-type {
-    margin-top: var(--space-5, 24px);
+    margin-top: var(--space-4);
+}
+
+.login-prompt-status {
+    min-height: 18px;
+    margin: var(--space-3) 0 0;
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+    line-height: 1.5;
 }
 
 .login-prompt-form {
     display: flex;
     flex-direction: column;
-    gap: var(--space-3, 12px);
-    margin: var(--space-5, 24px) 0 0 0;
+    gap: var(--space-3);
+    margin: var(--space-5) 0 0;
+}
+
+.login-prompt-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.login-prompt-field-label {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--text-primary);
 }
 
 .login-prompt-form .form-input {
     width: 100%;
-    padding: 12px 16px;
-    font-size: var(--text-base, 16px);
+    min-height: 46px;
+    padding: 11px 14px;
+    font-size: var(--text-base);
     font-family: inherit;
-    border: 1px solid var(--border, #e5e7eb);
-    border-radius: var(--radius-md, 8px);
-    background: #ffffff;
-    color: var(--text-primary, #111);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    color: var(--text-primary);
     box-sizing: border-box;
 }
 
 .login-prompt-form .form-input:focus {
-    outline: none;
-    border-color: var(--accent, #2563eb);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.login-prompt-form .form-input[aria-invalid="true"] {
+    border-color: #dc2626;
+}
+
+.login-prompt-form .form-input[aria-invalid="true"]:focus {
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.14);
 }
 
 .login-prompt-error {
-    color: #dc2626;
-    font-size: var(--text-sm, 14px);
+    color: #b91c1c;
+    font-size: var(--text-sm);
     line-height: 1.5;
-    min-height: 20px;
-}
-
-.login-prompt-form .btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    min-height: 48px;
-    padding: 12px 20px;
-    font-size: var(--text-base, 16px);
-    font-weight: 600;
-    border-radius: var(--radius-md, 8px);
-    box-sizing: border-box;
+    min-height: 0;
+    margin: 0;
 }
 
 .login-prompt-form .btn-link,
 .login-prompt .btn-link {
     background: none;
     border: none;
-    color: var(--text-muted, #6b7280);
-    font-size: var(--text-sm, 14px);
+    color: var(--text-muted);
+    font-size: var(--text-sm);
     cursor: pointer;
     text-decoration: underline;
-    padding: var(--space-2, 8px) 0 0 0;
+    padding: var(--space-2) 0 0;
     font-family: inherit;
     width: auto;
     min-height: 0;
@@ -1818,5 +2028,77 @@ img {
 
 .login-prompt-form .btn-link:hover,
 .login-prompt .btn-link:hover {
-    color: var(--accent, #2563eb);
+    color: var(--accent);
+}
+
+/* Links that sit directly in the panel (e.g. "Change email") line up with
+   the centred buttons above them. */
+.login-prompt > .btn-link {
+    display: block;
+    width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Next step inside the expired-link banner. */
+.auth-error-banner .auth-error-action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: fit-content;
+    min-height: 40px;
+    margin-top: var(--space-3);
+    padding: 8px 16px;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    border-radius: var(--radius-md);
+}
+
+.breadcrumb-nav {
+    margin-bottom: var(--space-4);
+    font-size: var(--text-sm);
+}
+
+.breadcrumbs {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    color: var(--text-muted);
+}
+
+.breadcrumbs a {
+    color: var(--text-secondary);
+    text-decoration: none;
+}
+
+.breadcrumbs a:hover {
+    color: var(--primary);
+    text-decoration: underline;
+}
+
+.breadcrumbs [aria-current="page"] {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.breadcrumb-separator {
+    color: var(--text-muted);
+    user-select: none;
+}
+
+@media (max-width: 600px) {
+    .login-prompt {
+        padding: var(--space-4);
+    }
+    .login-prompt-title {
+        font-size: 19px;
+    }
+    .login-prompt .btn {
+        width: 100%;
+        justify-content: center;
+    }
 }

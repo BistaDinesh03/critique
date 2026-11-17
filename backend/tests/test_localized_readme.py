@@ -119,6 +119,27 @@ def test_localized_readmes_cover_english_sections():
         )
 
 
+def test_localized_contributing_cover_english_sections():
+    """Localized CONTRIBUTING files keep the same H2 section count as the English file.
+
+    A translated CONTRIBUTING that silently drops a section drifts from the canonical
+    source; this keeps the heading structure aligned.
+    """
+    def h2_count(path: Path) -> int:
+        return sum(
+            1
+            for line in path.read_text(encoding="utf-8").splitlines()
+            if line.startswith("## ")
+        )
+
+    english = h2_count(ROOT / "CONTRIBUTING.md")
+    for _, contributing_name in LOCALIZED.values():
+        count = h2_count(ROOT / contributing_name)
+        assert count == english, (
+            f"{contributing_name} has {count} H2 sections, English has {english}"
+        )
+
+
 # --- Mutation tests: prove the checks above are not hardcoded success. ---
 
 
@@ -168,3 +189,72 @@ def test_detects_missing_backlink(tmp_path):
 
     targets = _selector_targets(localized)
     assert "README.md" not in targets  # backlink absent -> check would fail
+
+
+# --- Test-count drift guard for README testing sections. ---
+
+TESTING_HEADINGS = {
+    "README.md": "Testing",
+    "README.zh-CN.md": "测试",
+    "README.ja.md": "テスト",
+    "README.es.md": "Pruebas",
+}
+
+# Count claims in English, Spanish, Japanese, and Simplified Chinese.
+TEST_COUNT_CLAIM = re.compile(
+    r"(?i:\b\d+\s+(?:tests?|test cases?|pruebas?|casos de prueba)\b)"
+    r"|(?:\d+\s*(?:個の)?テスト(?:ケース)?)"
+    r"|(?:\d+\s*(?:个测试用例|个测试|项测试|次测试|测试))"
+)
+
+
+def _section_content(content: str, heading: str) -> str:
+    """Return a Markdown H2 section's body, excluding the heading and next section."""
+    lines = content.splitlines()
+    start = next(
+        (index for index, line in enumerate(lines) if line.strip() == f"## {heading}"),
+        None,
+    )
+    assert start is not None, f"missing ## {heading} section"
+    end = next(
+        (
+            index
+            for index in range(start + 1, len(lines))
+            if lines[index].startswith("## ")
+        ),
+        len(lines),
+    )
+    return "\n".join(lines[start + 1 : end])
+
+
+def test_readme_testing_sections_do_not_claim_test_counts():
+    """All four README testing sections stay count-free across languages."""
+    for readme_name, heading in TESTING_HEADINGS.items():
+        content = (ROOT / readme_name).read_text(encoding="utf-8")
+        section = _section_content(content, heading)
+        match = TEST_COUNT_CLAIM.search(section)
+        assert match is None, (
+            f"{readme_name} testing section contains a test-count claim: "
+            f"{match.group(0)!r}"
+        )
+
+
+def test_count_guard_detects_reintroduced_claims():
+    """The guard catches a stale count if one is reintroduced in any locale."""
+    clean_lines = {
+        "README.md": "The suite passes cleanly.",
+        "README.zh-CN.md": "测试套件通过所有测试。",
+        "README.ja.md": "テストスイートは正常にパスします。",
+        "README.es.md": "La suite de pruebas pasa correctamente.",
+    }
+    stale_lines = {
+        "README.md": "501 tests currently pass.",
+        "README.zh-CN.md": "目前有 501 个测试通过。",
+        "README.ja.md": "現在 501 個のテストがパスしています。",
+        "README.es.md": "Actualmente pasan 501 pruebas.",
+    }
+    for readme_name, clean_line in clean_lines.items():
+        assert TEST_COUNT_CLAIM.search(clean_line) is None
+        assert TEST_COUNT_CLAIM.search(stale_lines[readme_name]), (
+            f"count guard missed a reintroduced claim in {readme_name}"
+        )
