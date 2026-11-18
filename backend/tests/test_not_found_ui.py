@@ -119,3 +119,28 @@ def test_404_auth_error_falls_back_to_logged_out(tmp_path):
     """When /auth/check fails with 500, falls back to logged out state."""
     result = run(tmp_path, calls=[{"fn": "checkAuth", "args": []}], fetch=CHECK_ERROR)
     assert auth_displays(result) == ("inline", "none")
+
+
+def test_all_public_pages_have_focusable_main_and_skip_link():
+    public_pages = [
+        "index.html",
+        "discover.html",
+        "my_projects.html",
+        "project_detail.html",
+        "project_results.html",
+        "404.html",
+    ]
+
+    for page in public_pages:
+        html = (FRONTEND_DIR / page).read_text(encoding="utf-8")
+        assert re.search(
+            r'<a href="#main-content" class="skip-link">',
+            html,
+        ), f"{page} is missing the skip link"
+        assert re.search(
+            r'<main\b[^>]*\bid="main-content"[^>]*\btabindex="-1"',
+            html,
+        ), f"{page} main landmark is not focusable"
+        assert html.count('id="main-content"') == 1, (
+            f"{page} must contain exactly one main-content landmark"
+        )
