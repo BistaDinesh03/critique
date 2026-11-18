@@ -91,7 +91,9 @@ To run only the frontend-render tests locally:
 python -m pytest tests/ -m frontend_render -q
 ```
 
-For full details on scenario construction and DOM stub capabilities, see the [Frontend Render Test Harness guide](docs/frontend-render-harness.md).
+For a practical guide to scenario JSON, fetch mocks, DOM assertions,
+accessibility checks, and complete test examples, see the
+[Frontend Render Test Harness guide](docs/frontend-render-harness.md).
 
 ## Development Guidelines
 
