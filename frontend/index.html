@@ -1341,7 +1341,7 @@
             <h2 id="real-feedback-title">What builders say</h2>
             <p class="subtitle">Feedback from builders who took a look at Critique.</p>
 
-            <div class="fb-carousel" id="fb-carousel" role="region" aria-roledescription="carousel" aria-label="What builders say">
+            <div class="fb-carousel" id="fb-carousel" role="region" aria-roledescription="carousel" aria-label="What builders say" tabindex="0" aria-keyshortcuts="ArrowLeft ArrowRight Home End Space">
                 <div class="fb-viewport" id="fb-viewport">
                     <ul class="fb-track" id="fb-track" role="list">
                         <li class="fb-slide">
@@ -2468,11 +2468,36 @@
                 touchOrigin = null;
             }
 
+            // Autoplay is disabled, so "paused" is the visitor's stated
+            // preference: it flips aria-live between polite (paused, safe to
+            // announce page changes) and off, and reduced motion starts paused.
+            var paused = state.reducedMotion;
+
+            function applyPaused() {
+                if (root.setAttribute) root.setAttribute('data-paused', paused ? 'true' : 'false');
+                if (track.setAttribute) track.setAttribute('aria-live', paused ? 'polite' : 'off');
+            }
+
             function onKeyDown(e) {
-                var key = e && e.key;
-                if (key !== 'ArrowLeft' && key !== 'ArrowRight') return;
+                if (!e || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+                var tag = e.target && e.target.tagName ? String(e.target.tagName).toUpperCase() : '';
+                if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (e.target && e.target.isContentEditable)) return;
+                var key = e.key;
+                if (key === ' ' || key === 'Spacebar') {
+                    // Buttons keep native Space activation.
+                    if (tag === 'BUTTON' || tag === 'A') return;
+                    paused = !paused;
+                    applyPaused();
+                } else if (key === 'ArrowLeft' || key === 'ArrowRight') {
+                    goTo(state.page + (key === 'ArrowRight' ? 1 : -1));
+                } else if (key === 'Home') {
+                    goTo(0);
+                } else if (key === 'End') {
+                    goTo(state.pages - 1);
+                } else {
+                    return;
+                }
                 if (e.preventDefault) e.preventDefault();
-                goTo(state.page + (key === 'ArrowRight' ? 1 : -1));
             }
 
             function snapshot() {
@@ -2501,7 +2526,9 @@
 
             function setMotionPreference(reduced) {
                 state.reducedMotion = !!reduced;
+                if (state.reducedMotion) paused = true;
                 applyMotionPreference();
+                applyPaused();
             }
 
             // Keep the inline transition in sync with the OS preference so
@@ -2575,6 +2602,7 @@
             }
             applyIdenticons();
             applyMotionPreference();
+            applyPaused();
             refresh();
 
             return {
