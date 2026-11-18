@@ -293,6 +293,7 @@ never commit real credentials.
 | `GITHUB_CLIENT_ID` | GitHub OAuth app client ID | Optional — enables GitHub login |
 | `GITHUB_CLIENT_SECRET` | GitHub OAuth app secret | Optional |
 | `GITHUB_REDIRECT_URI` | OAuth callback URL | `http://127.0.0.1:8000/auth/callback` |
+| `ANALYTICS_OWNER_USERNAMES` | Comma-separated usernames allowed to access the analytics dashboard (case-insensitive; whitespace and empty entries ignored) | Defaults to `BistaDinesh03` when unset. An empty value denies access to all users. |
 | `SESSION_COOKIE_SECURE` | Set `true` behind HTTPS | `false` |
 | `SESSION_COOKIE_MAX_AGE` | Session lifetime in seconds | Optional; `604800` (7 days) |
 | `RESEND_API_KEY` | Resend API key for magic-link emails | Optional — enables email login |

@@ -7,11 +7,12 @@ from sqlalchemy import func
 from app.database import get_db
 from app.models import AnalyticsEvent, User
 from app.auth import get_current_user
+from app.config import settings
 
 router = APIRouter(prefix="/api/analytics", tags=["analytics"])
 
 # Owner usernames allowed to view dashboard
-OWNER_USERNAMES = {"BistaDinesh03"}
+OWNER_USERNAMES = settings.ANALYTICS_OWNER_USERNAMES
 
 
 def _parse_iso_datetime(value: Optional[str], param_name: str) -> Optional[datetime]:
@@ -38,7 +39,8 @@ def get_analytics_dashboard(
     current_user: User = Depends(get_current_user),
 ):
     """Owner-only analytics dashboard with optional date range filtering."""
-    if current_user.username not in OWNER_USERNAMES:
+    username = current_user.username.casefold()
+    if not any(username == owner.casefold() for owner in OWNER_USERNAMES):
         raise HTTPException(status_code=403, detail="Not authorized")
 
     start_dt = _parse_iso_datetime(start, "start")
