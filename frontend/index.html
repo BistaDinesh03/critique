@@ -1240,14 +1240,14 @@
 
             <div class="social-proof" id="social-proof" aria-busy="true">
                 <div class="avatar-stack" id="avatar-stack" aria-hidden="true"><span class="avatar-skeleton skeleton"></span><span class="avatar-skeleton skeleton"></span><span class="avatar-skeleton skeleton"></span><span class="avatar-skeleton skeleton"></span></div>
-                <p class="social-proof-text" id="social-proof-text"><span class="skeleton social-proof-skeleton-line"></span></p>
+                <p class="social-proof-text" id="social-proof-text" aria-live="polite" aria-atomic="true"><span class="skeleton social-proof-skeleton-line"></span></p>
                 <p class="social-proof-sub">
                     Discover real projects. Share thoughtful feedback. Build better together.
                 </p>
             </div>
         </section>
 
-        <section class="stats-grid" id="real-activity" style="display:none;">
+        <section class="stats-grid" id="real-activity" role="status" aria-live="polite" aria-atomic="true" style="display:none;">
             <div class="stat-box">
                 <div class="stat-value" id="stat-projects">0</div>
                 <div class="stat-label">Projects</div>
@@ -1268,6 +1268,7 @@
             <!-- Static placeholder: the project grid paints immediately while
                  /api/projects/ is in flight, and is replaced by real cards,
                  an empty state or a retryable error state. -->
+            <p id="homepage-projects-status" class="sr-only" role="status" aria-live="polite"></p>
             <div id="homepage-projects" class="project-grid" aria-busy="true">
                 <p class="sr-only" role="status">Loading projects&hellip;</p>
                 <div class="skeleton-card" aria-hidden="true">
@@ -1742,6 +1743,8 @@
 
         async function loadHomepageProjects() {
             const container = document.getElementById('homepage-projects');
+            const status = document.getElementById('homepage-projects-status');
+            status.textContent = '';
             try {
                 const response = await fetch('/api/projects/?page=1&page_size=6');
                 if (!response.ok) throw new Error('Request failed: ' + response.status);
@@ -1749,6 +1752,7 @@
 
                 if (data.items.length === 0) {
                     container.innerHTML = '<p style="color:var(--text-muted);grid-column:1/-1;text-align:center;">No projects waiting for feedback yet. Be the first to ask a question.</p>';
+                    status.textContent = 'No projects waiting for feedback yet.';
                     return;
                 }
 
@@ -1780,6 +1784,7 @@
                     html += '</div></div>';
                 });
                 container.innerHTML = html;
+                status.textContent = 'Showing ' + data.items.length + ' project' + (data.items.length === 1 ? '' : 's') + '.';
                 container.querySelectorAll('.project-screenshot').forEach(function(img) {
                     img.addEventListener('error', function() { this.style.display = 'none'; });
                 });
