@@ -328,6 +328,12 @@ authentication flows, SEO endpoints, and frontend rendering through a
 Node-based DOM harness (skipped when Node.js is unavailable). See
 [docs/troubleshooting.md](docs/troubleshooting.md) for local troubleshooting tips.
 
+To see backend line coverage, run this from `backend/` with the test environment above.
+
+```bash
+python -m pytest tests/ -q --cov=app --cov-report=term-missing
+```
+
 ## Architecture & API
 
 An overview of system design and components is available in [docs/architecture.md](docs/architecture.md).

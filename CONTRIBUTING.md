@@ -56,6 +56,20 @@ pytest's own summary (and the CI `test` check) rather than a hardcoded
 count in this file. Install [Node.js](https://nodejs.org) first — the
 frontend-render tests need `node` on PATH and are skipped without it.
 
+### Measure backend coverage
+
+From `backend/`, keep the test environment settings above and run the same
+coverage command as CI.
+
+```bash
+python -m pytest tests/ -q --cov=app --cov-report=term-missing
+```
+
+The report shows executed and missing lines in `backend/app`. Use it to find
+paths that need tests. It does not measure frontend JavaScript coverage.
+
+### Run selected tests
+
 For a faster feedback loop while working on a focused change, run a single
 test file, a specific test function, or tests matching a keyword:
 
