@@ -14,7 +14,7 @@ jobs:
     # Normally task finishes in <2 min; a hang is a bug, so fail fast instead of waiting 6h.
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
@@ -24,7 +24,7 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: "20"
-      - run: python -m pytest tests/ -q
+      - run: python -m pytest tests/ -q --cov=app --cov-report=term-missing
         working-directory: backend
         env:
           # See docs/pull-request-review.md: without this the OAuth state test
@@ -41,8 +41,8 @@ jobs:
   production-deps:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Install production dependencies
