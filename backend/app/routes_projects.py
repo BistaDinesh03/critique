@@ -320,7 +320,17 @@ def get_project(project_id: int, db: Session = Depends(get_db), current_user: Us
         .first()
     )
 
-    return ProjectWithQuestion(project=project, question=question)
+    resp_count = (
+        db.query(func.count(Response.id))
+        .join(Question, Response.question_id == Question.id)
+        .filter(Question.project_id == project_id)
+        .scalar()
+    ) or 0
+    project.response_count = resp_count
+    is_owner = bool(current_user and current_user.id == project.owner_id)
+
+    return ProjectWithQuestion(project=project, question=question, is_owner=is_owner)
+
 
 
 @router.delete("/{project_id}", status_code=204)

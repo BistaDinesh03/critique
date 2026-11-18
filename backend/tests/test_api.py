@@ -116,7 +116,17 @@ def test_get_project_with_question(auth_client):
     data = response.json()
     assert data["project"]["id"] == project_id
     assert data["project"]["title"] == "Akiya Scout"
+    assert data["project"]["response_count"] == 0
+    assert data["is_owner"] is True
     assert data["question"]["text"] == "Can you understand what this website does within 10 seconds?"
+
+    from app.main import app
+    from app.auth import get_current_user_optional
+    app.dependency_overrides[get_current_user_optional] = lambda: None
+    unauth_resp = auth_client.get(f"/api/projects/{project_id}")
+    assert unauth_resp.status_code == 200
+    assert unauth_resp.json()["is_owner"] is False
+    app.dependency_overrides.pop(get_current_user_optional, None)
     cleanup_database()
 
 
