@@ -2127,3 +2127,57 @@ img {
 .reach-metrics strong {
     color: var(--text-primary);
 }
+
+/* ============================================
+   Print
+   ============================================ */
+
+@media print {
+    :root {
+        color-scheme: light;
+        --background: #fff;
+        --surface: #fff;
+        --surface-muted: #fff;
+        --text-primary: #000;
+        --text-secondary: #222;
+        --text-muted: #333;
+        --border: #999;
+        --border-light: #bbb;
+    }
+
+    body {
+        background: #fff;
+        color: #000;
+        min-height: 0;
+    }
+
+    .navbar,
+    .site-footer,
+    .breadcrumb-nav,
+    #toast-container,
+    .btn,
+    button,
+    form,
+    textarea,
+    select,
+    .no-print {
+        display: none !important;
+    }
+
+    .container,
+    .container-wide {
+        max-width: none;
+        padding: 0;
+    }
+
+    main,
+    .card {
+        overflow: visible;
+        box-shadow: none;
+        backdrop-filter: none;
+    }
+
+    .card {
+        break-inside: avoid;
+    }
+}
