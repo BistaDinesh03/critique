@@ -644,6 +644,11 @@ img {
     color: var(--text-secondary);
 }
 
+.badge-success {
+    background: var(--success-bg);
+    color: var(--success-text);
+}
+
 /* ============================================
    Project success & optional sharing
    ============================================ */

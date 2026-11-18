@@ -1622,7 +1622,7 @@
             if (age) {
                 parts.push('<time datetime="' + escapeHtml(project.created_at) + '">' + escapeHtml(age) + '</time>');
             }
-            return parts.join(' \u00b7 ');
+            return parts.join(' \u00b7 ') + (project.has_responded ? ' <span class="badge badge-success">Feedback given</span>' : '');
         }
 
         async function checkAuth() {
