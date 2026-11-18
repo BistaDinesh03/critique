@@ -1740,10 +1740,61 @@
         showAuthExpiredBanner();
         showAuthErrorBanner();
 
+        // Same bounded retry as discover.html: 3 attempts, 1s/2s backoff, 5xx
+        // and network errors retried, 4xx returned as-is.
+        async function fetchWithRetry(url, options, maxRetries) {
+            maxRetries = maxRetries || 3;
+            let lastError;
+            for (let i = 0; i < maxRetries; i++) {
+                const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+                const timer = controller ? setTimeout(function() { controller.abort(); }, 10000) : null;
+                try {
+                    const fetchOpts = Object.assign({}, options);
+                    if (controller) fetchOpts.signal = controller.signal;
+                    const response = await fetch(url, fetchOpts);
+                    if (response.status === 503 || response.status === 500) {
+                        throw new Error('Server waking up');
+                    }
+                    if (!response.ok) {
+                        return response;
+                    }
+                    // Keep attempt deadline active through body consumption
+                    const data = await response.json();
+                    return {
+                        ok: true,
+                        status: response.status,
+                        headers: response.headers,
+                        json: async function() { return data; }
+                    };
+                } catch (e) {
+                    lastError = e;
+                    if (i < maxRetries - 1) {
+                        const delay = Math.min(1000 * Math.pow(2, i), 4000);
+                        console.warn('Retrying ' + url + ' (attempt ' + (i + 2) + '/' + maxRetries + ') in ' + delay + 'ms: ' + (e && e.message));
+                        await new Promise(function(resolve) { setTimeout(resolve, delay); });
+                    }
+                } finally {
+                    if (timer) clearTimeout(timer);
+                }
+            }
+            throw lastError;
+        }
+
+        let homepageSkeletonHtml = null;
+        let homepageProjectsLoading = false;
         async function loadHomepageProjects() {
+            if (homepageProjectsLoading) return;
+            homepageProjectsLoading = true;
             const container = document.getElementById('homepage-projects');
+            // Keep the first skeleton so a manual retry shows the same loading state.
+            if (homepageSkeletonHtml === null) {
+                homepageSkeletonHtml = container.innerHTML;
+            } else {
+                container.innerHTML = homepageSkeletonHtml;
+                container.setAttribute('aria-busy', 'true');
+            }
             try {
-                const response = await fetch('/api/projects/?page=1&page_size=6');
+                const response = await fetchWithRetry('/api/projects/?page=1&page_size=6');
                 if (!response.ok) throw new Error('Request failed: ' + response.status);
                 const data = await response.json();
 
@@ -1802,6 +1853,7 @@
                 box.appendChild(retry);
                 container.appendChild(box);
             } finally {
+                homepageProjectsLoading = false;
                 container.setAttribute('aria-busy', 'false');
             }
         }
@@ -2131,7 +2183,7 @@
             const proofContainer = document.getElementById('social-proof');
             let resolved = false;
             try {
-                const response = await fetch('/api/stats');
+                const response = await fetchWithRetry('/api/stats');
                 if (!response.ok) return;
                 const data = await response.json();
                 resolved = true;
