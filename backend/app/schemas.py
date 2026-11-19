@@ -109,6 +109,7 @@ class ProjectListItem(BaseModel):
     created_at: datetime
     question_text: Optional[str] = None
     response_count: int = 0
+    has_responded: bool = False
 
 
 class QuestionCreate(BaseModel):

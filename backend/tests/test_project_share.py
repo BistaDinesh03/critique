@@ -756,6 +756,19 @@ def test_view_feedback_and_delete_survive_next_to_share(tmp_path):
     assert 'aria-expanded="false"' in content
 
 
+def test_my_projects_cards_link_to_their_own_public_pages(tmp_path):
+    result = run(
+        tmp_path,
+        "my_projects.html",
+        [{"fn": "loadProjects", "args": []}, WAIT_FOR_RENDER],
+        fetch={MY_PROJECTS_URL: {"status": 200, "body": MY_PROJECTS_LIST}},
+    )
+
+    content = result["ids"]["content"]
+    assert '<a href="/project/1" class="btn btn-ghost">View project</a>' in content
+    assert '<a href="/project/2" class="btn btn-ghost">View project</a>' in content
+
+
 # ---------------------------------------------------------------------------
 # Phase 8: security of the new markup
 # ---------------------------------------------------------------------------
