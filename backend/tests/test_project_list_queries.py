@@ -387,3 +387,84 @@ def test_discover_ranking_is_deterministic_and_pages_are_disjoint(seed_projects)
     overlap = set(ids_page1_run1) & set(ids_page2)
     assert not overlap, f"page 1 and page 2 overlap on project ids: {overlap}"
 
+
+def _list_as(user, url=LIST_URL):
+    app.dependency_overrides[get_current_user] = lambda: user
+    from app.auth import get_current_user_optional
+    app.dependency_overrides[get_current_user_optional] = lambda: user
+    try:
+        return client.get(url)
+    finally:
+        app.dependency_overrides.pop(get_current_user, None)
+        app.dependency_overrides.pop(get_current_user_optional, None)
+
+def test_has_responded_marks_only_latest_active_question(sql, seed_projects):
+    """Only the viewer's answer to the current active question counts."""
+    from datetime import datetime
+
+    ids = seed_projects(3)
+    db = SessionLocal()
+    viewer = User(username="viewer_" + uuid.uuid4().hex[:8])
+    other = User(username="other_" + uuid.uuid4().hex[:8])
+    db.add_all([viewer, other])
+    db.commit()
+    q_a = db.query(Question).filter(Question.project_id == ids[0]).one()
+    q_b = db.query(Question).filter(Question.project_id == ids[1]).one()
+    q_c_old = db.query(Question).filter(Question.project_id == ids[2]).one()
+    q_c_old.created_at = datetime(2020, 1, 1)
+    q_c_new = Question(
+        text="Newer question?", project_id=ids[2], is_active=True,
+        created_at=datetime(2021, 1, 1),
+    )
+    db.add(q_c_new)
+    db.commit()
+    kw = dict(clarity="clear", would_use="yes", ip_hash="x" * 64)
+    resp = [
+        Response(question_id=q_a.id, user_id=viewer.id, **kw),
+        Response(question_id=q_b.id, user_id=other.id, **kw),
+        Response(question_id=q_c_old.id, user_id=viewer.id, **kw),
+    ]
+    db.add_all(resp)
+    db.commit()
+    try:
+        anon = client.get(LIST_URL).json()["items"]
+        assert all(i["has_responded"] is False for i in anon)
+
+        items = {i["id"]: i for i in _list_as(viewer).json()["items"]}
+        assert items[ids[0]]["has_responded"] is True
+        assert items[ids[1]]["has_responded"] is False
+        assert items[ids[2]]["has_responded"] is False
+    finally:
+        db.query(Response).filter(Response.id.in_([r.id for r in resp])).delete(
+            synchronize_session=False
+        )
+        db.query(Question).filter(Question.id == q_c_new.id).delete()
+        db.commit()
+        db.query(User).filter(User.id.in_([viewer.id, other.id])).delete(
+            synchronize_session=False
+        )
+        db.commit()
+        db.close()
+
+def test_has_responded_query_count_is_constant(sql, seed_projects):
+    """Signed-in feeds cost the same number of SELECTs for 1 or many projects."""
+    db = SessionLocal()
+    viewer = User(username="viewer_" + uuid.uuid4().hex[:8])
+    db.add(viewer)
+    db.commit()
+    try:
+        seed_projects(1)
+        _list_as(viewer, "/api/projects/?page=1&page_size=50")
+        sql.clear()
+        _list_as(viewer, "/api/projects/?page=1&page_size=50")
+        few = len(selects(sql))
+
+        seed_projects(5)
+        sql.clear()
+        _list_as(viewer, "/api/projects/?page=1&page_size=50")
+        many = len(selects(sql))
+        assert many == few, f"{few} selects for few projects, {many} for many"
+    finally:
+        db.query(User).filter(User.id == viewer.id).delete()
+        db.commit()
+        db.close()
