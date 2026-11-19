@@ -948,6 +948,59 @@ var CritiqueUI = (function() {
         return label;
     }
 
+    // ============ GLOBAL ERROR HANDLER ============
+    // Logs unhandled errors and shows one non-blocking notice. Never calls
+    // preventDefault (DevTools still reports) and never shows error details.
+    function showGlobalErrorNotice() {
+        if (document.getElementById('global-error-notice') || !document.body) return;
+        var box = document.createElement('div');
+        box.id = 'global-error-notice';
+        box.setAttribute('data-global-error', '');
+        box.setAttribute('role', 'alert');
+        box.setAttribute('aria-live', 'assertive');
+        box.style.cssText = 'position:fixed;left:50%;bottom:16px;transform:translateX(-50%);' +
+            'z-index:10000;max-width:92vw;display:flex;gap:12px;align-items:center;flex-wrap:wrap;' +
+            'padding:12px 16px;border-radius:8px;background:#1f2937;color:#fff;' +
+            'box-shadow:0 4px 16px rgba(0,0,0,.3);font:14px/1.4 system-ui,sans-serif;';
+
+        var msg = document.createElement('span');
+        msg.textContent = 'Something went wrong on this page. Reloading may fix it.';
+        box.appendChild(msg);
+
+        [['reload', 'Reload', function() { window.location.reload(); }],
+         ['dismiss', 'Dismiss', function() { box.remove(); }]].forEach(function(a) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.setAttribute('data-error-action', a[0]);
+            btn.textContent = a[1];
+            btn.style.cssText = 'cursor:pointer;padding:6px 12px;border-radius:6px;border:1px solid #fff;' +
+                'background:' + (a[0] === 'reload' ? '#fff' : 'transparent') + ';' +
+                'color:' + (a[0] === 'reload' ? '#1f2937' : '#fff') + ';font:inherit;';
+            btn.addEventListener('click', a[2]);
+            box.appendChild(btn);
+        });
+        document.body.appendChild(box);
+    }
+
+    function isBenignError(message, err) {
+        if (err && err.name === 'AbortError') return true;
+        return /ResizeObserver loop/.test(String(message || ''));
+    }
+
+    function handleGlobalError(message, err) {
+        if (isBenignError(message, err)) return;
+        console.error('Unhandled error:', err || message);
+        showGlobalErrorNotice(); // ponytail: no-op while a notice is up, which dedupes error loops
+    }
+
+    window.addEventListener('error', function(e) {
+        handleGlobalError(e.message, e.error);
+    });
+    window.addEventListener('unhandledrejection', function(e) {
+        var r = e.reason;
+        handleGlobalError(r && r.message, r);
+    });
+
     return {
         readReducedMotion: readReducedMotion,
         scrollBehavior: scrollBehavior,
