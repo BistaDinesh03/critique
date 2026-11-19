@@ -597,6 +597,11 @@ async function main() {
   };
 
   const localStorage = makeStorage();
+  if (scenario.localStorage && typeof scenario.localStorage === 'object') {
+    Object.keys(scenario.localStorage).forEach((k) => {
+      localStorage.setItem(k, scenario.localStorage[k]);
+    });
+  }
   const sessionStorage = makeStorage();
 
   const analyticsStub = {
@@ -625,8 +630,14 @@ async function main() {
       return null;
     },
     scrollTo() {},
-    matchMedia() {
-      return { matches: false, addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {} };
+    matchMedia(query) {
+      let matches = false;
+      if (scenario.matchMedia && typeof scenario.matchMedia === 'object' && query in scenario.matchMedia) {
+        matches = !!scenario.matchMedia[query];
+      } else if (scenario.prefersColorScheme === 'dark' && query === '(prefers-color-scheme: dark)') {
+        matches = true;
+      }
+      return { matches, addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {} };
     },
     getComputedStyle() {
       return { getPropertyValue() { return ''; } };
@@ -1071,6 +1082,7 @@ async function main() {
     hidden: !!el.hidden,
     role: el.getAttribute ? el.getAttribute('role') : null,
     ariaExpanded: el.getAttribute ? el.getAttribute('aria-expanded') : null,
+    ariaPressed: el.getAttribute ? el.getAttribute('aria-pressed') : null,
     ariaLabel: el.getAttribute ? el.getAttribute('aria-label') : null,
     // Loading placeholders are announced through aria-busy and hidden with
     // display, so tests can assert that a placeholder actually resolved
