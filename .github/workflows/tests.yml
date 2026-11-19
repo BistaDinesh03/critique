@@ -24,7 +24,7 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: "20"
-      - run: python -m pytest tests/ -q
+      - run: python -m pytest tests/ -q --cov=app --cov-report=term-missing
         working-directory: backend
         env:
           # See docs/pull-request-review.md: without this the OAuth state test

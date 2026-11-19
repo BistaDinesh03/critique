@@ -111,3 +111,103 @@ def test_project_page_escapes_html_and_truncates_length():
     assert '&lt;script&gt;alert' in resp.text
     assert '<b>bold' not in resp.text
     assert '&lt;b&gt;bold &amp; dangerous&lt;/b&gt;' in resp.text
+
+
+# --- project detail: parallel loading and inline responses retry -----------
+
+import json
+import shutil
+import subprocess
+
+pytestmark = [
+    pytest.mark.frontend_render,
+    pytest.mark.skipif(shutil.which("node") is None, reason="node is required"),
+]
+_FRONTEND = Path(__file__).resolve().parent.parent.parent / "frontend"
+_HARNESS = Path(__file__).resolve().parent / "frontend_render_harness.js"
+_DETAIL = {
+    "project": {"id": 7, "title": "Ship the thing", "description": "Short", "image_url": None,
+                "url": None, "response_count": 1},
+    "question": {"id": 1, "text": "Is the pricing clear?", "is_active": True},
+    "is_owner": False,
+}
+_LISTED = [{"clarity": "very_clear", "would_use": "yes", "suggestion": "Looks great"}]
+
+
+def _run_detail(tmp_path, calls, fetch):
+    scenario = {"page": (_FRONTEND / "project_detail.html").as_posix(), "calls": calls,
+                "read": {"byId": "content"}, "fetch": fetch, "location": "/project/7"}
+    f = tmp_path / "scenario.json"
+    f.write_text(json.dumps(scenario), encoding="utf-8")
+    proc = subprocess.run(["node", str(_HARNESS), str(f)], capture_output=True, text=True,
+                          encoding="utf-8", timeout=120)
+    assert proc.returncode == 0, proc.stderr
+    result = json.loads(proc.stdout)
+    assert result["errors"] == [], result["errors"]
+    return result
+
+
+def _urls(result):
+    return [r["url"] for r in result["requests"] if r["method"] == "GET"]
+
+
+def test_project_detail_renders_form_while_responses_are_pending(tmp_path):
+    result = _run_detail(
+        tmp_path,
+        [{"fn": "loadProject", "args": []}],
+        {"/responses": {"pending": True}, "/api/projects/7": {"status": 200, "body": _DETAIL}},
+    )
+    assert _urls(result) == ["/api/projects/7", "/api/projects/7/responses"]
+    html = result["html"]
+    assert "Ship the thing" in html and "Is the pricing clear?" in html
+    assert 'id="response-form"' in html
+    assert "Loading written feedback" in html
+    assert "0 responses" not in html
+
+
+def test_project_detail_failed_responses_show_retry_not_empty(tmp_path):
+    for failure in ({"status": 500, "body": {}}, {"networkError": True}):
+        result = _run_detail(
+            tmp_path,
+            [{"fn": "loadProject", "args": []}],
+            {"/responses": failure, "/api/projects/7": {"status": 200, "body": _DETAIL}},
+        )
+        assert 'id="response-form"' in result["html"] and "Ship the thing" in result["html"]
+        section = result["ids"]["responses-section"]
+        assert "Couldn't load written feedback." in section
+        assert '<button type="button" class="btn btn-secondary" id="responses-retry">Retry</button>' in section
+        assert "0 responses" not in result["html"] and "response-item" not in section
+
+
+def test_project_detail_retry_refetches_only_responses_and_keeps_form_input(tmp_path):
+    result = _run_detail(
+        tmp_path,
+        [
+            {"fn": "loadProject", "args": []},
+            {"checkInput": {"name": "clarity", "value": "confusing"}},
+            {"clickId": "responses-retry"},
+        ],
+        {
+            "/responses": [{"status": 500, "body": {}}, {"status": 200, "body": _LISTED}],
+            "/api/projects/7": {"status": 200, "body": _DETAIL},
+        },
+    )
+    urls = _urls(result)
+    assert urls.count("/api/projects/7") == 1
+    assert urls.count("/api/projects/7/responses") == 2
+    assert "Looks great" in result["ids"]["responses-section"]
+    assert "Couldn't load written feedback." not in result["ids"]["responses-section"]
+    assert 'id="response-form"' in result["html"]
+
+
+def test_project_detail_project_failure_keeps_full_page_retry(tmp_path):
+    for project in ({"status": 404, "body": {}}, {"networkError": True}):
+        result = _run_detail(
+            tmp_path,
+            [{"fn": "loadProject", "args": []}],
+            {"/responses": {"networkError": True}, "/api/projects/7": project},
+        )
+        classes = [m["className"] for m in result["createdMeta"]]
+        assert "error-state" in classes
+        assert any(m["text"] == "Try again" for m in result["createdMeta"])
+        assert "responses-retry" not in result["ids"]
