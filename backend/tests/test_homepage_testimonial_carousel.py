@@ -681,6 +681,75 @@ def test_keyboard_arrows_navigate(tmp_path):
     assert result2["values"]["left"]["page"] == 0
 
 
+def key_calls(*keys, target_tag="DIV", extra="", reduced=False):
+    """Harness calls: add 4 slides, press each key on the carousel root.
+
+    Returns the state plus data-paused/aria-live/preventDefault counts.
+    """
+    presses = "".join(
+        f"h.fn({{key: '{k}', target: {{tagName: '{target_tag}'}}{extra}, "
+        "preventDefault: function () { prevented++; }});"
+        for k in keys
+    )
+    motion = "CritiqueTestimonials.setMotionPreference(true);" if reduced else ""
+    return [
+        add_slides(4),
+        {
+            "evaluate": (
+                motion
+                + "var prevented = 0;"
+                "var root = document.getElementById('fb-carousel');"
+                "var h = root.handlers.filter(function (x) { return x.type === 'keydown'; })[0];"
+                + presses
+                + "({state: CritiqueTestimonials.state(), prevented: prevented,"
+                "paused: root.getAttribute('data-paused'),"
+                "live: document.getElementById('fb-track').getAttribute('aria-live')})"
+            ),
+            "as": "k",
+        },
+    ]
+
+def test_carousel_root_is_focusable_with_keyboard_hint():
+    src = source()
+    assert 'id="fb-carousel" role="region" aria-roledescription="carousel"' in src
+    root = src[src.index('id="fb-carousel"'):]
+    root = root[: root.index(">")]
+    assert 'tabindex="0"' in root
+    assert "aria-keyshortcuts" in root
+
+def test_home_and_end_jump_to_first_and_last_page(tmp_path):
+    res = run(tmp_path, "index.html", key_calls("End"))["values"]["k"]
+    assert res["state"]["page"] == 1 and res["prevented"] == 1
+    res = run(tmp_path, "index.html", key_calls("End", "Home"))["values"]["k"]
+    assert res["state"]["page"] == 0 and res["prevented"] == 2
+
+def test_arrow_keys_prevent_page_scroll(tmp_path):
+    res = run(tmp_path, "index.html", key_calls("ArrowRight", "ArrowLeft"))["values"]["k"]
+    assert res["state"]["page"] == 0 and res["prevented"] == 2
+
+def test_space_toggles_pause_and_play_with_aria_state(tmp_path):
+    res = run(tmp_path, "index.html", key_calls(" "))["values"]["k"]
+    assert res["paused"] == "true" and res["live"] == "polite" and res["prevented"] == 1
+    res = run(tmp_path, "index.html", key_calls(" ", " "))["values"]["k"]
+    assert res["paused"] == "false" and res["live"] == "off"
+    # Space never changes the page.
+    assert res["state"]["page"] == 0
+
+def test_reduced_motion_starts_paused_and_stays_paused_after_keys(tmp_path):
+    res = run(tmp_path, "index.html", key_calls("ArrowRight", reduced=True))["values"]["k"]
+    assert res["paused"] == "true" and res["live"] == "polite"
+    assert res["state"]["reducedMotion"] is True and res["state"]["page"] == 1
+
+def test_keys_in_unrelated_controls_are_not_hijacked(tmp_path):
+    for tag in ("INPUT", "TEXTAREA", "SELECT"):
+        res = run(tmp_path, "index.html", key_calls("ArrowRight", "End", " ", target_tag=tag))["values"]["k"]
+        assert res["prevented"] == 0 and res["state"]["page"] == 0
+    # Native button activation keeps Space/Enter; modified keys pass through.
+    res = run(tmp_path, "index.html", key_calls(" ", target_tag="BUTTON"))["values"]["k"]
+    assert res["prevented"] == 0 and res["paused"] != "true"
+    res = run(tmp_path, "index.html", key_calls("ArrowRight", extra=", altKey: true"))["values"]["k"]
+    assert res["prevented"] == 0 and res["state"]["page"] == 0
+
 # ---------------------------------------------------------------------------
 # 12. Accessibility extras
 # ---------------------------------------------------------------------------
