@@ -356,3 +356,95 @@ def test_discover_requests_the_list_once_per_render(tmp_path):
     )
     list_requests = [r for r in result["requests"] if "/api/projects/" in r["url"]]
     assert len(list_requests) == 1, f"list fetched {len(list_requests)}x: {result['requests']}"
+
+# ---------------------------------------------------------------------------
+# Homepage fetches retry transient failures with bounded backoff
+# ---------------------------------------------------------------------------
+
+# The page loads once on its own while the harness sets up, which consumes
+# three failing responses (the retry bound); the explicit call that follows
+# then starts from the responses listed after them.
+SETUP_FAILURES = [{"status": 503, "body": {}}] * 3
+
+def _count(result, needle):
+    return sum(1 for r in result["requests"] if needle in r["url"])
+
+def test_homepage_projects_retry_transient_failure_then_render(tmp_path):
+    result = run(
+        tmp_path,
+        "index.html",
+        [{"fn": "loadHomepageProjects", "args": []}],
+        fetch={PROJECTS_URL: SETUP_FAILURES + [
+            {"status": 503, "body": {}},
+            {"networkError": True},
+            {"status": 200, "body": {"items": [PROJECT_ITEM]}},
+        ]},
+    )
+    assert _count(result, "/api/projects/") == 3
+    assert "Ship the thing" in result["ids"]["homepage-projects"]
+    assert "error-state" not in result["ids"]["homepage-projects"]
+
+def test_homepage_projects_retries_are_bounded_then_error_and_retry_recovers(tmp_path):
+    result = run(
+        tmp_path,
+        "index.html",
+        [
+            {"fn": "loadHomepageProjects", "args": []},
+            {"clickCreatedContaining": "Try again"},
+        ],
+        fetch={PROJECTS_URL: SETUP_FAILURES + SETUP_FAILURES + [
+            {"status": 200, "body": {"items": [PROJECT_ITEM]}},
+        ]},
+    )
+    # 3 bounded attempts, then exactly one more from the click; no extras.
+    assert _count(result, "/api/projects/") == 4
+    assert "Ship the thing" in result["ids"]["homepage-projects"]
+    assert "error-state" not in result["ids"]["homepage-projects"]
+    assert result["flags"]["homepage-projects"]["ariaBusy"] == "false"
+
+def test_homepage_projects_exhausted_retries_show_error_state(tmp_path):
+    result = run(
+        tmp_path,
+        "index.html",
+        [{"fn": "loadHomepageProjects", "args": []}],
+        fetch={PROJECTS_URL: {"status": 503, "body": {}}},
+    )
+    assert _count(result, "/api/projects/") == 3
+    assert "Couldn't load projects" in result["html"]
+    assert any(m["text"] == "Try again" for m in result["createdMeta"])
+
+def test_homepage_projects_client_error_is_not_retried(tmp_path):
+    result = run(
+        tmp_path,
+        "index.html",
+        [{"fn": "loadHomepageProjects", "args": []}],
+        fetch={PROJECTS_URL: {"status": 404, "body": {}}},
+    )
+    assert _count(result, "/api/projects/") == 1
+    assert "Couldn't load projects" in result["html"]
+
+def test_homepage_stats_retry_transient_failure_then_render(tmp_path):
+    body = {"total_builders": 2, "total_projects": 5, "builders": []}
+    result = run(
+        tmp_path,
+        "index.html",
+        [{"fn": "loadSocialProof", "args": []}],
+        fetch={"/api/stats": SETUP_FAILURES + [
+            {"status": 500, "body": {}},
+            {"status": 200, "body": body},
+        ]},
+    )
+    assert _count(result, "/api/stats") == 2
+    assert result["flags"]["social-proof"]["display"] == "flex"
+    assert "Join 2 members" in result["ids"]["social-proof-text"]
+
+def test_homepage_stats_retries_are_bounded_and_show_no_counts(tmp_path):
+    result = run(
+        tmp_path,
+        "index.html",
+        [{"fn": "loadSocialProof", "args": []}],
+        fetch={"/api/stats": {"status": 503, "body": {}}},
+    )
+    assert _count(result, "/api/stats") == 3
+    assert result["flags"]["social-proof"]["display"] == "none"
+    assert result["flags"]["social-proof"]["ariaBusy"] == "false"
