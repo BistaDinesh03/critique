@@ -3,10 +3,11 @@
 Phases 6-8 of the UX pass asked the lists to say *when* a project was shared
 and *how much help* it already has, without inventing a single number. The
 timestamps were already in the list response (``created_at``), so this is
-pure frontend work: one small formatter per page (no date library), a meta
-line built from the response count plus that timestamp, and header copy that
-describes what the backend really returns instead of claiming "trending" or
-"active now" -- activity this product does not track.
+pure frontend work: one shared locale-aware formatter in ``static/ui.js``
+(no date library), a meta line built from the response count plus that
+timestamp, and header copy that describes what the backend really returns
+instead of claiming "trending" or "active now" -- activity this product does
+not track.
 
 These tests run the page's real JavaScript inside the Node rendering harness
 (formatting is unit-tested through ``formatAge`` directly) and read the card
@@ -113,7 +114,14 @@ def test_format_age_reports_fresh_projects_in_plain_language(tmp_path, page):
         ],
     )
 
-    assert labels == ["Just now", "45m ago", "2h ago", "5h ago", "Yesterday", "3 days ago"]
+    assert all(labels)
+    assert len(set(labels)) == 6
+    assert labels[0] == "Just now"
+    assert "45" in labels[1]
+    assert "2" in labels[2]
+    assert "5" in labels[3]
+    assert labels[4] == "Yesterday"
+    assert "3" in labels[5]
 
 
 @pytest.mark.parametrize("page", PAGES_WITH_FORMATTER)
@@ -189,9 +197,10 @@ def test_discover_card_shows_question_count_age_and_action(tmp_path):
     assert html.index("Ship the thing") < html.index("A short description")
     assert html.index("A short description") < html.index("Is the pricing clear?")
     # Then how much help it already has, and how recently it was shared.
+    expected_age = ages(tmp_path, "discover.html", [item["created_at"]])[0]
     assert "3 responses" in html
-    assert "5h ago" in html
-    assert '<time datetime="' + item["created_at"] + '">' in html
+    assert "5" in expected_age
+    assert f'<time datetime="{item["created_at"]}">{expected_age}</time>' in html
     # The action, named for assistive technology and pointing at the project.
     assert "Give feedback" in html
     assert '<a href="/project/7"' in html
@@ -277,9 +286,10 @@ def test_homepage_preview_shows_description_question_count_and_age(tmp_path):
     assert html.index("Ship the thing") < html.index("A short description")
     assert html.index("A short description") < html.index("Is the pricing clear?")
     assert "Question: Is the pricing clear?" in html
+    expected_age = ages(tmp_path, "index.html", [item["created_at"]])[0]
     assert "2 responses" in html
-    assert "3 days ago" in html
-    assert '<time datetime="' + item["created_at"] + '">' in html
+    assert "3" in expected_age
+    assert f'<time datetime="{item["created_at"]}">{expected_age}</time>' in html
     assert "Give feedback" in html
 
 
@@ -300,3 +310,137 @@ def test_discover_header_describes_what_the_backend_actually_returns():
     lowered = source.lower()
     for claim in ("trending", "active now", "live now", "just posted"):
         assert claim not in lowered, claim
+
+
+# ---------------------------------------------------------------------------
+# Shared formatter, localization, and Intl fallback (Issue #768)
+# ---------------------------------------------------------------------------
+
+
+def test_only_one_format_age_implementation_exists(tmp_path):
+    static_dir = BACKEND_DIR.parent / "static"
+    matches = []
+    for folder in (FRONTEND_DIR, static_dir):
+        for path in sorted(folder.iterdir()):
+            if path.is_file() and path.suffix in (".html", ".js"):
+                text = path.read_text(encoding="utf-8")
+                count = text.count("function formatAge")
+                if count:
+                    matches.append((path.relative_to(BACKEND_DIR.parent).as_posix(), count))
+
+    assert matches == [("static/ui.js", 1)]
+
+    for page in PAGES_WITH_FORMATTER:
+        result = run(
+            tmp_path,
+            page,
+            [
+                {
+                    "evaluate": (
+                        "typeof window.formatAge === 'function' && "
+                        "window.CritiqueUI && "
+                        "window.formatAge === window.CritiqueUI.formatAge"
+                    ),
+                    "as": "exposed",
+                }
+            ],
+        )
+        assert result["values"]["exposed"] is True
+
+
+def test_format_age_localizes_for_non_english_locales(tmp_path):
+    now = datetime.now(timezone.utc)
+
+    def ago(**kwargs):
+        return (now - timedelta(**kwargs)).strftime("%Y-%m-%dT%H:%M:%S")
+
+    stamps = [
+        ago(seconds=10),
+        ago(minutes=45),
+        ago(hours=2, minutes=5),
+        ago(hours=26),
+        ago(days=3, hours=2),
+        "2025-01-05T12:00:00Z",
+    ]
+
+    fr_calls = [
+        {"evaluate": f"formatAge({json.dumps(stamp)}, 'fr')", "as": f"fr{i}"}
+        for i, stamp in enumerate(stamps)
+    ]
+    fr_calls.append(
+        {
+            "evaluate": (
+                "(function(){ document.documentElement.lang = 'fr'; "
+                f"return formatAge({json.dumps(stamps[3])}); }})()"
+            ),
+            "as": "doc_lang_fr",
+        }
+    )
+    fr_res = run(tmp_path, "discover.html", fr_calls)
+    fr_vals = [fr_res["values"][f"fr{i}"] for i in range(len(stamps))]
+    assert fr_vals[0] == "maintenant"
+    assert "45" in fr_vals[1] and "min" in fr_vals[1]
+    assert "2" in fr_vals[2] and "h" in fr_vals[2]
+    assert fr_vals[3] == "Hier"
+    assert fr_res["values"]["doc_lang_fr"] == "Hier"
+    assert "3" in fr_vals[4] and "jour" in fr_vals[4]
+    assert "2025" in fr_vals[5] and "5" in fr_vals[5]
+
+    es_calls = [
+        {"evaluate": f"formatAge({json.dumps(stamp)}, 'es')", "as": f"es{i}"}
+        for i, stamp in enumerate(stamps)
+    ]
+    es_calls.append(
+        {
+            "evaluate": (
+                "(function(){ navigator.language = 'es'; "
+                f"return formatAge({json.dumps(stamps[0])}); }})()"
+            ),
+            "as": "nav_lang_es",
+        }
+    )
+    es_res = run(tmp_path, "index.html", es_calls)
+    es_vals = [es_res["values"][f"es{i}"] for i in range(len(stamps))]
+    assert es_vals[0] == "ahora"
+    assert es_res["values"]["nav_lang_es"] == "ahora"
+    assert "45" in es_vals[1] and "hace" in es_vals[1]
+    assert "2" in es_vals[2] and "hace" in es_vals[2]
+    assert es_vals[3] == "Ayer"
+    assert "3" in es_vals[4] and "hace" in es_vals[4]
+    assert "2025" in es_vals[5] and "5" in es_vals[5]
+
+
+@pytest.mark.parametrize("page", PAGES_WITH_FORMATTER)
+def test_format_age_falls_back_cleanly_without_intl(tmp_path, page):
+    now = datetime.now(timezone.utc)
+
+    def ago(**kwargs):
+        return (now - timedelta(**kwargs)).strftime("%Y-%m-%dT%H:%M:%S")
+
+    old = now - timedelta(days=40)
+    stamps = [
+        ago(seconds=10),
+        ago(minutes=45),
+        ago(hours=2, minutes=5),
+        ago(hours=5, minutes=5),
+        ago(hours=26),
+        ago(days=3, hours=2),
+        old.strftime("%Y-%m-%dT%H:%M:%S"),
+    ]
+    expr = (
+        "(function(){ var orig = Intl; Intl = undefined; try { "
+        + "return "
+        + json.dumps(stamps)
+        + ".map(function(s){ return formatAge(s); }); "
+        + "} finally { Intl = orig; } })()"
+    )
+    result = run(tmp_path, page, [{"evaluate": expr, "as": "fallback"}])
+    assert result["values"]["fallback"] == [
+        "Just now",
+        "45m ago",
+        "2h ago",
+        "5h ago",
+        "Yesterday",
+        "3 days ago",
+        short_date(old),
+    ]
