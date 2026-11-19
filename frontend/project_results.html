@@ -9,6 +9,7 @@
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link rel="apple-touch-icon" href="/static/logo.png">
     <link rel="mask-icon" href="/static/favicon.svg" color="#2563eb">
+    <link rel="alternate" type="application/rss+xml" title="Critique - new projects" href="/feed.xml">
     <link rel="stylesheet" href="/static/shared.css">
     <style>
         .back-link {
@@ -587,12 +588,26 @@
             html += '</header>';
 
             if (total === 0) {
+                const hasQuestion = Boolean(data.question_text);
+                let emptyMessage;
+                let primaryLabel;
+                if (data.is_owner) {
+                    emptyMessage = hasQuestion
+                        ? 'Waiting for the first response. Share your project to start collecting honest feedback.'
+                        : 'This project has no active question yet.';
+                    primaryLabel = hasQuestion ? 'Get more feedback' : 'Open project';
+                } else {
+                    emptyMessage = hasQuestion
+                        ? 'Be the first to give feedback on this project.'
+                        : 'This project does not have an active question yet.';
+                    primaryLabel = hasQuestion ? 'Give feedback' : 'View project';
+                }
                 html += '<div class="empty-state">';
                 html += '<h3>No feedback yet</h3>';
-                html += '<p>Share your project to start collecting honest feedback.</p>';
+                html += '<p>' + emptyMessage + '</p>';
                 html += '</div>';
                 html += '<div class="action-buttons centered">';
-                html += '<a href="/project/' + escapeHtml(projectId) + '" class="btn btn-primary">Get more feedback</a>';
+                html += '<a href="/project/' + escapeHtml(projectId) + '" class="btn btn-primary">' + primaryLabel + '</a>';
                 html += '<a href="/discover" class="btn btn-secondary">Discover projects</a>';
                 html += '</div>';
                 content.innerHTML = html;
