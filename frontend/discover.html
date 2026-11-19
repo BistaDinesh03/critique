@@ -25,6 +25,7 @@
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link rel="apple-touch-icon" href="/static/logo.png">
     <link rel="mask-icon" href="/static/favicon.svg" color="#2563eb">
+    <link rel="alternate" type="application/rss+xml" title="Critique - new projects" href="/feed.xml">
     <link rel="stylesheet" href="/static/shared.css">
     <style>
         .page-title {
@@ -306,7 +307,7 @@
             if (age) {
                 parts.push('<time datetime="' + escapeHtml(project.created_at) + '">' + escapeHtml(age) + '</time>');
             }
-            return parts.join(' \u00b7 ');
+            return parts.join(' \u00b7 ') + (project.has_responded ? ' <span class="badge badge-success">Feedback given</span>' : '');
         }
 
         function setListBusy(busy, message) {
