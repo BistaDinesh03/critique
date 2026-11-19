@@ -387,24 +387,73 @@
             currentUserId = uid ? String(uid) : null;
         }
 
+        function fetchResponses() {
+            return fetch('/api/projects/' + projectId + '/responses').then(function(res) {
+                if (!res.ok) throw new Error('Could not load responses');
+                return res.json();
+            }).then(function(list) {
+                if (!Array.isArray(list)) throw new Error('Invalid responses');
+                return list;
+            });
+        }
+
+        function showResponsesError() {
+            const section = document.getElementById('responses-section');
+            if (!section) return;
+            section.setAttribute('aria-busy', 'false');
+            section.innerHTML = '<div class="error-state" role="alert"><p>Couldn\'t load written feedback.</p><button type="button" class="btn btn-secondary" id="responses-retry">Retry</button></div>';
+            const retry = document.getElementById('responses-retry');
+            if (retry) retry.addEventListener('click', function() {
+                retry.disabled = true;
+                retry.textContent = 'Retrying\u2026';
+                section.setAttribute('aria-busy', 'true');
+                fetchResponses().then(renderResponses, showResponsesError);
+            });
+        }
+
+        // Only the responses section is touched, so a half-filled feedback form
+        // keeps its state however late (or often) the list arrives.
+        function renderResponses(responses) {
+            const section = document.getElementById('responses-section');
+            if (!section) return;
+            section.setAttribute('aria-busy', 'false');
+            section.innerHTML = responsesHtml(responses);
+            const badge = document.getElementById('owner-response-count');
+            if (badge) {
+                badge.textContent = responses.length + ' ' + (responses.length === 1 ? 'response' : 'responses');
+            }
+        }
+
+        function responsesHtml(responses) {
+            let html = '';
+            if (responses.length > 0) {
+                html += '<div class="eyebrow">Responses</div>';
+                html += '<div class="responses-list"><h3>' + responses.length + ' response' + (responses.length !== 1 ? 's' : '') + '</h3>';
+                responses.forEach(function(r) {
+                    html += '<div class="response-item"><div class="response-meta"><span>Clarity: ' + clarityLabel(r.clarity) + '</span><span>Would use: ' + wouldUseLabel(r.would_use) + '</span></div>';
+                    if (r.suggestion) html += '<p class="response-suggestion">' + escapeHtml(r.suggestion) + '</p>';
+                    html += '</div>';
+                });
+                html += '</div>';
+            }
+            return html;
+        }
+
         async function loadProject() {
             const content = document.getElementById('content');
             try {
-                const projectRes = await fetch('/api/projects/' + projectId);
+                // Both requests start together; the page paints as soon as the
+                // project arrives and the list fills in on its own.
+                const projectPromise = fetch('/api/projects/' + projectId);
+                const responsesPromise = fetchResponses();
+                // Handled here so a failed project never leaves this one unhandled.
+                responsesPromise.catch(function() {});
+                const projectRes = await projectPromise;
                 if (!projectRes.ok) throw new Error('Project not found');
                 const projectData = await projectRes.json();
 
-                let responses = [];
-                try {
-                    const responsesRes = await fetch('/api/projects/' + projectId + '/responses');
-                    if (responsesRes.ok) {
-                        responses = await responsesRes.json();
-                    }
-                } catch (err) {
-                    console.warn('Could not load responses:', err);
-                }
-
-                renderProject(projectData, responses);
+                renderProject(projectData);
+                responsesPromise.then(renderResponses, showResponsesError);
             } catch (e) {
                 // The placeholder is never the end state: a real message plus a
                 // way to try again if the backend is slow or unreachable.
@@ -468,7 +517,7 @@
             let html = '';
             html += '<div class="project-header-row"><h1 class="project-title">' + escapeHtml(p.title);
             if (data.is_owner || (Array.isArray(responses) && responses.length > 0)) {
-                const count = responses && responses.length > 0 ? responses.length : (p.response_count || 0);
+                const count = Array.isArray(responses) && responses.length > 0 ? responses.length : (p.response_count || 0);
                 html += ' <span class="badge response-count-badge" id="owner-response-count">' + count + ' ' + (count === 1 ? 'response' : 'responses') + '</span>';
             }
             html += '</h1>';
@@ -511,15 +560,10 @@
                     details += '<img class="project-screenshot" src="' + escapeHtml(p.image_url) + '" alt="' + altText + '" loading="lazy" onerror="this.style.display=\'none\'">';
                 }
                 if (details) { html += '<div class="eyebrow">About this project</div><div class="project-header" style="margin-top: var(--space-5);">' + details + '</div>'; }
-                if (responses.length > 0) {
-                    html += '<div class="eyebrow">Responses</div>';
-                    html += '<div class="responses-list"><h3>' + responses.length + ' response' + (responses.length !== 1 ? 's' : '') + '</h3>';
-                    responses.forEach(function(r) {
-                        html += '<div class="response-item"><div class="response-meta"><span>Clarity: ' + clarityLabel(r.clarity) + '</span><span>Would use: ' + wouldUseLabel(r.would_use) + '</span></div>';
-                        if (r.suggestion) html += '<p class="response-suggestion">' + escapeHtml(r.suggestion) + '</p>';
-                        html += '</div>';
-                    });
-                    html += '</div>';
+                if (Array.isArray(responses)) {
+                    html += '<div id="responses-section" aria-live="polite" aria-busy="false">' + responsesHtml(responses) + '</div>';
+                } else {
+                    html += '<div id="responses-section" aria-live="polite" aria-busy="true"><p class="form-helper" role="status">Loading written feedback\u2026</p></div>';
                 }
             }
             content.innerHTML = html;
