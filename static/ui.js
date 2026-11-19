@@ -860,6 +860,94 @@ var CritiqueUI = (function() {
         initSharedUI();
     }
 
+    // ============ DATE / AGE FORMATTING ============
+    // Real age from a UTC/ISO timestamp: localized via Intl when available,
+    // falling back to classic English strings when Intl is unavailable.
+    function formatAge(value, locale) {
+        if (!value) return '';
+        var iso = String(value);
+        if (!/[zZ]$|[+-]\d{2}:?\d{2}$/.test(iso)) {
+            iso += /[Tt]/.test(iso) ? 'Z' : 'T00:00:00Z';
+        }
+        var then = new Date(iso);
+        if (isNaN(then.getTime())) return '';
+        var diff = Date.now() - then.getTime();
+        if (diff < 0) diff = 0;
+
+        var resolvedLocale = locale ||
+            (typeof document !== 'undefined' && document.documentElement && document.documentElement.lang) ||
+            (typeof navigator !== 'undefined' && navigator.language) ||
+            undefined;
+
+        var hasRtf = typeof Intl !== 'undefined' && typeof Intl.RelativeTimeFormat === 'function';
+        var hasDtf = typeof Intl !== 'undefined' && typeof Intl.DateTimeFormat === 'function';
+
+        var minutes = Math.floor(diff / 60000);
+        if (minutes < 1) {
+            if (hasRtf) {
+                try {
+                    var rtfAuto = new Intl.RelativeTimeFormat(resolvedLocale, { numeric: 'auto' });
+                    var effectiveLocale = (rtfAuto.resolvedOptions && rtfAuto.resolvedOptions().locale) || resolvedLocale || '';
+                    if (String(effectiveLocale).toLowerCase().indexOf('en') === 0) {
+                        return 'Just now';
+                    }
+                    return rtfAuto.format(0, 'second');
+                } catch (e) {}
+            }
+            return 'Just now';
+        }
+        if (minutes < 60) {
+            if (hasRtf) {
+                try {
+                    return new Intl.RelativeTimeFormat(resolvedLocale, { numeric: 'always', style: 'short' }).format(-minutes, 'minute');
+                } catch (e) {}
+            }
+            return minutes + 'm ago';
+        }
+        var hours = Math.floor(minutes / 60);
+        if (hours < 24) {
+            if (hasRtf) {
+                try {
+                    return new Intl.RelativeTimeFormat(resolvedLocale, { numeric: 'always', style: 'short' }).format(-hours, 'hour');
+                } catch (e) {}
+            }
+            return hours + 'h ago';
+        }
+        var days = Math.floor(hours / 24);
+        if (days === 1) {
+            if (hasRtf) {
+                try {
+                    var dayLabel = new Intl.RelativeTimeFormat(resolvedLocale, { numeric: 'auto' }).format(-1, 'day');
+                    return dayLabel ? dayLabel.charAt(0).toUpperCase() + dayLabel.slice(1) : 'Yesterday';
+                } catch (e) {}
+            }
+            return 'Yesterday';
+        }
+        if (days < 7) {
+            if (hasRtf) {
+                try {
+                    return new Intl.RelativeTimeFormat(resolvedLocale, { numeric: 'always', style: 'long' }).format(-days, 'day');
+                } catch (e) {}
+            }
+            return days + ' days ago';
+        }
+        var sameYear = then.getUTCFullYear() === new Date().getUTCFullYear();
+        if (hasDtf) {
+            try {
+                var opts = sameYear
+                    ? { month: 'short', day: 'numeric', timeZone: 'UTC' }
+                    : { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' };
+                return new Intl.DateTimeFormat(resolvedLocale, opts).format(then);
+            } catch (e) {}
+        }
+        var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        var label = months[then.getUTCMonth()] + ' ' + then.getUTCDate();
+        if (!sameYear) {
+            label += ', ' + then.getUTCFullYear();
+        }
+        return label;
+    }
+
     return {
         readReducedMotion: readReducedMotion,
         scrollBehavior: scrollBehavior,
@@ -870,6 +958,13 @@ var CritiqueUI = (function() {
         initNavLogin: initNavLogin,
         initThemeToggle: initThemeToggle,
         toggleTheme: toggleTheme,
-        getEffectiveTheme: getEffectiveTheme
+        getEffectiveTheme: getEffectiveTheme,
+        formatAge: formatAge
     };
 })();
+
+var formatAge = CritiqueUI.formatAge;
+if (typeof window !== 'undefined') {
+    window.CritiqueUI = CritiqueUI;
+    window.formatAge = formatAge;
+}

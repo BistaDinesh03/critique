@@ -64,6 +64,7 @@
             }
         } catch (e) {}
     </script>
+    <link rel="alternate" type="application/rss+xml" title="Critique - new projects" href="/feed.xml">
     <link rel="stylesheet" href="/static/shared.css">
     <style>
         .hero {
@@ -1567,6 +1568,7 @@
         </section>
     </main>
 
+    <script src="/static/ui.js"></script>
     <script>
         function getCsrfToken() {
             const cookies = document.cookie.split(';');
@@ -1589,38 +1591,6 @@
                 .replace(/'/g, '&#39;');
         }
 
-        // The real age of a project, straight from its own created_at:
-        // "2h ago" while it is fresh, a plain date once it is not. No date
-        // library, no invented activity. The API serves UTC timestamps
-        // without an offset ("2026-09-02T11:04:38.392996"), so a value with
-        // no offset is pinned to UTC rather than read as the visitor's local
-        // zone -- otherwise the same project would age differently per user.
-        function formatAge(value) {
-            if (!value) return '';
-            var iso = String(value);
-            if (!/[zZ]$|[+-]\d{2}:?\d{2}$/.test(iso)) {
-                iso += /[Tt]/.test(iso) ? 'Z' : 'T00:00:00Z';
-            }
-            var then = new Date(iso);
-            if (isNaN(then.getTime())) return '';
-            var diff = Date.now() - then.getTime();
-            if (diff < 0) diff = 0;
-            var minutes = Math.floor(diff / 60000);
-            if (minutes < 1) return 'Just now';
-            if (minutes < 60) return minutes + 'm ago';
-            var hours = Math.floor(minutes / 60);
-            if (hours < 24) return hours + 'h ago';
-            var days = Math.floor(hours / 24);
-            if (days === 1) return 'Yesterday';
-            if (days < 7) return days + ' days ago';
-            var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            var label = months[then.getUTCMonth()] + ' ' + then.getUTCDate();
-            if (then.getUTCFullYear() !== new Date().getUTCFullYear()) {
-                label += ', ' + then.getUTCFullYear();
-            }
-            return label;
-        }
-
         // Response count and age on one line: "3 responses · 2h ago". Both
         // parts come from the API, a missing part never leaves a dangling
         // separator behind, and the age stays machine-readable.
@@ -1631,7 +1601,7 @@
             if (age) {
                 parts.push('<time datetime="' + escapeHtml(project.created_at) + '">' + escapeHtml(age) + '</time>');
             }
-            return parts.join(' \u00b7 ');
+            return parts.join(' \u00b7 ') + (project.has_responded ? ' <span class="badge badge-success">Feedback given</span>' : '');
         }
 
         async function checkAuth() {
@@ -2195,7 +2165,6 @@
         }
 
     </script>
-    <script src="/static/ui.js"></script>
     <script src="/static/analytics_events.js"></script>
 <script src="/static/analytics.js"></script>
     <script src="/static/share.js"></script>

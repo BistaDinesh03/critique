@@ -235,13 +235,14 @@ def test_rendered_output_escapes_user_controlled_content(tmp_path):
 # ---------------------------------------------------------------------------
 
 
-def test_zero_responses_renders_empty_state_with_both_actions(tmp_path):
+def test_zero_responses_renders_visitor_empty_state(tmp_path):
     html = render_results(
         tmp_path,
         results_data(
             0,
             {"very_clear": 0, "mostly_clear": 0, "confusing": 0},
             {"yes": 0, "maybe": 0, "no": 0},
+            owner=False,
         ),
     )
 
@@ -249,8 +250,62 @@ def test_zero_responses_renders_empty_state_with_both_actions(tmp_path):
     assert "0 total responses" in html
     # The question is preserved even with no answers yet.
     assert "Would you understand this in 10 seconds?" in html
-    # Both standard actions, no bars, no broken arithmetic.
-    assert "Get more feedback" in html
+    assert "Be the first to give feedback on this project." in html
+    assert 'href="/project/1" class="btn btn-primary">Give feedback</a>' in html
+    assert 'href="/discover" class="btn btn-secondary">Discover projects</a>' in html
+    assert "Share your project" not in html
+    assert "Get more feedback" not in html
+
+
+def test_zero_responses_renders_owner_empty_state(tmp_path):
+    html = render_results(
+        tmp_path,
+        results_data(
+            0,
+            {"very_clear": 0, "mostly_clear": 0, "confusing": 0},
+            {"yes": 0, "maybe": 0, "no": 0},
+            owner=True,
+        ),
+    )
+
+    assert "No feedback yet" in html
+    assert "Waiting for the first response. Share your project to start collecting honest feedback." in html
+    assert 'href="/project/1" class="btn btn-primary">Get more feedback</a>' in html
+    assert 'href="/discover" class="btn btn-secondary">Discover projects</a>' in html
+    assert "Be the first to give feedback on this project." not in html
+
+
+def test_zero_responses_without_active_question_speaks_accurately(tmp_path):
+    visitor_html = render_results(
+        tmp_path,
+        results_data(
+            0,
+            {"very_clear": 0, "mostly_clear": 0, "confusing": 0},
+            {"yes": 0, "maybe": 0, "no": 0},
+            owner=False,
+            question=None,
+        ),
+    )
+    assert "No feedback yet" in visitor_html
+    assert "This project does not have an active question yet." in visitor_html
+    assert 'href="/project/1" class="btn btn-primary">View project</a>' in visitor_html
+    assert "Share your project" not in visitor_html
+    assert "Be the first to give feedback" not in visitor_html
+
+    owner_html = render_results(
+        tmp_path,
+        results_data(
+            0,
+            {"very_clear": 0, "mostly_clear": 0, "confusing": 0},
+            {"yes": 0, "maybe": 0, "no": 0},
+            owner=True,
+            question=None,
+        ),
+    )
+    assert "No feedback yet" in owner_html
+    assert "This project has no active question yet." in owner_html
+    assert 'href="/project/1" class="btn btn-primary">Open project</a>' in owner_html
+    assert "Share your project" not in owner_html
 
 
 def test_results_page_supports_print_styling_and_export_button(tmp_path):
