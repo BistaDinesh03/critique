@@ -250,6 +250,7 @@
         </nav>
     </main>
 
+    <script src="/static/ui.js"></script>
     <script>
         let currentPage = 1;
         const pageSize = 9;
@@ -266,37 +267,6 @@
                 .replace(/>/g, '&gt;')
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#39;');
-        }
-
-        // Real age from the project's own created_at: "2h ago" while it is
-        // fresh, a plain date once it is not. No date library, and nothing
-        // invented -- a project with no timestamp simply shows no age. The
-        // API serves UTC timestamps without an offset, so those are pinned
-        // to UTC instead of being read in the visitor's local zone.
-        function formatAge(value) {
-            if (!value) return '';
-            var iso = String(value);
-            if (!/[zZ]$|[+-]\d{2}:?\d{2}$/.test(iso)) {
-                iso += /[Tt]/.test(iso) ? 'Z' : 'T00:00:00Z';
-            }
-            var then = new Date(iso);
-            if (isNaN(then.getTime())) return '';
-            var diff = Date.now() - then.getTime();
-            if (diff < 0) diff = 0;
-            var minutes = Math.floor(diff / 60000);
-            if (minutes < 1) return 'Just now';
-            if (minutes < 60) return minutes + 'm ago';
-            var hours = Math.floor(minutes / 60);
-            if (hours < 24) return hours + 'h ago';
-            var days = Math.floor(hours / 24);
-            if (days === 1) return 'Yesterday';
-            if (days < 7) return days + ' days ago';
-            var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            var label = months[then.getUTCMonth()] + ' ' + then.getUTCDate();
-            if (then.getUTCFullYear() !== new Date().getUTCFullYear()) {
-                label += ', ' + then.getUTCFullYear();
-            }
-            return label;
         }
 
         // "Needs feedback · 3 days ago": the two facts a visitor needs before
@@ -551,7 +521,6 @@ async function loadProjects(page) {
 
             try { checkAuth(); } catch(e) {}
     </script>
-    <script src="/static/ui.js"></script>
     <script src="/static/analytics_events.js"></script>
 <script src="/static/analytics.js"></script>
     <script>trackPageView();</script>
