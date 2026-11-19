@@ -14,6 +14,7 @@
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link rel="apple-touch-icon" href="/static/logo.png">
     <link rel="mask-icon" href="/static/favicon.svg" color="#2563eb">
+    <link rel="alternate" type="application/rss+xml" title="Critique - new projects" href="/feed.xml">
     <link rel="stylesheet" href="/static/shared.css">
     <style>
         .container {
@@ -319,6 +320,7 @@
                     }
                     html += '<div><span class="' + pillClass + '">' + pillText + '</span></div>';
                     html += '<div class="card-actions">';
+                    html += '<a href="/project/' + p.id + '" class="btn btn-ghost">View project</a>';
                     html += '<a href="/project/' + p.id + '/results" class="btn btn-primary">View Feedback</a>';
                     html += '<button type="button" onclick="toggleShare(this)" data-project="' + p.id + '" data-title="' + escapeHtml(p.title) + '" aria-expanded="false" aria-controls="share-row-' + p.id + '" class="btn btn-secondary">Share</button>';
                     html += '<span class="spacer"></span>';
