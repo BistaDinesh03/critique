@@ -766,10 +766,98 @@ var CritiqueUI = (function() {
         });
     }
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initNavLogin);
-    } else {
+    // ============ THEME TOGGLE ============
+    var THEME_STORAGE_KEY = 'critique-theme';
+
+    function getStoredTheme() {
+        try {
+            var saved = localStorage.getItem(THEME_STORAGE_KEY);
+            return (saved === 'dark' || saved === 'light') ? saved : null;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function getSystemPrefersDark() {
+        try {
+            if (typeof window !== 'undefined' && window.matchMedia) {
+                var mq = window.matchMedia('(prefers-color-scheme: dark)');
+                return !!(mq && mq.matches);
+            }
+        } catch (e) {}
+        return false;
+    }
+
+    function getEffectiveTheme() {
+        var attr = document.documentElement && document.documentElement.getAttribute
+            ? document.documentElement.getAttribute('data-theme')
+            : null;
+        if (attr === 'dark' || attr === 'light') return attr;
+        var stored = getStoredTheme();
+        if (stored) return stored;
+        return getSystemPrefersDark() ? 'dark' : 'light';
+    }
+
+    function syncThemeButton(btn) {
+        if (!btn) return;
+        var isDark = getEffectiveTheme() === 'dark';
+        btn.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+        btn.setAttribute('aria-label', isDark ? 'Switch to light theme' : 'Switch to dark theme');
+        btn.setAttribute('title', isDark ? 'Switch to light theme' : 'Switch to dark theme');
+    }
+
+    function applyTheme(theme) {
+        if (theme !== 'dark' && theme !== 'light') return;
+        if (document.documentElement && document.documentElement.setAttribute) {
+            document.documentElement.setAttribute('data-theme', theme);
+        }
+        try {
+            localStorage.setItem(THEME_STORAGE_KEY, theme);
+        } catch (e) {}
+        syncThemeButton(document.getElementById('theme-toggle'));
+    }
+
+    function toggleTheme() {
+        var next = getEffectiveTheme() === 'dark' ? 'light' : 'dark';
+        applyTheme(next);
+        return next;
+    }
+
+    function initThemeToggle() {
+        var stored = getStoredTheme();
+        if (stored && document.documentElement && document.documentElement.setAttribute) {
+            document.documentElement.setAttribute('data-theme', stored);
+        }
+        var btn = document.getElementById('theme-toggle');
+        if (!btn || btn.dataset.themeInit === 'true') return;
+        btn.dataset.themeInit = 'true';
+        syncThemeButton(btn);
+        btn.addEventListener('click', function() {
+            toggleTheme();
+        });
+        try {
+            if (typeof window !== 'undefined' && window.matchMedia) {
+                var mq = window.matchMedia('(prefers-color-scheme: dark)');
+                var onChange = function() {
+                    if (!getStoredTheme()) {
+                        syncThemeButton(btn);
+                    }
+                };
+                if (mq && mq.addEventListener) mq.addEventListener('change', onChange);
+                else if (mq && mq.addListener) mq.addListener(onChange);
+            }
+        } catch (e) {}
+    }
+
+    function initSharedUI() {
         initNavLogin();
+        initThemeToggle();
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initSharedUI);
+    } else {
+        initSharedUI();
     }
 
     return {
@@ -779,6 +867,9 @@ var CritiqueUI = (function() {
         showConfirmModal: showConfirmModal,
         renderAuthChoice: renderAuthChoice,
         renderEmailForm: renderEmailForm,
-        initNavLogin: initNavLogin
+        initNavLogin: initNavLogin,
+        initThemeToggle: initThemeToggle,
+        toggleTheme: toggleTheme,
+        getEffectiveTheme: getEffectiveTheme
     };
 })();
