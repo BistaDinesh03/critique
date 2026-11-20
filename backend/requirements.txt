@@ -8,5 +8,5 @@ sqlalchemy==2.1.8
 itsdangerous==2.2.0
 psycopg[binary]==3.3.9
 resend==2.53.2
-playwright==1.49.1
+playwright==1.65.1
 Pillow==13.0.0
