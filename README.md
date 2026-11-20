@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/logo-readme.svg#svgView(viewBox(0,0,64,47.5))" alt="Critique" width="72" />
+  <img src="docs/logo-readme.svg" alt="Critique" width="72" />
 </p>
 
 <h1 align="center">Critique</h1>
@@ -16,9 +16,11 @@
 
 <p align="center">
   <a href="https://github.com/BistaDinesh03/critique/actions/workflows/tests.yml"><img src="https://github.com/BistaDinesh03/critique/actions/workflows/tests.yml/badge.svg" alt="Tests" /></a>
+  <a href="https://github.com/BistaDinesh03/critique/actions/workflows/visual-tests.yml"><img src="https://github.com/BistaDinesh03/critique/actions/workflows/visual-tests.yml/badge.svg" alt="Visual tests" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/BistaDinesh03/critique" alt="License: MIT" /></a>
   <a href="https://github.com/BistaDinesh03/critique/stargazers"><img src="https://img.shields.io/github/stars/BistaDinesh03/critique?style=social" alt="GitHub stars" /></a>
   <a href="https://github.com/BistaDinesh03/critique/network/members"><img src="https://img.shields.io/github/forks/BistaDinesh03/critique?style=social" alt="GitHub forks" /></a>
+  <a href="https://github.com/BistaDinesh03/critique/commits/main"><img src="https://img.shields.io/github/last-commit/BistaDinesh03/critique" alt="Last commit" /></a>
 </p>
 
 <p align="center">
@@ -26,7 +28,9 @@
   <a href="https://critique.page/discover">Explore projects</a> ·
   <a href="https://github.com/BistaDinesh03/critique">Source code</a> ·
   <a href="https://github.com/BistaDinesh03/critique/issues">Issues</a> ·
-  <a href="CONTRIBUTING.md">Contributing</a>
+  <a href="https://github.com/BistaDinesh03/critique/discussions">Discussions</a> ·
+  <a href="CONTRIBUTING.md">Contributing</a> ·
+  <a href="SECURITY.md">Security</a>
 </p>
 
 <p align="center">
@@ -36,15 +40,38 @@
   <a href="README.es.md">Español</a>
 </p>
 
+## Contents
+
+- [See Critique in action](#see-critique-in-action)
+- [The problem](#the-problem)
+- [The solution](#the-solution)
+- [How it works](#how-it-works)
+- [Features](#features)
+- [Feedback model](#feedback-model)
+- [Feedback badge](#feedback-badge)
+- [Try Critique](#try-critique)
+- [Screenshots](#screenshots)
+- [Built with](#built-with)
+- [Architecture](#architecture)
+- [Getting started](#getting-started)
+- [Environment variables](#environment-variables)
+- [Database](#database)
+- [Testing](#testing)
+- [Architecture & API](#architecture--api)
+- [Security & privacy](#security--privacy)
+- [Deployment](#deployment)
+- [Contributing](#contributing)
+- [Open source](#open-source)
+- [License](#license)
+
 ## See Critique in action
 
 A 62-second walkthrough of the real product: the homepage, the Discover feed, a
 project page, and the feedback results a builder receives.
 
-![Animated GIF preview of the Critique walkthrough: the homepage headline "Stop getting 'Looks good.'" above Get feedback on my project and Give feedback to a builder, followed by the Discover feed's project cards](docs/videos/critique-overview-preview.gif)
+![Animated GIF preview of the Critique walkthrough](docs/videos/critique-overview-preview.gif)
 
 Want the full walkthrough? [Watch the 62-second video.](https://dineshbista.com.np/critique/watch.html)
-
 The GIF above is a 12-second preview. The full walkthrough runs 62 seconds with
 no audio, and the watch-page player starts only when you press Play. Prefer the
 original file? Use the [direct MP4 link](https://dineshbista.com.np/critique/videos/critique-overview.mp4)
@@ -89,15 +116,19 @@ AI-generated responses.
 - **Discover** — a public feed of projects asking for feedback, ranked
   deterministically (need, freshness, question quality, and more)
 - **My Projects** — manage your submissions and revisit results
-- **Results dashboard** — totals, distribution bars, and written feedback for
-  each project
+- **Results dashboard** — totals, distribution bars, written feedback, and CSV
+  export for each project
 - **One focused question** — every project asks a single question, and two
   fixed rating questions make responses easy to scan and compare
 - **Private written suggestions** — attached to the project, visible only to
   its owner
 - **Simple sharing** — post to X or Reddit, or copy the link, right after
   submitting or from My Projects
+- **Back to top** — accessible scroll-to-top control on long pages
+- **Print styles** — clean printing for project detail and results pages
 - **Dynamic badge** — a live SVG response count for your README
+- **Configurable analytics** — analytics dashboard owner allowlist via
+  `ANALYTICS_OWNER_USERNAMES`
 - **Sign-in options** — GitHub OAuth or a passwordless email magic link
 - **Privacy-conscious** — no raw IP addresses stored, no third-party tracking
   scripts, minimal analytics data
@@ -154,6 +185,18 @@ The count is rendered from the database on each request.
 [Explore projects](https://critique.page/discover) ·
 [Share your project](https://critique.page/)
 
+## Screenshots
+
+Real screenshots of the running application.
+
+<p align="center">
+  <img src="docs/assets/home.png" alt="Critique homepage" width="900" />
+</p>
+
+<p align="center">
+  <img src="docs/assets/discover.png" alt="Critique Discover feed" width="900" />
+</p>
+
 ## Built with
 
 | Layer | Technology |
@@ -163,7 +206,7 @@ The count is rendered from the database on each request.
 | Datastores | SQLite (development), PostgreSQL (production) |
 | Frontend | Vanilla HTML/CSS/JavaScript — no build step |
 | Authentication | GitHub OAuth and passwordless email (Resend) |
-| Deployment | Render (`render.yaml`) |
+| Deployment | Render web service (`render.yaml`) + Neon PostgreSQL |
 
 ## Architecture
 
@@ -177,7 +220,6 @@ FastAPI — routes, auth, CSRF, rate limiting
    │  SQLAlchemy ORM queries
    ▼
 SQLAlchemy — models, validation, migrations
-   │
    ▼
 SQLite (development)  /  PostgreSQL (production)
 ```
@@ -217,7 +259,7 @@ frontend/                     HTML pages (vanilla JS, no build step)
 static/                       CSS, JS, logos, favicon
 docs/                         Setup guides, architecture, and API reference
 scripts/                      Local launcher and maintainer scripts
-.github/                      GitHub Actions CI (workflows/tests.yml)
+.github/                      GitHub Actions CI (tests.yml, visual-tests.yml)
 render.yaml                   Deployment config
 ```
 
@@ -286,7 +328,7 @@ never commit real credentials.
 
 | Variable | Purpose | Default / notes |
 |---|---|---|
-| `APP_ENV` | Environment identifier | `development`. Feeds `settings.is_production`, which currently has no active runtime callers outside enforcing non-empty `SECRET_KEY` on startup; reserved for future production-only behavior (such as HSTS in [#45](https://github.com/BistaDinesh03/critique/issues/45)). |
+| `APP_ENV` | Environment identifier | `development`. Reserved for future production-only behavior; currently enforces a non-empty `SECRET_KEY` on startup. |
 | `APP_URL` | Public base URL | `http://127.0.0.1:8000` |
 | `SECRET_KEY` | Signs session tokens and OAuth state | Required in production (the app refuses to start without it); outside production, an unset value uses a random per-process key, so sessions do not survive a restart. Generate: `python -c "import secrets; print(secrets.token_hex(32))"` |
 | `DATABASE_URL` | Database connection string | `sqlite:///./critique.db`; use PostgreSQL in production |
@@ -305,8 +347,8 @@ Development uses SQLite (`critique.db`, gitignored) — the default when
 `DATABASE_URL` is unset. On startup the app runs `init_db()`, which creates
 tables and applies lightweight, additive migrations for both SQLite and
 PostgreSQL, so there is no separate migration step. Production uses
-PostgreSQL, with `DATABASE_URL` provided by the hosting environment and kept
-out of the repository.
+PostgreSQL on Neon, with `DATABASE_URL` provided by the hosting environment
+and kept out of the repository.
 
 ## Testing
 
@@ -323,21 +365,23 @@ $env:GITHUB_CLIENT_ID = "ci-test-client-id"
 python -m pytest tests/ -q
 ```
 
-The suite passes cleanly. It covers API behavior, CSRF, rate limiting,
-ownership checks, privacy rules, ranking, XSS, analytics validation,
-authentication flows, SEO endpoints, and frontend rendering through a
-Node-based DOM harness (skipped when Node.js is unavailable). See
-[docs/troubleshooting.md](docs/troubleshooting.md) for local troubleshooting tips.
+The suite covers API behavior, CSRF, rate limiting, ownership checks, privacy
+rules, ranking, XSS, analytics validation, authentication flows, SEO endpoints,
+and frontend rendering through a Node-based DOM harness (skipped when Node.js
+is unavailable). See [docs/troubleshooting.md](docs/troubleshooting.md) for local
+troubleshooting tips.
 
-To see backend line coverage, run this from `backend/` with the test environment above.
+To see backend line coverage:
 
 ```bash
+cd backend
 python -m pytest tests/ -q --cov=app --cov-report=term-missing
 ```
 
 ## Architecture & API
 
-An overview of system design and components is available in [docs/architecture.md](docs/architecture.md).
+An overview of system design and components is available in
+[docs/architecture.md](docs/architecture.md).
 
 The JSON API is documented in [docs/api.md](docs/api.md). Major categories:
 
@@ -372,7 +416,7 @@ Critique is designed with security and privacy in mind:
 
 | Protection | Behavior |
 |---|---|
-| **CSRF protection** | Double-submit cookie with an `X-CSRF-Token` header on all state-changing requests; sessions live in an `HttpOnly`, `SameSite=Lax` cookie, with `Secure` when `SESSION_COOKIE_SECURE=true` (Render sets this) |
+| **CSRF protection** | Double-submit cookie with an `X-CSRF-Token` header on all state-changing requests; sessions live in an `HttpOnly`, `SameSite=Lax` cookie, with `Secure` when `SESSION_COOKIE_SECURE=true` |
 | **Rate limiting** | Auth and email login, project creation and deletion, feedback submission, and analytics |
 | **Input validation** | Pydantic validation on every request body, with strict field patterns for feedback values |
 | **XSS protection** | User-controlled output is escaped in the frontend and covered by XSS regression tests |
@@ -387,35 +431,24 @@ vulnerability.
 
 ## Deployment
 
-Deployment is configured in `render.yaml`: a Render web service with a
-PostgreSQL database. `APP_ENV=production` and `SESSION_COOKIE_SECURE=true`
-are set there; secrets — `DATABASE_URL`, `SECRET_KEY`, OAuth credentials,
-and email keys — are marked `sync: false` and entered manually in the Render
-dashboard, never stored in the repository. See `render.yaml` for the full
-list of expected variables.
+Deployment is configured in `render.yaml`: a Render web service with
+`APP_ENV=production` and `SESSION_COOKIE_SECURE=true` set there; secrets —
+`DATABASE_URL`, `SECRET_KEY`, OAuth credentials, and email keys — are marked
+`sync: false` and entered manually in the Render dashboard, never stored in
+the repository. PostgreSQL runs on Neon. See `render.yaml` for the full list
+of expected variables.
 
-## Product analytics
+## Product analytics (historical)
 
-> **Analytics snapshot** — point-in-time event totals. The reporting period
-> was not supplied, so these cannot be dated or reconciled. Event counts,
-> not unique users.
+The repository contains two historical analytics snapshots. They were supplied
+at different times, do not carry a reporting period, and do not agree with
+each other. Neither is presented as current.
 
-![Critique product analytics overview](docs/assets/analytics-overview.svg)
+- [Detailed HTML report](docs/analytics-snapshot.html)
+- [SVG snapshot](docs/assets/analytics-overview.svg)
 
-The dashboard shows four primary metrics — unique visitors, project views,
-feedback starts, and successful submissions — plus the submission error rate
-as an improvement opportunity. All values are event counts, not unique-user
-conversion rates.
-
-Live dashboard: https://critique.page/api/analytics/dashboard
-
-> **Two snapshots exist, and they differ.** The figure shown above is
-> `docs/analytics-snapshot.svg`. The
-> [HTML analytics report](docs/analytics-snapshot.html) is the detailed view of
-> a *separate* snapshot, supplied at a different time. The two do not carry the
-> same totals, and neither supplied a reporting period, so neither can be dated.
-> Neither supersedes the other: both are left exactly as supplied and neither is
-> presented as current.
+The live dashboard is available to authorized owners at
+`https://critique.page/api/analytics/dashboard`.
 
 ## Contributing
 
@@ -436,39 +469,29 @@ one issue from claiming it to opening a pull request.
 Participation is covered by [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
 **Looking for something to work on?** Use the
-[contributor opportunities list](docs/contributor-opportunities.md). It is
-checked against the live tracker and only lists issues that are open,
-unassigned, not claimed in a comment, and not attached to an open pull request,
-so anything on it is genuinely available. The older
-[docs/issue-roadmap.md](docs/issue-roadmap.md) is a dated historical record from
-2026-10-17 — read it for context, not for a task. Issues are also labeled by
-area (`frontend`, `backend`, `tests`, `accessibility`, `security`, `performance`),
-and questions are welcome in [issue #1](https://github.com/BistaDinesh03/critique/issues/1)
-before you begin.
-
-### Good issues to contribute
-
-A short snapshot of currently open, unclaimed starting points:
-
-| # | Issue | Difficulty | Labels |
-|---|-------|------------|--------|
-| [#77](https://github.com/BistaDinesh03/critique/issues/77) | Add a `<noscript>` notice to the pages that render their content with `fetch()` | Beginner | `frontend`, `good first issue` |
-| [#21](https://github.com/BistaDinesh03/critique/issues/21) | Add `pytest-cov`, document the command, and surface coverage in CI | Beginner | `tests`, `good first issue` |
-| [#18](https://github.com/BistaDinesh03/critique/issues/18) | Add a question issue template that points at GitHub Discussions | Beginner | `documentation`, `good first issue` |
-| [#143](https://github.com/BistaDinesh03/critique/issues/143) | Add a scheduled weekly run of the test suite | Beginner | `tests`, `good first issue` |
-| [#765](https://github.com/BistaDinesh03/critique/issues/765) | Make the skip link move focus to the main landmark on every page | Beginner | `accessibility`, `frontend`, `good first issue` |
-| [#772](https://github.com/BistaDinesh03/critique/issues/772) | Document a single-project API response example | Beginner | `documentation`, `good first issue` |
-
-This table is a snapshot and will go stale. Check the
-[verified list](docs/contributor-opportunities.md) or the
-[live issue tracker](https://github.com/BistaDinesh03/critique/issues) before
-starting.
+[verified contributor opportunities list](docs/contributor-opportunities.md).
+It is checked against the live tracker and only lists issues that are open,
+unassigned, not claimed in a comment, and not attached to an open pull
+request, so anything on it is genuinely available. The older
+[docs/issue-roadmap.md](docs/issue-roadmap.md) is a dated historical record
+from 2026-10-17 — read it for context, not for a task. Issues are also
+labeled by area (`frontend`, `backend`, `tests`, `accessibility`, `security`,
+`performance`), and questions are welcome in
+[issue #1](https://github.com/BistaDinesh03/critique/issues/1) before you
+begin.
 
 Contributors are also encouraged to spend a little time using Critique
 itself — submitting a project or giving feedback — before their first pull
 request. [CONTRIBUTING.md](CONTRIBUTING.md) explains the guideline and its
 exceptions; it is a way to understand the product, not a barrier to
 contributing.
+
+### Good issues to contribute
+
+This table is a snapshot and will go stale. Check the
+[verified list](docs/contributor-opportunities.md) or the
+[live issue tracker](https://github.com/BistaDinesh03/critique/issues) before
+starting.
 
 ## Open source
 
@@ -478,8 +501,8 @@ Critique is open source under the MIT License. The complete implementation
 Issues and pull requests are welcome.
 
 If Critique is useful to you, consider giving the repository a star. It helps
-more developers discover the project. No pressure — contributions and feedback
-are equally appreciated.
+more developers discover the project. No pressure — contributions and
+feedback are equally appreciated.
 
 ### Contributors
 
