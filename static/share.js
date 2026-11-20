@@ -409,3 +409,7 @@ var CritiqueShare = (function() {
         renderCardShareRow: renderCardShareRow
     };
 })();
+
+if (typeof window !== 'undefined') {
+    window.CritiqueShare = CritiqueShare;
+}
