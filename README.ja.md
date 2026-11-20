@@ -1,22 +1,26 @@
 <p align="center">
-  <img src="docs/logo-readme.svg#svgView(viewBox(0,0,64,47.5))" alt="Critique" width="72" />
+  <img src="docs/logo-readme.svg" alt="Critique" width="72" />
 </p>
 
 <h1 align="center">Critique</h1>
 
 <p align="center">
-  <strong>ひとつ質問を。本当の答えをもらう。</strong>
+  <strong>Ask one question. Get real answers.</strong>
 </p>
 
 <p align="center">
-  Critique は、あなたのプロジェクトに対して集中した・構造化された人間のフィードバックを得るための
-  オープンソースプラットフォームです。作りたいものと、ひとつだけの具体的な質問を共有し、
-  プロジェクトを実際に見てくれた人々から反応を集めます。
+  Critique は、あなたのプロジェクトに対する集中した・構造化された人間のフィードバックを
+  得るためのオープンソースプラットフォームです。作りたいものと、ひとつだけの具体的な質問を
+  共有し、プロジェクトを実際に見てくれた人々から反応を集めます。
 </p>
 
 <p align="center">
   <a href="https://github.com/BistaDinesh03/critique/actions/workflows/tests.yml"><img src="https://github.com/BistaDinesh03/critique/actions/workflows/tests.yml/badge.svg" alt="Tests" /></a>
+  <a href="https://github.com/BistaDinesh03/critique/actions/workflows/visual-tests.yml"><img src="https://github.com/BistaDinesh03/critique/actions/workflows/visual-tests.yml/badge.svg" alt="Visual tests" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/BistaDinesh03/critique" alt="License: MIT" /></a>
+  <a href="https://github.com/BistaDinesh03/critique/stargazers"><img src="https://img.shields.io/github/stars/BistaDinesh03/critique?style=social" alt="GitHub stars" /></a>
+  <a href="https://github.com/BistaDinesh03/critique/network/members"><img src="https://img.shields.io/github/forks/BistaDinesh03/critique?style=social" alt="GitHub forks" /></a>
+  <a href="https://github.com/BistaDinesh03/critique/commits/main"><img src="https://img.shields.io/github/last-commit/BistaDinesh03/critique" alt="Last commit" /></a>
 </p>
 
 <p align="center">
@@ -24,7 +28,9 @@
   <a href="https://critique.page/discover">プロジェクトを見る</a> ·
   <a href="https://github.com/BistaDinesh03/critique">ソースコード</a> ·
   <a href="https://github.com/BistaDinesh03/critique/issues">Issues</a> ·
-  <a href="CONTRIBUTING.ja.md">コントリビュート</a>
+  <a href="https://github.com/BistaDinesh03/critique/discussions">Discussions</a> ·
+  <a href="CONTRIBUTING.md">コントリビュート</a> ·
+  <a href="SECURITY.md">セキュリティ</a>
 </p>
 
 <p align="center">
@@ -37,22 +43,44 @@
 > この文書は Critique の日本語訳です。**英語版の [README.md](README.md) が正典です**；
 > 内容が食い違う場合は英語版が優先されます。
 
+## 目次
+
+- [Critique を見てみる](#critique-を見てみる)
+- [何が問題か](#何が問題か)
+- [解決策](#解決策)
+- [仕組み](#仕組み)
+- [機能](#機能)
+- [フィードバックのモデル](#フィードバックのモデル)
+- [フィードバックバッジ](#フィードバックバッジ)
+- [Critique を試す](#critique-を試す)
+- [スクリーンショット](#スクリーンショット)
+- [技術スタック](#技術スタック)
+- [アーキテクチャ](#アーキテクチャ)
+- [はじめに](#はじめに)
+- [環境変数](#環境変数)
+- [データベース](#データベース)
+- [テスト](#テスト)
+- [アーキテクチャと API](#アーキテクチャと-api)
+- [セキュリティとプライバシー](#セキュリティとプライバシー)
+- [デプロイ](#デプロイ)
+- [プロダクト分析（履歴）](#プロダクト分析履歴)
+- [コントリビュート](#コントリビュート)
+- [オープンソース](#オープンソース)
+- [ライセンス](#ライセンス)
+
 ## Critique を見てみる
 
-実際のプロダクトを62秒で巡るデモ動画です —— ホームページ、Discover フィード、
+実際のプロダクトを 62 秒で巡るデモ動画です —— ホームページ、Discover フィード、
 プロジェクトページ、そして作り手が受け取るフィードバック結果が含まれます。
 
-![Critique のデモアニメーションGIF：ホームページの見出し「Stop getting 'Looks good.'」と Get feedback on my project・Give feedback to a builder のボタン、続いて Discover フィードのプロジェクトカード](docs/videos/critique-overview-preview.gif)
+![Critique デモのアニメーションGIFプレビュー](docs/videos/critique-overview-preview.gif)
 
-**フルのデモが見たい方は、[62秒の動画を再生](https://dineshbista.com.np/critique/watch.html)してください。**
-
+フルのデモが見たい方は、[62秒の動画を再生](https://dineshbista.com.np/critique/watch.html)してください。
 上のGIFは12秒のプレビューです。フルのデモは音声なしの62秒で、視聴ページの
 プレーヤーは再生ボタンを押すまで動きません。オリジナルファイルがよければ
 [直接MP4へのリンク](https://dineshbista.com.np/critique/videos/critique-overview.mp4)
-（46.8 MB）をご利用ください。<br />
-オリジナルファイル：[docs/videos/critique-overview.mp4](docs/videos/critique-overview.mp4)
-—— 1854×902、30 fps、62 s、H.264 MP4、46.8 MB。このリポジトリにコミットされているため、
-どのクローンにも含まれ、GitHub Pages の視聴ページから再生されます。
+（46.8 MB）をご利用ください。リポジトリ内のファイル：
+[docs/videos/critique-overview.mp4](docs/videos/critique-overview.mp4)。
 
 ## 何が問題か
 
@@ -66,8 +94,8 @@
 ## 解決策
 
 Critique は、その推測をひとつのはっきりしたシグナルで置き換えます。プロジェクトを共有し、
-**ひとつの集中的な質問**（例：*"このアプリが何をするのか、10秒で分かりますか？"*）を投げ、
-実際の人々から構造化されたフィードバックを受け取ります。
+**ひとつの集中的な質問** —— 例：*"このアプリが何をするのか、10秒で分かりますか？"* ——
+を投げ、実際の人々から構造化されたフィードバックを受け取ります。
 
 質問をひとつに絞ることで回答は比較可能になり、どの回答も行動に移せるシグナルになります。
 すべてのフィードバックはサイトを利用する人間から届きます。Critique に AI が生成した
@@ -91,14 +119,20 @@ Critique は、その推測をひとつのはっきりしたシグナルで置�
 - **Discover** —— フィードバックを求めるプロジェクトの公開フィード。決定論的な
   ランキング（必要性、鮮度、質問の質など）で並びます
 - **My Projects** —— 自分の投稿を管理し、結果を見返す
-- **Results ダッシュボード** —— プロジェクトごとの合計、分布バー、文章フィードバック
+- **Results ダッシュボード** —— プロジェクトごとの合計、分布バー、文章フィードバック、
+  および CSV エクスポート
 - **ひとつの質問** —— 各プロジェクトは1つの質問だけを提示し、2つの固定評価質問により
   返信を比較しやすく
 - **非公開の文章アドバイス** —— プロジェクトに添付され、所有者にのみ表示
 - **かんたん共有** —— 投稿後または My Projects から、X や Reddit に投稿、またはリンクをコピー
-- **ダイナミックバッジ** —— ライブな返信数を示す SVG（後述）
+- **トップへ戻る** —— 長いページ用のアクセシブルなスクロールトップコントロール
+- **印刷スタイル** —— プロジェクト詳細と結果ページをきれいに印刷
+- **ダイナミックバッジ** —— ライブな返信数を示す SVG
+- **設定可能な分析** —— `ANALYTICS_OWNER_USERNAMES` による分析ダッシュボードの
+  所有者許可リスト
 - **サインイン方法** —— GitHub OAuth またはパスワード不要のメールマジックリンク
-- **プライバシー重視** —— 生の IP アドレスは保存せず、第三者のトラッキングスクリプトなし、分析データは最小限
+- **プライバシー重視** —— 生の IP アドレスは保存せず、第三者のトラッキングスクリプトなし、
+  分析データは最小限
 - **オープンソース** —— 実装全体が MIT ライセンスで公開され、ローカルでそのまま動きます
 - **SEO 対応** —— `robots.txt`、ダイナミックな `sitemap.xml`、ホームのソーシャルプレビューメタデータ
 
@@ -132,8 +166,7 @@ Critique は、その推測をひとつのはっきりしたシグナルで置�
 ```
 
 `PROJECT_ID` を自分のプロジェクト ID（Critique の URL に現れる数字）に
-置き換えてください。カウントはリクエストごとにデータベースから描画され、
-1000 件以上は `1k+` と表示されます。
+置き換えてください。カウントはリクエストごとにデータベースから描画されます。
 
 ## Critique を試す
 
@@ -146,7 +179,20 @@ Critique は、その推測をひとつのはっきりしたシグナルで置�
 </p>
 
 [Critique を開く](https://critique.page/) ·
-[プロジェクトを見る](https://critique.page/discover)
+[プロジェクトを見る](https://critique.page/discover) ·
+[プロジェクトを共有する](https://critique.page/)
+
+## スクリーンショット
+
+実際のアプリケーションのスクリーンショットです。
+
+<p align="center">
+  <img src="docs/assets/home.png" alt="Critique ホームページ" width="900" />
+</p>
+
+<p align="center">
+  <img src="docs/assets/discover.png" alt="Critique Discover フィード" width="900" />
+</p>
 
 ## 技術スタック
 
@@ -157,7 +203,7 @@ Critique は、その推測をひとつのはっきりしたシグナルで置�
 | データストア | SQLite（開発）、PostgreSQL（本番） |
 | フロントエンド | ベニラ HTML/CSS/JavaScript —— ビルドステップなし |
 | 認証 | GitHub OAuth とパスワード不要のメール（Resend） |
-| デプロイ | Render（`render.yaml`） |
+| デプロイ | Render ウェブサービス（`render.yaml`）+ Neon PostgreSQL |
 
 ## アーキテクチャ
 
@@ -171,7 +217,6 @@ FastAPI — routes, auth, CSRF, rate limiting
    │  SQLAlchemy ORM queries
    ▼
 SQLAlchemy — models, validation, migrations
-   │
    ▼
 SQLite (development)  /  PostgreSQL (production)
 ```
@@ -208,7 +253,9 @@ backend/
   tests/                      pytest suite (API, security, frontend render)
 frontend/                     HTML pages (vanilla JS, no build step)
 static/                       CSS, JS, logos, favicon
-docs/                         Setup guides and API reference
+docs/                         Setup guides, architecture, and API reference
+scripts/                      Local launcher and maintainer scripts
+.github/                      GitHub Actions CI (tests.yml, visual-tests.yml)
 render.yaml                   Deployment config
 ```
 
@@ -223,10 +270,23 @@ render.yaml                   Deployment config
 ```bash
 git clone https://github.com/BistaDinesh03/critique.git
 cd critique
+python scripts/quickstart.py
+```
+
+The launcher creates or reuses `.venv`, installs the requirements, creates `.env`
+from the example if it is missing, and starts the development server. Existing
+`.env` settings are preserved. On Windows, `py scripts/quickstart.py` also works;
+on macOS/Linux, use `python3` if that is your Python command. Use `--port 8001`
+if the default port is busy, and press Ctrl+C to stop.
+
+<details>
+<summary>Manual setup</summary>
+
+```bash
 python -m venv .venv
 ```
 
-仮想環境を有効化します：
+Activate the virtual environment:
 
 ```bash
 # macOS / Linux
@@ -238,7 +298,7 @@ source .venv/bin/activate
 .venv\Scripts\Activate.ps1
 ```
 
-依存関係をインストールし、環境ファイルを作成してサーバーを起動します：
+Install dependencies, create your environment file, and start the server:
 
 ```bash
 pip install -r requirements.txt
@@ -247,13 +307,15 @@ cd backend
 uvicorn app.main:app --reload
 ```
 
-http://127.0.0.1:8000 を開いてください。SQLite のテーブルは起動時に自動作成されます
-—— 単独のマイグレーション手順は不要です。
+</details>
 
-ローカルの閲覧に認証は不要です。ログインが必要なのは、プロジェクトを投稿したり
-管理したりするときだけです。GitHub OAuth とメールマジックリンク
-（メールログインに必要な `RESEND_API_KEY` と `EMAIL_FROM` の値を含む）の設定は
-[docs/github-oauth-setup.md](docs/github-oauth-setup.md) を参照してください。
+Open http://127.0.0.1:8000. SQLite tables are created automatically on
+startup — no separate migration step.
+
+Authentication is optional for local browsing; sign-in is only required to
+submit or manage projects. Setup for GitHub OAuth and email magic links
+(including the `RESEND_API_KEY` and `EMAIL_FROM` values email login needs)
+is in [docs/github-oauth-setup.md](docs/github-oauth-setup.md).
 
 ## 環境変数
 
@@ -262,13 +324,14 @@ gitignore されています —— 実際の認証情報は決してコミッ�
 
 | 変数 | 用途 | デフォルト / 備考 |
 |---|---|---|
-| `APP_ENV` | `development` または `production` | `development` |
+| `APP_ENV` | 環境識別子 | `development`。将来の本番専用挙動のために予約されており、現在は起動時に空でない `SECRET_KEY` を強制します。 |
 | `APP_URL` | 公開ベース URL | `http://127.0.0.1:8000` |
 | `SECRET_KEY` | セッショントークンと OAuth state を署名 | 本番環境では必須（未設定の場合、アプリは起動を拒否します）。本番以外で未設定の場合はプロセスごとのランダムなキーが使われるため、再起動後にセッションは維持されません。生成コマンド：`python -c "import secrets; print(secrets.token_hex(32))"` |
 | `DATABASE_URL` | データベース接続文字列 | `sqlite:///./critique.db`；本番は PostgreSQL を使用 |
 | `GITHUB_CLIENT_ID` | GitHub OAuth アプリのクライアント ID | 任意 —— GitHub ログインを有効化 |
 | `GITHUB_CLIENT_SECRET` | GitHub OAuth アプリのシークレット | 任意 |
 | `GITHUB_REDIRECT_URI` | OAuth コールバック URL | `http://127.0.0.1:8000/auth/callback` |
+| `ANALYTICS_OWNER_USERNAMES` | 分析ダッシュボードにアクセスできるユーザー名のカンマ区切りリスト（大文字小文字を区別せず、空白や空の項目は無視） | 未設定時は `BistaDinesh03`。空にすると全員のアクセスを拒否します。 |
 | `SESSION_COOKIE_SECURE` | HTTPS の背後では `true` に設定 | `false` |
 | `SESSION_COOKIE_MAX_AGE` | セッションの有効期間（秒） | 任意；`604800`（7 日） |
 | `RESEND_API_KEY` | マジックリンクメール用の Resend API キー | 任意 —— メールログインを有効化 |
@@ -286,15 +349,33 @@ gitignore されています —— 実際の認証情報は決してコミッ�
 
 ```bash
 cd backend
+GITHUB_CLIENT_ID=ci-test-client-id python -m pytest tests/ -q
+```
+
+Windows（PowerShell）の場合：
+
+```powershell
+cd backend
+$env:GITHUB_CLIENT_ID = "ci-test-client-id"
 python -m pytest tests/ -q
 ```
 
-テストスイートは正常にパスします。テストスイートは、API の挙動、CSRF、レート制限、
-所有権チェック、プライバシールール、ランキング、XSS、分析のバリデーション、
-認証フロー、SEO エンドポイント、そして Node ベースの DOM ハーネスによる
-フロントエンドレンダリング（Node.js が無い場合はスキップ）を網羅します。
+テストスイートは API の挙動、CSRF、レート制限、所有権チェック、プライバシールール、
+ランキング、XSS、分析のバリデーション、認証フロー、SEO エンドポイント、そして
+Node ベースの DOM ハーネスによるフロントエンドレンダリング（Node.js が無い場合は
+スキップ）をカバーします。ローカルのトラブルシューティングのヒントは
+[docs/troubleshooting.md](docs/troubleshooting.md) を参照してください。
 
-## API
+バックエンドの行カバレッジを確認するには：
+
+```bash
+cd backend
+python -m pytest tests/ -q --cov=app --cov-report=term-missing
+```
+
+## アーキテクチャと API
+
+システム設計とコンポーネントの概要は [docs/architecture.md](docs/architecture.md) にあります。
 
 JSON API のドキュメントは [docs/api.md](docs/api.md) にあります。主なカテゴリ：
 
@@ -325,7 +406,7 @@ Critique はセキュリティとプライバシーを前提に設計されて�
 
 | 保護 | 動作 |
 |---|---|
-| **CSRF 保護** | 状態を変更するすべてのリクエストで、`X-CSRF-Token` ヘッダ付きのダブルサブミット Cookie を使用。セッションは `HttpOnly`、`SameSite=Lax` の Cookie に置かれ、`SESSION_COOKIE_SECURE=true` のときは `Secure` 付き（Render が設定） |
+| **CSRF 保護** | 状態を変更するすべてのリクエストで、`X-CSRF-Token` ヘッダ付きのダブルサブミット Cookie を使用。セッションは `HttpOnly`、`SameSite=Lax` の Cookie に置かれ、`SESSION_COOKIE_SECURE=true` のときは `Secure` 付き |
 | **レート制限** | 認証とメールログイン、プロジェクトの作成と削除、フィードバックの投稿、そして分析 |
 | **入力検証** | すべてのリクエストボディに Pydantic の検証。フィードバック値には厳格なパターン |
 | **XSS 保護** | ユーザーが制御する出力はフロントエンドでエスケープされ、XSS 回帰テストでカバー |
@@ -339,36 +420,24 @@ Critique はセキュリティとプライバシーを前提に設計されて�
 
 ## デプロイ
 
-デプロイは `render.yaml` で設定されています：Render のウェブサービスと PostgreSQL
-データベース。`APP_ENV=production` と `SESSION_COOKIE_SECURE=true` はそこで設定され、
+デプロイは `render.yaml` で設定されています：Render のウェブサービスと
+`APP_ENV=production` と `SESSION_COOKIE_SECURE=true` がそこで設定され、
 シークレット —— `DATABASE_URL`、`SECRET_KEY`、OAuth 認証情報、メールキー —— は
 `sync: false` として設定され、Render ダッシュボードで手動入力され、リポジトリには
-保存されません。想定される変数の一覧は `render.yaml` を参照してください。
+保存されません。PostgreSQL は Neon 上で動作します。想定される変数の一覧は `render.yaml`
+を参照してください。
 
-## プロダクト分析
+## プロダクト分析（履歴）
 
-> **分析スナップショット** —— 特定時点のイベント合計。集計期間は提供されていません。
+リポジトリには 2 つの履歴的な分析スナップショットが含まれています。これらは
+異なる時点で提供され、集計期間を伴わず、互いに一致していません。どちらも
+現在のものとして提示されていません。
 
-**ヘッドライン：** ページビュー 1,443 · ユニーク訪問者 263 · プロジェクト閲覧 232 ·
-フィードバック投稿 20。
+- [詳細な HTML レポート](docs/analytics-snapshot.html)
+- [SVG スナップショット](docs/assets/analytics-overview.svg)
 
-**ファネル：** プロジェクト閲覧 232 → フィードバック開始 92 → 投稿試行 65 →
-投稿成功 20。
-
-![Critique のプロダクト分析スナップショット](docs/analytics-snapshot.svg)
-
-これらの合計は記録された単一のスナップショットであり —— **ライブな分析ではありません**。
-数値は自動更新されません。すべての割合は**イベント比率**（あるイベント数を別の数で割ったもの）であり、
-ユニークユーザーのコンバージョン率ではありません。ひとりの訪問者が複数のイベントを
-発生させられます。
-
-> **スナップショットが2つあり、一致しません。** この図と
-> [HTML 分析レポート](docs/analytics-snapshot.html)は異なる時点で提供され、
-> 合計が一致していません（ページビューは 1,443 vs. 1,582）。どちらも集計期間を
-> 提供していないため、日付の確定や突合はここではできません。両データセットは
-> 提供されたままにされています —— この件は
-> [issue #23](https://github.com/BistaDinesh03/critique/issues/23) で
-> 追跡され、適切な解決を待っています。
+認可された所有者向けのライブダッシュボードは
+`https://critique.page/api/analytics/dashboard` で利用できます。
 
 ## コントリビュート
 
@@ -377,35 +446,52 @@ Critique はセキュリティとプライバシーを前提に設計されて�
 [`good first issue`](https://github.com/BistaDinesh03/critique/labels/good%20first%20issue)
 ラベルの付いた issue があります。
 
-1. リポジトリをフォークする
-2. 変更用のブランチを作る
-3. 変更を加え、テストを追加する
-4. テストスイートを実行する
-5. プルリクエストを送る
+1. リポジトリをフォーク
+2. 変更用のブランチを作成
+3. 変更を加え、テストを追加
+4. テストスイートを実行
+5. プルリクエストを開く
 
-全体的なガイドは [CONTRIBUTING.ja.md](CONTRIBUTING.ja.md)（正典は英語の
-[CONTRIBUTING.md](CONTRIBUTING.md)）に、脆弱性の報告方法は
-[SECURITY.md](SECURITY.md) にあります。
+[CONTRIBUTING.md](CONTRIBUTING.md) に完全なガイドラインがあり、
+[初回コントリビューター向けの手順](docs/first-contributors.md) では、issue を
+claim してプルリクエストを開くまでの流れを説明しています。
+[SECURITY.md](SECURITY.md) には脆弱性の報告方法が、
+[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) には参加時の行動規範が記載されています。
 
-**何か探していますか？** 精選された計画
-[docs/issue-roadmap.md](docs/issue-roadmap.md) から始めてみてください ——
-そこにはレビュー済みの 50 個の issue があり、それぞれに問題、スコープ、受入条件、
-難易度、関連ファイルが書かれています。issue は領域別（`frontend`、`backend`、
-`tests`、`accessibility`、`security`、`performance`）にもラベル付けされており、
-始める前には [issue #1](https://github.com/BistaDinesh03/critique/issues/1) での
-質問も歓迎します。
+**作業対象を探していますか？** [検証済みのコントリビューター機会リスト](docs/contributor-opportunities.md)
+を使ってください。ライブトラッカーと照合され、オープンで未割り当て、コメントで
+claim されておらず、オープンなプルリクエストに紐付いていない issue だけが
+掲載されるため、そこに載っているものは本当に利用可能です。古い
+[docs/issue-roadmap.md](docs/issue-roadmap.md) は 2026-10-17 時点の歴史的記録です ——
+文脈の参考にはなりますが、タスクの選定には使わないでください。issue は分野
+（`frontend`、`backend`、`tests`、`accessibility`、`security`、`performance`）で
+ラベル付けされており、開始前に
+[issue #1](https://github.com/BistaDinesh03/critique/issues/1) で質問することもできます。
 
-また、最初のプルリクエストの前に、Critique を実際に使ってみる —— プロジェクトを
-投稿したりフィードバックを送ったりする —— ことをお勧めします。
-[CONTRIBUTING.ja.md](CONTRIBUTING.ja.md) にその指針と例外が書かれています。
-これはコントリビュートの障壁ではなく、プロダクトを理解するための方法です。
+コントリビューターには、最初のプルリクエストの前に Critique 自体を少し
+使う —— プロジェクトを投稿したりフィードバックを提供したり —— ことを推奨
+しています。[CONTRIBUTING.md](CONTRIBUTING.md) にガイドラインとその例外が
+説明されています。これは参加の障壁ではなく、プロダクトを理解するための方法です。
 
 ## オープンソース
 
-Critique は MIT ライセンスでオープンソースです。実装全体 —— バックエンド、
-フロントエンド、テスト、デプロイ設定 —— は
-[github.com/BistaDinesh03/critique](https://github.com/BistaDinesh03/critique) にあります。
-issue とプルリクエストを歓迎します。
+Critique は MIT ライセンスのオープンソースです。バックエンド、フロントエンド、
+テスト、デプロイ設定を含む実装全体は
+[github.com/BistaDinesh03/critique](https://github.com/BistaDinesh03/critique) に
+あります。issue とプルリクエストを歓迎します。
+
+Critique が役に立ったなら、リポジトリにスターを付けていただけると嬉しいです。
+より多くの開発者にプロジェクトを発見してもらう助けになります。無理強いはしません ——
+コントリビューションやフィードバックも同じくらいありがたいです。
+
+### コントリビューター
+
+コード、テスト、ドキュメント、デザイン、フィードバックで Critique に貢献して
+くださったすべての方に感謝します。初回および継続的なコントリビューターは
+リリースノートと月次のコントリビューターサマリーで紹介されます（
+[docs/contributor-tracking.md](docs/contributor-tracking.md) を参照）。掲載されるには、
+マージされたプルリクエストを開いてください。リストの更新は自動ボットではなく、
+メンテナーの編集によって行われます。
 
 ## ライセンス
 

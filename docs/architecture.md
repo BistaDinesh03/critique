@@ -40,8 +40,8 @@ Critique is built as a lightweight, zero-build web application designed to be si
                                |
                                v
                +-------------------------------+
-               |      SQLite Database File     |
-               |         (critique.db)         |
+               |  SQLite (development)         |
+               |  PostgreSQL (production)      |
                +-------------------------------+
 ```
 
@@ -50,14 +50,14 @@ Critique is built as a lightweight, zero-build web application designed to be si
 ## 2. Component Breakdown
 
 ### Frontend (`frontend/` & `static/`)
-- **Zero-Build Architecture:** All frontend pages (`index.html`, `discover.html`, `project_detail.html`, `my_projects.html`) are plain HTML files styled with vanilla CSS variables (`static/shared.css`).
+- **Zero-Build Architecture:** All frontend pages (`index.html`, `discover.html`, `project_detail.html`, `my_projects.html`, `project_results.html`, `404.html`) are plain HTML files styled with vanilla CSS variables (`static/shared.css`).
 - **No Node Toolchain Required for Runtime:** The application runs without Webpack, Vite, or npm build steps in production.
 - **Client Scripting:** Standard JavaScript handles DOM rendering, asynchronous JSON calls to `/api/`, toast notifications, and event tracking (`static/ui.js`, `static/analytics.js`).
 
 ### Backend (`backend/app/`)
 - **FastAPI Framework:** Implements ASGI endpoints, dependency injection, and automatic JSON validation.
 - **Pydantic Validation (`schemas.py`):** Enforces strict validation on project creation, questions, and feedback responses.
-- **Database & ORM (`database.py`, `models.py`):** Uses SQLAlchemy to map relational entities (`User`, `Project`, `Question`, `Response`, `EmailLoginToken`, `AnalyticsEvent`) to SQLite. Schema changes to existing tables are applied at startup by guarded, additive migrations rather than a migration framework — see [database-migrations.md](database-migrations.md) for the contract.
+- **Database & ORM (`database.py`, `models.py`):** Uses SQLAlchemy to map relational entities (`User`, `Project`, `Question`, `Response`, `EmailLoginToken`, `AnalyticsEvent`) to SQLite in development and PostgreSQL in production. Schema changes to existing tables are applied at startup by guarded, additive migrations rather than a migration framework - see [database-migrations.md](database-migrations.md) for the contract.
 
 ### Authentication & Security (`auth.py`, `csrf.py`, `email.py`)
 - **GitHub OAuth:** Users can authenticate via standard OAuth authorization code flow.
