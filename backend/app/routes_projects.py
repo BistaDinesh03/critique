@@ -93,6 +93,7 @@ def create_project_with_question(
 def list_projects(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=50),
+    hide_answered: bool = Query(False),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_optional),
 ):
@@ -115,6 +116,19 @@ def list_projects(
 
     # Get candidate projects with the latest active question text.
     question_subq = _latest_active_question_subquery(db)
+
+    # When a signed-in user enables hide_answered, load answered project IDs
+    # against each project's latest active question once before ranking and
+    # pagination so counts, pages, and diversity stay exact. Ignored for guests.
+    answered_ids = set()
+    if current_user and hide_answered:
+        answered_ids = {
+            row[0]
+            for row in db.query(question_subq.c.project_id)
+            .join(Response, Response.question_id == question_subq.c.question_id)
+            .filter(Response.user_id == current_user.id)
+            .all()
+        }
 
     response_count_subq = (
         db.query(
@@ -147,6 +161,10 @@ def list_projects(
 
         # Exclude recently viewed
         if project.id in recent_viewed:
+            continue
+
+        # Exclude projects whose latest active question the user already answered
+        if project.id in answered_ids:
             continue
 
         # Update feedback_count if stale (from response_count subquery)
@@ -200,7 +218,7 @@ def list_projects(
     # this user has answered. Older superseded questions do not count.
     responded_ids = set()
     page_project_ids = [item["project"].id for item in page_items]
-    if current_user and page_project_ids:
+    if current_user and page_project_ids and not hide_answered:
         responded_ids = {
             row[0]
             for row in db.query(question_subq.c.project_id)
