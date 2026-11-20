@@ -852,12 +852,35 @@ var CritiqueUI = (function() {
     function initSharedUI() {
         initNavLogin();
         initThemeToggle();
+        initBackToTop();
     }
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initSharedUI);
     } else {
         initSharedUI();
+    }
+
+    // ============ BACK-TO-TOP BUTTON ============
+    var SHOW_AFTER = 300;
+
+    function initBackToTop() {
+        var btn = document.getElementById('back-to-top');
+        if (!btn) return;
+
+        function update() {
+            btn.hidden = window.scrollY <= SHOW_AFTER;
+        }
+
+        window.addEventListener('scroll', update, { passive: true });
+        update();
+
+        btn.addEventListener('click', function() {
+            window.scrollTo({
+                top: 0,
+                behavior: scrollBehavior()
+            });
+        });
     }
 
     // ============ DATE / AGE FORMATTING ============
@@ -1009,6 +1032,7 @@ var CritiqueUI = (function() {
         renderAuthChoice: renderAuthChoice,
         renderEmailForm: renderEmailForm,
         initNavLogin: initNavLogin,
+        initBackToTop: initBackToTop,
         initThemeToggle: initThemeToggle,
         toggleTheme: toggleTheme,
         getEffectiveTheme: getEffectiveTheme,

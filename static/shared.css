@@ -2193,6 +2193,42 @@ img {
     user-select: none;
 }
 
+.back-to-top {
+    position: fixed;
+    right: var(--space-4);
+    bottom: var(--space-4);
+    width: auto;
+    min-height: 44px;
+    background: var(--surface);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 var(--space-3);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    box-shadow: var(--shadow-md);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.back-to-top:hover {
+    background: var(--surface-muted);
+}
+
+.back-to-top:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+}
+
+.back-to-top[hidden] {
+    display: none;
+}
+
 @media (max-width: 600px) {
     .login-prompt {
         padding: var(--space-4);
