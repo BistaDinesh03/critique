@@ -530,13 +530,117 @@ def test_download_csv_button_visibility_for_owner_vs_visitor(tmp_path):
     owner_html = render_results(tmp_path, owner_data)
 
     assert 'id="download-csv-btn"' in owner_html
+    assert '<button type="button"' in owner_html
     assert "Download CSV" in owner_html
-    assert "/results.csv" in owner_html
+    assert "/api/projects/1/results.csv" not in owner_html
 
     visitor_data = results_data(2, clarity, would_use, owner=False)
     visitor_html = render_results(tmp_path, visitor_data)
     assert 'id="download-csv-btn"' not in visitor_html
     assert "Download CSV" not in visitor_html
+
+
+@pytest.mark.parametrize(
+    ("headers", "expected_filename"),
+    [
+        ({"Content-Disposition": 'attachment; filename="feedback.csv"'}, "feedback.csv"),
+        ({}, "project-1-feedback.csv"),
+    ],
+)
+def test_csv_download_uses_blob_and_content_disposition_filename(
+    tmp_path, headers, expected_filename
+):
+    clarity, would_use = mixed_stats()
+    csv_content = "created_at,clarity,would_use,suggestion\r\n"
+    result = run(
+        tmp_path,
+        "project_results.html",
+        [
+            {"fn": "countResponses", "args": [results_data(2, clarity, would_use, owner=True)]},
+            {"fn": "renderPage", "args": [results_data(2, clarity, would_use, owner=True)]},
+            {"clickId": "download-csv-btn"},
+        ],
+        fetch={
+            "results.csv": {
+                "status": 200,
+                "body": csv_content,
+                "headers": headers,
+            },
+        },
+        location="/project/1/results",
+    )
+
+    assert result["downloads"] == [
+        {"href": "blob:render-harness/1", "download": expected_filename}
+    ]
+    assert result["objectUrls"][0]["content"] == csv_content
+    assert result["requests"] == [
+        {
+            "url": "/api/projects/1/results.csv",
+            "method": "GET",
+            "body": "",
+            "credentials": "same-origin",
+        }
+    ]
+    assert result["revokedObjectUrls"] == ["blob:render-harness/1"]
+
+
+@pytest.mark.parametrize(
+    ("status", "message"),
+    [
+        (401, "Your session expired. Please sign in again."),
+        (403, "You can only export feedback for your own project."),
+        (404, "Project not found. It may have been deleted."),
+        (429, "Too many export requests. Please wait a moment and try again."),
+        (500, "Could not download the CSV. Please try again."),
+    ],
+)
+def test_csv_download_errors_show_toast_without_downloading(tmp_path, status, message):
+    clarity, would_use = mixed_stats()
+    data = results_data(2, clarity, would_use, owner=True)
+    result = run(
+        tmp_path,
+        "project_results.html",
+        [
+            {"fn": "countResponses", "args": [data]},
+            {"fn": "renderPage", "args": [data]},
+            {"clickId": "download-csv-btn"},
+        ],
+        fetch={"results.csv": {"status": status, "body": {"detail": "Request failed"}}},
+        location="/project/1/results",
+    )
+
+    assert result["downloads"] == []
+    assert result["toasts"] == [{"message": message, "type": "error"}]
+    assert result["flags"]["download-csv-btn"]["disabled"] is False
+    assert result["flags"]["download-csv-btn"]["ariaBusy"] == "false"
+
+
+def test_csv_download_ignores_second_click_while_request_is_pending(tmp_path):
+    clarity, would_use = mixed_stats()
+    data = results_data(2, clarity, would_use, owner=True)
+    result = run(
+        tmp_path,
+        "project_results.html",
+        [
+            {"fn": "countResponses", "args": [data]},
+            {"fn": "renderPage", "args": [data]},
+            {"clickId": "download-csv-btn"},
+            {"evaluate": "document.getElementById('download-csv-btn').disabled", "as": "disabled"},
+            {
+                "evaluate": "document.getElementById('download-csv-btn').getAttribute('aria-busy')",
+                "as": "aria_busy",
+            },
+            {"clickId": "download-csv-btn"},
+        ],
+        fetch={"results.csv": {"pending": True}},
+        location="/project/1/results",
+    )
+
+    assert result["values"]["disabled"] is True
+    assert result["values"]["aria_busy"] == "true"
+    assert len(result["requests"]) == 1
+    assert result["downloads"] == []
 
 
 def test_owner_reach_metrics_rendering(tmp_path):
