@@ -32,7 +32,12 @@ def _resolve_secret_key(app_env: str) -> str:
     )
     return secrets.token_urlsafe(32)
 
+def _parse_owner_usernames(raw: str | None) -> set[str]:
+    if raw is None:
+        return {"BistaDinesh03"}
 
+    usernames = (entry.strip() for entry in raw.split(","))
+    return {username for username in usernames if username}
 
 class Settings:
     """Application settings loaded from environment variables."""
@@ -78,6 +83,7 @@ class Settings:
         self.GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID", "")
         self.GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET", "")
         self.GITHUB_REDIRECT_URI = os.getenv("GITHUB_REDIRECT_URI", "http://127.0.0.1:8000/auth/callback")
+        self.ANALYTICS_OWNER_USERNAMES: set[str] = _parse_owner_usernames(os.environ.get("ANALYTICS_OWNER_USERNAMES"))
         self.SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "false").lower() == "true"
         self.SESSION_COOKIE_MAX_AGE = int(os.getenv("SESSION_COOKIE_MAX_AGE", "604800"))
         self.RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
