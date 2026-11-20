@@ -548,11 +548,91 @@
             let html = '<div class="action-buttons no-print">' +
                 '<a href="/project/' + escapeHtml(projectId) + '" class="btn btn-primary">Get more feedback</a>';
             if (isOwner) {
-                html += '<a href="/api/projects/' + escapeHtml(projectId) + '/results.csv" class="btn btn-secondary" id="download-csv-btn" download>Download CSV</a>';
+                html += '<button type="button" class="btn btn-secondary" id="download-csv-btn" aria-busy="false">Download CSV</button>';
             }
             html += '<a href="/discover" class="btn btn-secondary">Discover projects</a>' +
                 '</div>';
             return html;
+        }
+
+        let isCsvDownloadInProgress = false;
+
+        function csvDownloadFilename(response) {
+            const fallback = ['project', projectId, 'feedback.csv'].join('-');
+            const disposition = response.headers && response.headers.get('Content-Disposition');
+            if (!disposition) return fallback;
+
+            const encodedFilename = /filename\*\s*=\s*UTF-8''([^;]+)/i.exec(disposition);
+            if (encodedFilename) {
+                try {
+                    const decoded = decodeURIComponent(encodedFilename[1].trim().replace(/^"|"$/g, ''));
+                    if (decoded) return decoded;
+                } catch (error) {
+                    // Fall back to the regular filename when the encoded value is malformed.
+                }
+            }
+
+            const filename = /filename\s*=\s*"([^"]+)"|filename\s*=\s*([^;]+)/i.exec(disposition);
+            return filename ? (filename[1] || filename[2].trim()) : fallback;
+        }
+
+        function showCsvDownloadError(message) {
+            if (typeof CritiqueUI !== 'undefined' && typeof CritiqueUI.showToast === 'function') {
+                CritiqueUI.showToast(message, 'error');
+            }
+        }
+
+        async function downloadResultsCsv(button) {
+            if (isCsvDownloadInProgress) return;
+            isCsvDownloadInProgress = true;
+            const originalLabel = button.textContent;
+            button.disabled = true;
+            button.setAttribute('aria-busy', 'true');
+            button.textContent = 'Downloading...';
+
+            let downloadLink = null;
+            let objectUrl = null;
+            try {
+                const response = await fetch(
+                    '/api/projects/' + encodeURIComponent(String(projectId)) + '/results.csv',
+                    { credentials: 'same-origin' }
+                );
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        showCsvDownloadError('Your session expired. Please sign in again.');
+                    } else if (response.status === 403) {
+                        showCsvDownloadError('You can only export feedback for your own project.');
+                    } else if (response.status === 404) {
+                        showCsvDownloadError('Project not found. It may have been deleted.');
+                    } else if (response.status === 429) {
+                        showCsvDownloadError('Too many export requests. Please wait a moment and try again.');
+                    } else {
+                        showCsvDownloadError('Could not download the CSV. Please try again.');
+                    }
+                    return;
+                }
+
+                const blob = await response.blob();
+                objectUrl = URL.createObjectURL(blob);
+                setTimeout(function () {
+                    URL.revokeObjectURL(objectUrl);
+                }, 1000);
+                downloadLink = document.createElement('a');
+                downloadLink.href = objectUrl;
+                downloadLink.download = csvDownloadFilename(response);
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                downloadLink.remove();
+                downloadLink = null;
+            } catch (error) {
+                showCsvDownloadError('Could not download the CSV. Please try again.');
+            } finally {
+                if (downloadLink) downloadLink.remove();
+                isCsvDownloadInProgress = false;
+                button.disabled = false;
+                button.setAttribute('aria-busy', 'false');
+                button.textContent = originalLabel;
+            }
         }
 
         function renderPage(data) {
@@ -718,6 +798,13 @@
             if (printBtn) {
                 printBtn.addEventListener('click', function () {
                     window.print();
+                });
+            }
+
+            const downloadCsvBtn = document.getElementById('download-csv-btn');
+            if (downloadCsvBtn) {
+                downloadCsvBtn.addEventListener('click', function () {
+                    downloadResultsCsv(downloadCsvBtn);
                 });
             }
         }

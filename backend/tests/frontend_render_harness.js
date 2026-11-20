@@ -58,6 +58,7 @@ function detachChildren(el) {
 // of the auth UX (each screen moves a keyboard user to its heading or first
 // field), so the harness records it instead of throwing the call away.
 let focusedElement = null;
+let capturedDownloads = null;
 
 // ------------------------------------------------------------------
 // innerHTML hydration
@@ -298,10 +299,19 @@ function makeElement(tagName, created) {
     },
     focus() { focusedElement = el; },
     blur() {},
-    click() {},
+    click() {
+      if (capturedDownloads && this.tagName === 'A') {
+        capturedDownloads.push({ href: this.href, download: this.download });
+      }
+    },
     reset() {},
     scrollIntoView() {},
-    remove() {},
+    remove() {
+      if (this.parentNode && this.parentNode.removeChild) {
+        this.parentNode.removeChild(this);
+      }
+      this.parentNode = null;
+    },
     getBoundingClientRect() {
       return { top: 0, left: 0, right: 0, bottom: 0, width: 0, height: 0 };
     },
@@ -400,6 +410,7 @@ function makeFetch(routes) {
       url: target,
       method: (options && options.method) || 'GET',
       body: options && options.body ? String(options.body) : '',
+      credentials: options && options.credentials ? options.credentials : null,
     });
     const key = Object.keys(routes).find((k) => target.indexOf(k) !== -1);
     let spec = key ? routes[key] : { status: 404, body: {} };
@@ -420,7 +431,18 @@ function makeFetch(routes) {
       status,
       json: () => Promise.resolve(spec.body),
       text: () => Promise.resolve(JSON.stringify(spec.body)),
-      headers: { get: () => null },
+      blob: () => Promise.resolve(new Blob([
+        typeof spec.body === 'string' ? spec.body : JSON.stringify(spec.body),
+      ])),
+      headers: {
+        get(name) {
+          const headers = spec.headers || {};
+          const key = Object.keys(headers).find(
+            (headerName) => headerName.toLowerCase() === String(name).toLowerCase()
+          );
+          return key ? headers[key] : null;
+        },
+      },
     });
   };
   fetchImpl.requests = requests;
@@ -481,6 +503,19 @@ async function main() {
   const html = fs.readFileSync(scenario.page, 'utf8').replace(/^﻿/, '');
   const errors = [];
   const created = [];
+  const downloads = [];
+  capturedDownloads = downloads;
+  const objectUrls = [];
+  const revokedObjectUrls = [];
+  const urlApi = URL;
+  urlApi.createObjectURL = function (blob) {
+    const url = `blob:render-harness/${objectUrls.length + 1}`;
+    objectUrls.push({ url, blob });
+    return url;
+  };
+  urlApi.revokeObjectURL = function (url) {
+    revokedObjectUrls.push(url);
+  };
   const elements = new Map();
   harnessElements = elements;
 
@@ -623,6 +658,7 @@ async function main() {
     sessionStorage,
     document: documentStub,
     CritiqueAnalytics: analyticsStub,
+    URL: urlApi,
     addEventListener() {},
     removeEventListener() {},
     open(url, target, features) {
@@ -758,7 +794,8 @@ async function main() {
       clearTimeout(id);
     },
     console,
-    URL,
+    URL: urlApi,
+    Blob,
     CritiqueAnalytics: analyticsStub,
     CritiqueUI: {
       showToast() {},
@@ -858,6 +895,17 @@ async function main() {
       errors.push(`script ${i + 1}: ${e && e.message ? e.message : String(e)}`);
     }
   });
+
+  const toasts = [];
+  const ui = sandbox.CritiqueUI;
+  if (ui && typeof ui.showToast === 'function') {
+    const showToast = ui.showToast;
+    ui.showToast = function (message, type) {
+      toasts.push({ message, type });
+      return showToast.call(this, message, type);
+    };
+  }
+  windowStub.CritiqueUI = sandbox.CritiqueUI;
 
   // Let page-initiated async work (loaders, auth checks) settle, then reset the
   // capture buffers so only the invoked render call is measured.
@@ -1080,6 +1128,7 @@ async function main() {
   const flags = {};
   const flagOf = (el) => ({
     hidden: !!el.hidden,
+    disabled: !!el.disabled,
     role: el.getAttribute ? el.getAttribute('role') : null,
     ariaExpanded: el.getAttribute ? el.getAttribute('aria-expanded') : null,
     ariaPressed: el.getAttribute ? el.getAttribute('aria-pressed') : null,
@@ -1129,6 +1178,13 @@ async function main() {
       createdMeta,
       flags,
       requests: fetchStub.requests,
+      downloads,
+      objectUrls: await Promise.all(objectUrls.map(async (entry) => ({
+        url: entry.url,
+        content: await entry.blob.text(),
+      }))),
+      revokedObjectUrls,
+      toasts,
       clipboard: clipboardWrites,
       opened,
       storage: { session: dumpStorage(sessionStorage), local: dumpStorage(localStorage) },
