@@ -490,12 +490,17 @@
 
         let feedbackStartTracked = false;
         let feedbackFormViewedTracked = false;
+        let serverHasResponded = false;
 
         function renderProject(data, responses) {
             feedbackStartTracked = false;
             const content = document.getElementById('content');
             const p = data.project;
             const q = data.question;
+            const isOwner = Boolean(data.is_owner);
+            const serverResponded = !isOwner && Boolean(data.has_responded);
+            const sessionSubmitted = !isOwner && feedbackAlreadySubmitted();
+            serverHasResponded = serverResponded;
             const bcCurrent = document.getElementById('breadcrumb-current');
             if (bcCurrent && p && p.title) {
                 bcCurrent.textContent = p.title;
@@ -537,30 +542,34 @@
             if (p.url) { html += '<p class="project-link"><a href="' + escapeHtml(p.url) + '" target="_blank" rel="noopener noreferrer" class="btn btn-secondary visit-project-btn">Visit project \u2192</a></p>'; }
             if (q) {
                 html += '<div class="question-block"><div class="question-label">The Maker\'s Question</div><div class="question-text">' + escapeHtml(q.text) + '</div></div>';
-                html += '<div class="eyebrow">Your feedback</div>';
-                if (feedbackAlreadySubmitted()) {
-                    // This session already answered: offering the form again
-                    // would only earn a 409 from the server, so show the
-                    // recorded state and its next step instead.
-                    html += '<div class="response-form-card"><div id="feedback-thanks" role="status"></div></div>';
+                if (isOwner) {
+                    html += '<div class="response-form-card" id="owner-project-notice"><p class="project-description">You own this project.</p><a href="/project/' + encodeURIComponent(String(p.id || projectId)) + '/results" class="btn btn-primary" id="view-project-results">View results →</a></div>';
                 } else {
-                    // Three short, numbered steps: the form reads as a task
-                    // with an end rather than an open-ended questionnaire.
-                    html += '<div class="response-form-card"><form id="response-form">';
-                    html += '<div class="feedback-progress-indicator" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="3" aria-label="Feedback progress"><div class="progress-track" style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-bottom:var(--space-2);"><div class="progress-fill" id="progress-fill" style="width:0%;height:100%;background:var(--accent);transition:width 0.2s ease;"></div></div><div class="progress-label" id="progress-label" style="font-size:var(--text-xs);color:var(--text-secondary);margin-bottom:var(--space-4);">Step 0 of 3 completed</div></div>';
-                    html += '<fieldset class="form-section"><legend>1. How clear is it?</legend><div class="radio-cards">';
-                    html += '<label class="radio-card"><input type="radio" id="c1" name="clarity" value="very_clear" required><span class="radio-card-label"><span class="radio-card-title">Very clear</span><span class="radio-card-desc">I understood the project quickly.</span></span></label>';
-                    html += '<label class="radio-card"><input type="radio" id="c2" name="clarity" value="mostly_clear"><span class="radio-card-label"><span class="radio-card-title">Mostly clear</span><span class="radio-card-desc">I understood it, but needed some explanation.</span></span></label>';
-                    html += '<label class="radio-card"><input type="radio" id="c3" name="clarity" value="confusing"><span class="radio-card-label"><span class="radio-card-title">Confusing</span><span class="radio-card-desc">I was not sure what it does.</span></span></label>';
-                    html += '</div></fieldset>';
-                    html += '<fieldset class="form-section"><legend>2. Would you use it?</legend><div class="radio-cards">';
-                    html += '<label class="radio-card"><input type="radio" id="u1" name="would_use" value="yes" required><span class="radio-card-label"><span class="radio-card-title">Yes</span><span class="radio-card-desc">I would use this.</span></span></label>';
-                    html += '<label class="radio-card"><input type="radio" id="u2" name="would_use" value="maybe"><span class="radio-card-label"><span class="radio-card-title">Maybe</span><span class="radio-card-desc">I might use this in some cases.</span></span></label>';
-                    html += '<label class="radio-card"><input type="radio" id="u3" name="would_use" value="no"><span class="radio-card-label"><span class="radio-card-title">No</span><span class="radio-card-desc">I would not use this.</span></span></label>';
-                    html += '</div></fieldset>';
-                    html += '<div class="form-section"><h3>3. What would you change? <span style="font-weight:400;color:var(--text-muted);">(optional)</span></h3><textarea class="form-textarea" id="suggestion" maxlength="2000" placeholder="Your honest feedback..." aria-keyshortcuts="Control+Enter Meta+Enter"></textarea><p class="form-helper" style="font-size:var(--text-xs);color:var(--text-muted);margin-top:var(--space-1);">Press <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd> to submit</p><div id="suggestion-char-count" style="font-size:12px;color:var(--text-muted);text-align:right;margin-top:4px;">0 / 2000</div></div>';
-                    html += '<button type="submit" class="btn btn-primary" id="submit-btn" style="width:100%;" aria-keyshortcuts="Control+Enter Meta+Enter">Submit feedback</button>';
-                    html += '<div class="message" id="message" role="alert" aria-live="polite"></div></form></div>';
+                    html += '<div class="eyebrow">Your feedback</div>';
+                    if (serverResponded || sessionSubmitted) {
+                        // Already answered (server record or this session): offering
+                        // the form again would only earn a 409 from the server, so
+                        // show the recorded state and its next step instead.
+                        html += '<div class="response-form-card"><div id="feedback-thanks" role="status"></div></div>';
+                    } else {
+                        // Three short, numbered steps: the form reads as a task
+                        // with an end rather than an open-ended questionnaire.
+                        html += '<div class="response-form-card"><form id="response-form">';
+                        html += '<div class="feedback-progress-indicator" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="3" aria-label="Feedback progress"><div class="progress-track" style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-bottom:var(--space-2);"><div class="progress-fill" id="progress-fill" style="width:0%;height:100%;background:var(--accent);transition:width 0.2s ease;"></div></div><div class="progress-label" id="progress-label" style="font-size:var(--text-xs);color:var(--text-secondary);margin-bottom:var(--space-4);">Step 0 of 3 completed</div></div>';
+                        html += '<fieldset class="form-section"><legend>1. How clear is it?</legend><div class="radio-cards">';
+                        html += '<label class="radio-card"><input type="radio" id="c1" name="clarity" value="very_clear" required><span class="radio-card-label"><span class="radio-card-title">Very clear</span><span class="radio-card-desc">I understood the project quickly.</span></span></label>';
+                        html += '<label class="radio-card"><input type="radio" id="c2" name="clarity" value="mostly_clear"><span class="radio-card-label"><span class="radio-card-title">Mostly clear</span><span class="radio-card-desc">I understood it, but needed some explanation.</span></span></label>';
+                        html += '<label class="radio-card"><input type="radio" id="c3" name="clarity" value="confusing"><span class="radio-card-label"><span class="radio-card-title">Confusing</span><span class="radio-card-desc">I was not sure what it does.</span></span></label>';
+                        html += '</div></fieldset>';
+                        html += '<fieldset class="form-section"><legend>2. Would you use it?</legend><div class="radio-cards">';
+                        html += '<label class="radio-card"><input type="radio" id="u1" name="would_use" value="yes" required><span class="radio-card-label"><span class="radio-card-title">Yes</span><span class="radio-card-desc">I would use this.</span></span></label>';
+                        html += '<label class="radio-card"><input type="radio" id="u2" name="would_use" value="maybe"><span class="radio-card-label"><span class="radio-card-title">Maybe</span><span class="radio-card-desc">I might use this in some cases.</span></span></label>';
+                        html += '<label class="radio-card"><input type="radio" id="u3" name="would_use" value="no"><span class="radio-card-label"><span class="radio-card-title">No</span><span class="radio-card-desc">I would not use this.</span></span></label>';
+                        html += '</div></fieldset>';
+                        html += '<div class="form-section"><h3>3. What would you change? <span style="font-weight:400;color:var(--text-muted);">(optional)</span></h3><textarea class="form-textarea" id="suggestion" maxlength="2000" placeholder="Your honest feedback..." aria-keyshortcuts="Control+Enter Meta+Enter"></textarea><p class="form-helper" style="font-size:var(--text-xs);color:var(--text-muted);margin-top:var(--space-1);">Press <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd> to submit</p><div id="suggestion-char-count" style="font-size:12px;color:var(--text-muted);text-align:right;margin-top:4px;">0 / 2000</div></div>';
+                        html += '<button type="submit" class="btn btn-primary" id="submit-btn" style="width:100%;" aria-keyshortcuts="Control+Enter Meta+Enter">Submit feedback</button>';
+                        html += '<div class="message" id="message" role="alert" aria-live="polite"></div></form></div>';
+                    }
                 }
                 var details = '';
                 if (p.image_url) {
@@ -609,7 +618,10 @@
                 }
             }
             if (form && !feedbackFormViewedTracked) { feedbackFormViewedTracked = true; window.CritiqueAnalytics.trackEvent('feedback_form_viewed', projectId); }
-            if (feedbackAlreadySubmitted()) {
+            if (serverResponded) {
+                if (getCurrentUserId()) markFeedbackSubmitted();
+                showAlreadyRespondedState(document.getElementById('feedback-thanks'));
+            } else if (sessionSubmitted) {
                 showFeedbackSuccessNextStep(document.getElementById('feedback-thanks'));
             }
             // Restore any saved feedback draft from before OAuth
@@ -1186,6 +1198,9 @@
                         setCurrentUserId(data.id);
                     } else if (data && data.username) {
                         setCurrentUserId(data.username);
+                    }
+                    if (serverHasResponded && getCurrentUserId()) {
+                        markFeedbackSubmitted();
                     }
                     document.getElementById('login-btn').style.display = 'none';
                     document.getElementById('logout-btn').style.display = 'inline';
