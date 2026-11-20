@@ -50,16 +50,21 @@ def test_print_does_not_clip_content():
 
 def test_print_rules_are_additive_for_screen():
     css = CSS_PATH.read_text(encoding="utf-8")
-    start = css.find("@media print")
     assert css.count("@media print") == 1
-    # print block is last, so it can only affect print media
+    start = css.find("@media print")
     depth, i = 0, css.find("{", start)
+    assert i != -1, "@media print block has no opening brace"
     while i < len(css):
         depth += {"{": 1, "}": -1}.get(css[i], 0)
         i += 1
         if depth == 0:
             break
-    assert css[i:].strip() == ""
+    assert depth == 0, "@media print block has unbalanced braces"
+    print_block = css[start:i]
+    outside_print = css[:start] + css[i:]
+    assert ".no-print" in print_block
+    assert ".no-print" not in outside_print
+    assert not re.search(r"\.navbar[^{]*\{[^}]*display:\s*none\s*!important", outside_print)
 
 
 def test_both_pages_load_shared_print_rules():
