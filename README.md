@@ -486,13 +486,6 @@ request. [CONTRIBUTING.md](CONTRIBUTING.md) explains the guideline and its
 exceptions; it is a way to understand the product, not a barrier to
 contributing.
 
-### Good issues to contribute
-
-This table is a snapshot and will go stale. Check the
-[verified list](docs/contributor-opportunities.md) or the
-[live issue tracker](https://github.com/BistaDinesh03/critique/issues) before
-starting.
-
 ## Open source
 
 Critique is open source under the MIT License. The complete implementation
