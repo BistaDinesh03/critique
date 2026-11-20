@@ -17,7 +17,7 @@ Critique tags issues designed for newcomers:
 ## 2. Local Setup
 
 ### Prerequisites
-- Python 3.10+ (or 3.11+)
+- Python 3.11+ (CI uses 3.12)
 - Node.js 18+ (needed for frontend render testing)
 - Git and GitHub CLI (`gh`)
 
