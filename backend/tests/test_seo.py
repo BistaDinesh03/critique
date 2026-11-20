@@ -148,3 +148,55 @@ def test_feed_xml_is_valid_rss():
     assert channel.find("title") is not None
     assert channel.find("link") is not None
     assert channel.find("link").text == "https://critique.page/discover"
+
+
+def test_apple_touch_icon_and_mask_icon_on_all_pages():
+    """Ensure apple-touch-icon and mask-icon tags are declared across all HTML pages."""
+    frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"
+    html_files = list(frontend_dir.glob("*.html"))
+    assert len(html_files) >= 6
+
+    for html_file in html_files:
+        content = html_file.read_text(encoding="utf-8")
+        assert '<link rel="apple-touch-icon" href="/static/logo.png">' in content, f"Missing apple-touch-icon in {html_file.name}"
+        assert '<link rel="mask-icon" href="/static/favicon.svg" color="#2563eb">' in content, f"Missing mask-icon in {html_file.name}"
+
+    # Verify assets resolve without 404
+    res_apple = client.get("/static/logo.png")
+    assert res_apple.status_code == 200
+    res_mask = client.get("/static/favicon.svg")
+    assert res_mask.status_code == 200
+
+
+def test_my_projects_declares_twitter_card_metadata():
+    """my_projects.html carries Twitter Card metadata tags."""
+    frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"
+    html = (frontend_dir / "my_projects.html").read_text(encoding="utf-8")
+    assert '<meta name="twitter:card" content="summary">' in html
+    assert '<meta name="twitter:title" content="My Projects — Critique">' in html
+    assert '<meta name="twitter:description"' in html
+
+RSS_LINK_RE = re.compile(
+    r'<link\s+rel="alternate"\s+type="application/rss\+xml"\s+title="[^"]*"\s+href="/feed\.xml"\s*>'
+)
+
+def test_every_frontend_html_page_has_one_rss_autodiscovery_link():
+    """Any .html added under frontend/ must advertise the feed exactly once."""
+    frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"
+    html_files = list(frontend_dir.rglob("*.html"))
+    assert len(html_files) >= 6
+    for html_file in html_files:
+        content = html_file.read_text(encoding="utf-8")
+        assert len(RSS_LINK_RE.findall(content)) == 1, f"Expected one RSS autodiscovery link in {html_file.name}"
+        assert content.count("application/rss+xml") == 1, f"Unexpected extra RSS link in {html_file.name}"
+
+@pytest.mark.parametrize("path", ["/", "/discover", "/my-projects"])
+def test_served_pages_include_rss_autodiscovery_link(path):
+    response = client.get(path)
+    assert response.status_code == 200
+    assert len(RSS_LINK_RE.findall(response.text)) == 1
+
+def test_unknown_route_404_page_includes_rss_autodiscovery_link():
+    response = client.get("/definitely-not-a-page", headers={"accept": "text/html"})
+    assert response.status_code == 404
+    assert len(RSS_LINK_RE.findall(response.text)) == 1

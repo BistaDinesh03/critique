@@ -116,7 +116,17 @@ def test_get_project_with_question(auth_client):
     data = response.json()
     assert data["project"]["id"] == project_id
     assert data["project"]["title"] == "Akiya Scout"
+    assert data["project"]["response_count"] == 0
+    assert data["is_owner"] is True
     assert data["question"]["text"] == "Can you understand what this website does within 10 seconds?"
+
+    from app.main import app
+    from app.auth import get_current_user_optional
+    app.dependency_overrides[get_current_user_optional] = lambda: None
+    unauth_resp = auth_client.get(f"/api/projects/{project_id}")
+    assert unauth_resp.status_code == 200
+    assert unauth_resp.json()["is_owner"] is False
+    app.dependency_overrides.pop(get_current_user_optional, None)
     cleanup_database()
 
 
@@ -198,6 +208,136 @@ def test_project_description_is_trimmed_or_dropped(auth_client, raw, expected):
     response = auth_client.post("/api/projects/", json=payload)
     assert response.status_code == 201
     assert response.json()["project"]["description"] == expected
+
+
+@pytest.mark.parametrize(
+    "valid_url",
+    [
+        "http://example.com",
+        "https://example.com/path",
+        "  https://example.com/trimmed  ",
+    ],
+)
+def test_create_project_accepts_valid_project_urls(auth_client, valid_url):
+    """Safe http/https project URLs are accepted."""
+    cleanup_database()
+    payload = {
+        "project_data": {
+            "title": "URL Check",
+            "description": "Valid URL case",
+            "url": valid_url,
+            "image_url": None,
+        },
+        "question_data": {"text": "Is this URL valid?"},
+    }
+    response = auth_client.post("/api/projects/", json=payload)
+    assert response.status_code == 201
+    assert response.json()["project"]["url"] == valid_url.strip()
+    cleanup_database()
+
+
+@pytest.mark.parametrize(
+    "unsafe_url",
+    [
+        "javascript:alert(1)",
+        "ftp://example.com",
+        "https://",
+        "https://user:pass@example.com",
+        "https://token@example.com",
+        "https://bad host.com",
+        "https://bad\x00host.com",
+        "https://bad\x7fhost.com",
+    ],
+)
+def test_create_project_rejects_unsafe_project_urls(auth_client, unsafe_url):
+    """Unsafe or malformed project URLs are rejected with 422."""
+    cleanup_database()
+    payload = {
+        "project_data": {
+            "title": "Unsafe URL Check",
+            "description": "Invalid URL case",
+            "url": unsafe_url,
+            "image_url": None,
+        },
+        "question_data": {"text": "Should this reject?"},
+    }
+    response = auth_client.post("/api/projects/", json=payload)
+    assert response.status_code == 422
+    cleanup_database()
+
+
+def test_create_project_accepts_https_image_url(auth_client):
+    """HTTPS screenshot URLs without credentials are accepted."""
+    cleanup_database()
+    payload = {
+        "project_data": {
+            "title": "Screenshot Check",
+            "description": "Valid screenshot URL",
+            "url": "https://example.com",
+            "image_url": "https://cdn.example.com/screenshot.png",
+        },
+        "question_data": {"text": "Does the screenshot load?"},
+    }
+    response = auth_client.post("/api/projects/", json=payload)
+    assert response.status_code == 201
+    assert (
+        response.json()["project"]["image_url"]
+        == "https://cdn.example.com/screenshot.png"
+    )
+    cleanup_database()
+
+
+@pytest.mark.parametrize(
+    "unsafe_image_url",
+    [
+        "http://cdn.example.com/screenshot.png",
+        "javascript:alert(1)",
+        "https://",
+        "https://user:pass@cdn.example.com/screenshot.png",
+        "https://bad host.com/screenshot.png",
+        "https://bad\x1fhost.com/screenshot.png",
+    ],
+)
+def test_create_project_rejects_unsafe_image_urls(auth_client, unsafe_image_url):
+    """Non-HTTPS, hostless, whitespace/control-char, or credentialed image URLs return 422."""
+    cleanup_database()
+    payload = {
+        "project_data": {
+            "title": "Unsafe Screenshot Check",
+            "description": "Invalid screenshot URL",
+            "url": "https://example.com",
+            "image_url": unsafe_image_url,
+        },
+        "question_data": {"text": "Should this reject?"},
+    }
+    response = auth_client.post("/api/projects/", json=payload)
+    assert response.status_code == 422
+    cleanup_database()
+
+
+@pytest.mark.parametrize(
+    ("field", "bad_value", "expected_message"),
+    [
+        ("url", "javascript:alert(1)", "URL must have http or https scheme and a valid host"),
+        ("url", "https://", "URL must have http or https scheme and a valid host"),
+        ("url", "https://user:pass@example.com", "URL cannot contain embedded credentials"),
+        ("url", "https://bad host.com", "URL host cannot contain whitespace or control characters"),
+        ("image_url", "http://example.com/a.png", "Image URL must use https scheme and have a valid host"),
+        ("image_url", "https://user:pass@example.com/a.png", "Image URL cannot contain embedded credentials"),
+        ("image_url", "https://bad\x7fhost.com/a.png", "Image URL host cannot contain whitespace or control characters"),
+    ],
+)
+def test_project_create_url_validators_report_specific_messages(
+    field, bad_value, expected_message
+):
+    """Direct ProjectCreate schema validation asserts exact failure messages."""
+    from pydantic import ValidationError
+    from app.schemas import ProjectCreate
+
+    kwargs = {"title": "Direct Schema Check", field: bad_value}
+    with pytest.raises(ValidationError) as exc_info:
+        ProjectCreate(**kwargs)
+    assert expected_message in str(exc_info.value)
     cleanup_database()
 
 

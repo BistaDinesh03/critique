@@ -766,11 +766,263 @@ var CritiqueUI = (function() {
         });
     }
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initNavLogin);
-    } else {
-        initNavLogin();
+    // ============ THEME TOGGLE ============
+    var THEME_STORAGE_KEY = 'critique-theme';
+
+    function getStoredTheme() {
+        try {
+            var saved = localStorage.getItem(THEME_STORAGE_KEY);
+            return (saved === 'dark' || saved === 'light') ? saved : null;
+        } catch (e) {
+            return null;
+        }
     }
+
+    function getSystemPrefersDark() {
+        try {
+            if (typeof window !== 'undefined' && window.matchMedia) {
+                var mq = window.matchMedia('(prefers-color-scheme: dark)');
+                return !!(mq && mq.matches);
+            }
+        } catch (e) {}
+        return false;
+    }
+
+    function getEffectiveTheme() {
+        var attr = document.documentElement && document.documentElement.getAttribute
+            ? document.documentElement.getAttribute('data-theme')
+            : null;
+        if (attr === 'dark' || attr === 'light') return attr;
+        var stored = getStoredTheme();
+        if (stored) return stored;
+        return getSystemPrefersDark() ? 'dark' : 'light';
+    }
+
+    function syncThemeButton(btn) {
+        if (!btn) return;
+        var isDark = getEffectiveTheme() === 'dark';
+        btn.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+        btn.setAttribute('aria-label', isDark ? 'Switch to light theme' : 'Switch to dark theme');
+        btn.setAttribute('title', isDark ? 'Switch to light theme' : 'Switch to dark theme');
+    }
+
+    function applyTheme(theme) {
+        if (theme !== 'dark' && theme !== 'light') return;
+        if (document.documentElement && document.documentElement.setAttribute) {
+            document.documentElement.setAttribute('data-theme', theme);
+        }
+        try {
+            localStorage.setItem(THEME_STORAGE_KEY, theme);
+        } catch (e) {}
+        syncThemeButton(document.getElementById('theme-toggle'));
+    }
+
+    function toggleTheme() {
+        var next = getEffectiveTheme() === 'dark' ? 'light' : 'dark';
+        applyTheme(next);
+        return next;
+    }
+
+    function initThemeToggle() {
+        var stored = getStoredTheme();
+        if (stored && document.documentElement && document.documentElement.setAttribute) {
+            document.documentElement.setAttribute('data-theme', stored);
+        }
+        var btn = document.getElementById('theme-toggle');
+        if (!btn || btn.dataset.themeInit === 'true') return;
+        btn.dataset.themeInit = 'true';
+        syncThemeButton(btn);
+        btn.addEventListener('click', function() {
+            toggleTheme();
+        });
+        try {
+            if (typeof window !== 'undefined' && window.matchMedia) {
+                var mq = window.matchMedia('(prefers-color-scheme: dark)');
+                var onChange = function() {
+                    if (!getStoredTheme()) {
+                        syncThemeButton(btn);
+                    }
+                };
+                if (mq && mq.addEventListener) mq.addEventListener('change', onChange);
+                else if (mq && mq.addListener) mq.addListener(onChange);
+            }
+        } catch (e) {}
+    }
+
+    function initSharedUI() {
+        initNavLogin();
+        initThemeToggle();
+        initBackToTop();
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initSharedUI);
+    } else {
+        initSharedUI();
+    }
+
+    // ============ BACK-TO-TOP BUTTON ============
+    var SHOW_AFTER = 300;
+
+    function initBackToTop() {
+        var btn = document.getElementById('back-to-top');
+        if (!btn) return;
+
+        function update() {
+            btn.hidden = window.scrollY <= SHOW_AFTER;
+        }
+
+        window.addEventListener('scroll', update, { passive: true });
+        update();
+
+        btn.addEventListener('click', function() {
+            window.scrollTo({
+                top: 0,
+                behavior: scrollBehavior()
+            });
+        });
+    }
+
+    // ============ DATE / AGE FORMATTING ============
+    // Real age from a UTC/ISO timestamp: localized via Intl when available,
+    // falling back to classic English strings when Intl is unavailable.
+    function formatAge(value, locale) {
+        if (!value) return '';
+        var iso = String(value);
+        if (!/[zZ]$|[+-]\d{2}:?\d{2}$/.test(iso)) {
+            iso += /[Tt]/.test(iso) ? 'Z' : 'T00:00:00Z';
+        }
+        var then = new Date(iso);
+        if (isNaN(then.getTime())) return '';
+        var diff = Date.now() - then.getTime();
+        if (diff < 0) diff = 0;
+
+        var resolvedLocale = locale ||
+            (typeof document !== 'undefined' && document.documentElement && document.documentElement.lang) ||
+            (typeof navigator !== 'undefined' && navigator.language) ||
+            undefined;
+
+        var hasRtf = typeof Intl !== 'undefined' && typeof Intl.RelativeTimeFormat === 'function';
+        var hasDtf = typeof Intl !== 'undefined' && typeof Intl.DateTimeFormat === 'function';
+
+        var minutes = Math.floor(diff / 60000);
+        if (minutes < 1) {
+            if (hasRtf) {
+                try {
+                    var rtfAuto = new Intl.RelativeTimeFormat(resolvedLocale, { numeric: 'auto' });
+                    var effectiveLocale = (rtfAuto.resolvedOptions && rtfAuto.resolvedOptions().locale) || resolvedLocale || '';
+                    if (String(effectiveLocale).toLowerCase().indexOf('en') === 0) {
+                        return 'Just now';
+                    }
+                    return rtfAuto.format(0, 'second');
+                } catch (e) {}
+            }
+            return 'Just now';
+        }
+        if (minutes < 60) {
+            if (hasRtf) {
+                try {
+                    return new Intl.RelativeTimeFormat(resolvedLocale, { numeric: 'always', style: 'short' }).format(-minutes, 'minute');
+                } catch (e) {}
+            }
+            return minutes + 'm ago';
+        }
+        var hours = Math.floor(minutes / 60);
+        if (hours < 24) {
+            if (hasRtf) {
+                try {
+                    return new Intl.RelativeTimeFormat(resolvedLocale, { numeric: 'always', style: 'short' }).format(-hours, 'hour');
+                } catch (e) {}
+            }
+            return hours + 'h ago';
+        }
+        var days = Math.floor(hours / 24);
+        if (days === 1) {
+            if (hasRtf) {
+                try {
+                    var dayLabel = new Intl.RelativeTimeFormat(resolvedLocale, { numeric: 'auto' }).format(-1, 'day');
+                    return dayLabel ? dayLabel.charAt(0).toUpperCase() + dayLabel.slice(1) : 'Yesterday';
+                } catch (e) {}
+            }
+            return 'Yesterday';
+        }
+        if (days < 7) {
+            if (hasRtf) {
+                try {
+                    return new Intl.RelativeTimeFormat(resolvedLocale, { numeric: 'always', style: 'long' }).format(-days, 'day');
+                } catch (e) {}
+            }
+            return days + ' days ago';
+        }
+        var sameYear = then.getUTCFullYear() === new Date().getUTCFullYear();
+        if (hasDtf) {
+            try {
+                var opts = sameYear
+                    ? { month: 'short', day: 'numeric', timeZone: 'UTC' }
+                    : { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' };
+                return new Intl.DateTimeFormat(resolvedLocale, opts).format(then);
+            } catch (e) {}
+        }
+        var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        var label = months[then.getUTCMonth()] + ' ' + then.getUTCDate();
+        if (!sameYear) {
+            label += ', ' + then.getUTCFullYear();
+        }
+        return label;
+    }
+
+    // ============ GLOBAL ERROR HANDLER ============
+    // Logs unhandled errors and shows one non-blocking notice. Never calls
+    // preventDefault (DevTools still reports) and never shows error details.
+    function showGlobalErrorNotice() {
+        if (document.getElementById('global-error-notice') || !document.body) return;
+        var box = document.createElement('div');
+        box.id = 'global-error-notice';
+        box.setAttribute('data-global-error', '');
+        box.setAttribute('role', 'alert');
+        box.setAttribute('aria-live', 'assertive');
+        box.style.cssText = 'position:fixed;left:50%;bottom:16px;transform:translateX(-50%);' +
+            'z-index:10000;max-width:92vw;display:flex;gap:12px;align-items:center;flex-wrap:wrap;' +
+            'padding:12px 16px;border-radius:8px;background:#1f2937;color:#fff;' +
+            'box-shadow:0 4px 16px rgba(0,0,0,.3);font:14px/1.4 system-ui,sans-serif;';
+
+        var msg = document.createElement('span');
+        msg.textContent = 'Something went wrong on this page. Reloading may fix it.';
+        box.appendChild(msg);
+
+        [['reload', 'Reload', function() { window.location.reload(); }],
+         ['dismiss', 'Dismiss', function() { box.remove(); }]].forEach(function(a) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.setAttribute('data-error-action', a[0]);
+            btn.textContent = a[1];
+            btn.style.cssText = 'cursor:pointer;padding:6px 12px;border-radius:6px;border:1px solid #fff;' +
+                'background:' + (a[0] === 'reload' ? '#fff' : 'transparent') + ';' +
+                'color:' + (a[0] === 'reload' ? '#1f2937' : '#fff') + ';font:inherit;';
+            btn.addEventListener('click', a[2]);
+            box.appendChild(btn);
+        });
+        document.body.appendChild(box);
+    }
+
+    function isBenignError(message, err) {
+        if (err && err.name === 'AbortError') return true;
+        return /ResizeObserver loop/.test(String(message || ''));
+    }
+
+    function handleGlobalError(message, err) {
+        if (isBenignError(message, err)) return;
+        console.error('Unhandled error:', err || message);
+        showGlobalErrorNotice(); // ponytail: no-op while a notice is up, which dedupes error loops
+    }
+
+    window.addEventListener('error', function(e) {
+        handleGlobalError(e.message, e.error);
+    });
+    window.addEventListener('unhandledrejection', function(e) {
+        var r = e.reason;
+        handleGlobalError(r && r.message, r);
+    });
 
     return {
         readReducedMotion: readReducedMotion,
@@ -779,6 +1031,17 @@ var CritiqueUI = (function() {
         showConfirmModal: showConfirmModal,
         renderAuthChoice: renderAuthChoice,
         renderEmailForm: renderEmailForm,
-        initNavLogin: initNavLogin
+        initNavLogin: initNavLogin,
+        initBackToTop: initBackToTop,
+        initThemeToggle: initThemeToggle,
+        toggleTheme: toggleTheme,
+        getEffectiveTheme: getEffectiveTheme,
+        formatAge: formatAge
     };
 })();
+
+var formatAge = CritiqueUI.formatAge;
+if (typeof window !== 'undefined') {
+    window.CritiqueUI = CritiqueUI;
+    window.formatAge = formatAge;
+}

@@ -94,6 +94,7 @@ class ProjectOut(BaseModel):
     image_url: Optional[str]
     owner_id: int
     created_at: datetime
+    response_count: Optional[int] = 0
 
 
 class ProjectListItem(BaseModel):
@@ -108,6 +109,7 @@ class ProjectListItem(BaseModel):
     created_at: datetime
     question_text: Optional[str] = None
     response_count: int = 0
+    has_responded: bool = False
 
 
 class QuestionCreate(BaseModel):
@@ -138,6 +140,7 @@ class ProjectWithQuestion(BaseModel):
     """Schema for returning a project with its active question."""
     project: ProjectOut
     question: Optional[QuestionOut] = None
+    is_owner: Optional[bool] = False
 
 
 class PaginatedProjects(BaseModel):

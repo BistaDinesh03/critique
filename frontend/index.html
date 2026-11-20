@@ -54,6 +54,17 @@
     }
     </script>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link rel="apple-touch-icon" href="/static/logo.png">
+    <link rel="mask-icon" href="/static/favicon.svg" color="#2563eb">
+    <script>
+        try {
+            var savedTheme = localStorage.getItem('critique-theme');
+            if (savedTheme === 'dark' || savedTheme === 'light') {
+                document.documentElement.setAttribute('data-theme', savedTheme);
+            }
+        } catch (e) {}
+    </script>
+    <link rel="alternate" type="application/rss+xml" title="Critique - new projects" href="/feed.xml">
     <link rel="stylesheet" href="/static/shared.css">
     <style>
         .hero {
@@ -949,7 +960,7 @@
 
         .review-tag.accent {
             background: var(--success-bg);
-            color: #166534;
+            color: var(--success-text);
         }
 
         @media (max-width: 900px) {
@@ -1204,10 +1215,11 @@
             <a href="#submit" class="btn-nav">Submit a project</a>
             <a href="/auth/login" class="btn-nav" id="login-btn" aria-label="Login with GitHub"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg> Login</a>
             <a href="/auth/logout" class="btn-nav" id="logout-btn"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> Logout</a>
+            <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Switch to dark theme" aria-pressed="false" title="Switch to dark theme"><svg class="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg><svg class="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg></button>
         </nav>
     </header>
 
-    <main id="main-content" class="container-wide" style="max-width: 1100px;">
+    <main id="main-content" class="container-wide" style="max-width: 1100px;" tabindex="-1">
         <!-- Shown on load when the backend redirects here with ?error=email_link
              (expired, already-used, or invalid magic link). It sits at the very
              top of the page, outside the submit form and before the script that
@@ -1238,14 +1250,14 @@
 
             <div class="social-proof" id="social-proof" aria-busy="true">
                 <div class="avatar-stack" id="avatar-stack" aria-hidden="true"><span class="avatar-skeleton skeleton"></span><span class="avatar-skeleton skeleton"></span><span class="avatar-skeleton skeleton"></span><span class="avatar-skeleton skeleton"></span></div>
-                <p class="social-proof-text" id="social-proof-text"><span class="skeleton social-proof-skeleton-line"></span></p>
+                <p class="social-proof-text" id="social-proof-text" aria-live="polite" aria-atomic="true"><span class="skeleton social-proof-skeleton-line"></span></p>
                 <p class="social-proof-sub">
                     Discover real projects. Share thoughtful feedback. Build better together.
                 </p>
             </div>
         </section>
 
-        <section class="stats-grid" id="real-activity" style="display:none;">
+        <section class="stats-grid" id="real-activity" role="status" aria-live="polite" aria-atomic="true" style="display:none;">
             <div class="stat-box">
                 <div class="stat-value" id="stat-projects">0</div>
                 <div class="stat-label">Projects</div>
@@ -1266,6 +1278,7 @@
             <!-- Static placeholder: the project grid paints immediately while
                  /api/projects/ is in flight, and is replaced by real cards,
                  an empty state or a retryable error state. -->
+            <p id="homepage-projects-status" class="sr-only" role="status" aria-live="polite"></p>
             <div id="homepage-projects" class="project-grid" aria-busy="true">
                 <p class="sr-only" role="status">Loading projects&hellip;</p>
                 <div class="skeleton-card" aria-hidden="true">
@@ -1339,7 +1352,7 @@
             <h2 id="real-feedback-title">What builders say</h2>
             <p class="subtitle">Feedback from builders who took a look at Critique.</p>
 
-            <div class="fb-carousel" id="fb-carousel" role="region" aria-roledescription="carousel" aria-label="What builders say">
+            <div class="fb-carousel" id="fb-carousel" role="region" aria-roledescription="carousel" aria-label="What builders say" tabindex="0" aria-keyshortcuts="ArrowLeft ArrowRight Home End Space">
                 <div class="fb-viewport" id="fb-viewport">
                     <ul class="fb-track" id="fb-track" role="list">
                         <li class="fb-slide">
@@ -1497,7 +1510,8 @@
 
                     <div class="form-group">
                         <label class="form-label" for="title">Project title <span class="form-required">(required)</span></label>
-                        <input class="form-input" type="text" id="title" name="title" required maxlength="200" placeholder="e.g. Akiya Scout">
+                        <input class="form-input" type="text" id="title" name="title" required maxlength="200" placeholder="e.g. Akiya Scout" aria-describedby="title-char-count">
+                        <div id="title-char-count" class="form-char-count" aria-live="off">0/200</div>
                     </div>
 
                     <div class="form-group">
@@ -1520,7 +1534,8 @@
 
                     <div class="form-group">
                         <label class="form-label" for="question">Ask ONE question <span class="form-required">(required)</span></label>
-                        <textarea class="form-textarea" id="question" name="question" required maxlength="500" placeholder="e.g. Is it immediately clear what this product does?" style="min-height:80px;"></textarea>
+                        <textarea class="form-textarea" id="question" name="question" required maxlength="500" placeholder="e.g. Is it immediately clear what this product does?" style="min-height:80px;" aria-describedby="question-char-count"></textarea>
+                        <div id="question-char-count" class="form-char-count" aria-live="off">0/500</div>
                         <p class="form-helper">Be specific. One clear question leads to more useful feedback.</p>
                     </div>
 
@@ -1554,6 +1569,7 @@
         </section>
     </main>
 
+    <script src="/static/ui.js"></script>
     <script>
         function getCsrfToken() {
             const cookies = document.cookie.split(';');
@@ -1576,38 +1592,6 @@
                 .replace(/'/g, '&#39;');
         }
 
-        // The real age of a project, straight from its own created_at:
-        // "2h ago" while it is fresh, a plain date once it is not. No date
-        // library, no invented activity. The API serves UTC timestamps
-        // without an offset ("2026-09-02T11:04:38.392996"), so a value with
-        // no offset is pinned to UTC rather than read as the visitor's local
-        // zone -- otherwise the same project would age differently per user.
-        function formatAge(value) {
-            if (!value) return '';
-            var iso = String(value);
-            if (!/[zZ]$|[+-]\d{2}:?\d{2}$/.test(iso)) {
-                iso += /[Tt]/.test(iso) ? 'Z' : 'T00:00:00Z';
-            }
-            var then = new Date(iso);
-            if (isNaN(then.getTime())) return '';
-            var diff = Date.now() - then.getTime();
-            if (diff < 0) diff = 0;
-            var minutes = Math.floor(diff / 60000);
-            if (minutes < 1) return 'Just now';
-            if (minutes < 60) return minutes + 'm ago';
-            var hours = Math.floor(minutes / 60);
-            if (hours < 24) return hours + 'h ago';
-            var days = Math.floor(hours / 24);
-            if (days === 1) return 'Yesterday';
-            if (days < 7) return days + ' days ago';
-            var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            var label = months[then.getUTCMonth()] + ' ' + then.getUTCDate();
-            if (then.getUTCFullYear() !== new Date().getUTCFullYear()) {
-                label += ', ' + then.getUTCFullYear();
-            }
-            return label;
-        }
-
         // Response count and age on one line: "3 responses · 2h ago". Both
         // parts come from the API, a missing part never leaves a dangling
         // separator behind, and the age stays machine-readable.
@@ -1618,7 +1602,7 @@
             if (age) {
                 parts.push('<time datetime="' + escapeHtml(project.created_at) + '">' + escapeHtml(age) + '</time>');
             }
-            return parts.join(' \u00b7 ');
+            return parts.join(' \u00b7 ') + (project.has_responded ? ' <span class="badge badge-success">Feedback given</span>' : '');
         }
 
         async function checkAuth() {
@@ -1736,15 +1720,69 @@
         showAuthExpiredBanner();
         showAuthErrorBanner();
 
+        // Same bounded retry as discover.html: 3 attempts, 1s/2s backoff, 5xx
+        // and network errors retried, 4xx returned as-is.
+        async function fetchWithRetry(url, options, maxRetries) {
+            maxRetries = maxRetries || 3;
+            let lastError;
+            for (let i = 0; i < maxRetries; i++) {
+                const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+                const timer = controller ? setTimeout(function() { controller.abort(); }, 10000) : null;
+                try {
+                    const fetchOpts = Object.assign({}, options);
+                    if (controller) fetchOpts.signal = controller.signal;
+                    const response = await fetch(url, fetchOpts);
+                    if (response.status === 503 || response.status === 500) {
+                        throw new Error('Server waking up');
+                    }
+                    if (!response.ok) {
+                        return response;
+                    }
+                    // Keep attempt deadline active through body consumption
+                    const data = await response.json();
+                    return {
+                        ok: true,
+                        status: response.status,
+                        headers: response.headers,
+                        json: async function() { return data; }
+                    };
+                } catch (e) {
+                    lastError = e;
+                    if (i < maxRetries - 1) {
+                        const delay = Math.min(1000 * Math.pow(2, i), 4000);
+                        console.warn('Retrying ' + url + ' (attempt ' + (i + 2) + '/' + maxRetries + ') in ' + delay + 'ms: ' + (e && e.message));
+                        await new Promise(function(resolve) { setTimeout(resolve, delay); });
+                    }
+                } finally {
+                    if (timer) clearTimeout(timer);
+                }
+            }
+            throw lastError;
+        }
+
+        let homepageSkeletonHtml = null;
+        let homepageProjectsLoading = false;
         async function loadHomepageProjects() {
+            if (homepageProjectsLoading) return;
+            homepageProjectsLoading = true;
             const container = document.getElementById('homepage-projects');
+            const status = document.getElementById('homepage-projects-status');
+            status.textContent = '';
+            // Keep the first skeleton so a manual retry shows the same loading state.
+            if (homepageSkeletonHtml === null) {
+                homepageSkeletonHtml = container.innerHTML;
+            } else {
+                container.innerHTML = homepageSkeletonHtml;
+                container.setAttribute('aria-busy', 'true');
+            }
             try {
-                const response = await fetch('/api/projects/?page=1&page_size=6');
+                const response = await fetchWithRetry('/api/projects/?page=1&page_size=6');
                 if (!response.ok) throw new Error('Request failed: ' + response.status);
                 const data = await response.json();
 
                 if (data.items.length === 0) {
                     container.innerHTML = '<p style="color:var(--text-muted);grid-column:1/-1;text-align:center;">No projects waiting for feedback yet. Be the first to ask a question.</p>';
+                    status.textContent = 'No projects waiting for feedback yet.';
                     return;
                 }
 
@@ -1776,6 +1814,7 @@
                     html += '</div></div>';
                 });
                 container.innerHTML = html;
+                status.textContent = 'Showing ' + data.items.length + ' project' + (data.items.length === 1 ? '' : 's') + '.';
                 container.querySelectorAll('.project-screenshot').forEach(function(img) {
                     img.addEventListener('error', function() { this.style.display = 'none'; });
                 });
@@ -1798,6 +1837,7 @@
                 box.appendChild(retry);
                 container.appendChild(box);
             } finally {
+                homepageProjectsLoading = false;
                 container.setAttribute('aria-busy', 'false');
             }
         }
@@ -1856,6 +1896,7 @@
                 if (typeof draft.url === 'string') document.getElementById('url').value = draft.url;
                 if (typeof draft.image_url === 'string') document.getElementById('image_url').value = draft.image_url;
                 if (typeof draft.question === 'string') document.getElementById('question').value = draft.question;
+                syncProjectFormCharCounts();
                 return true;
             } catch (e) {
                 return false;
@@ -1935,6 +1976,19 @@
             } catch (e) {}
         }
 
+        function syncProjectFormCharCounts() {
+            var titleInput = document.getElementById('title');
+            var titleCount = document.getElementById('title-char-count');
+            if (titleInput && titleCount) {
+                titleCount.textContent = titleInput.value.length + '/200';
+            }
+            var questionInput = document.getElementById('question');
+            var questionCount = document.getElementById('question-char-count');
+            if (questionInput && questionCount) {
+                questionCount.textContent = questionInput.value.length + '/500';
+            }
+        }
+
         var projectFormDirty = false;
         function updateProjectFormDirty() {
             var titleEl = document.getElementById('title');
@@ -1952,6 +2006,10 @@
         if (pForm) {
             pForm.addEventListener('input', updateProjectFormDirty);
             pForm.addEventListener('change', updateProjectFormDirty);
+            pForm.addEventListener('input', syncProjectFormCharCounts);
+            pForm.addEventListener('reset', function() {
+                setTimeout(syncProjectFormCharCounts, 0);
+            });
         }
 
         window.addEventListener('beforeunload', function(e) {
@@ -1998,6 +2056,7 @@
                     clearProjectDraft();
                     projectFormDirty = false;
                     document.getElementById('project-form').reset();
+                    syncProjectFormCharCounts();
                     showProjectLive(data);
                 } else if (response.status === 401) {
                     saveProjectDraft();
@@ -2030,6 +2089,7 @@
         try { loadSocialProof(); } catch(e) { console.error('Social proof error:', e); }
         try { loadHomepageProjects(); } catch(e) { console.error('Homepage projects error:', e); }
         try { maybeRestoreProjectAfterLogin(); } catch(e) {}
+        try { syncProjectFormCharCounts(); } catch(e) {}
         try { maybeResumeToSubmit(); } catch(e) {}
 
         function maybeResumeToSubmit() {
@@ -2107,7 +2167,7 @@
             const proofContainer = document.getElementById('social-proof');
             let resolved = false;
             try {
-                const response = await fetch('/api/stats');
+                const response = await fetchWithRetry('/api/stats');
                 if (!response.ok) return;
                 const data = await response.json();
                 resolved = true;
@@ -2162,8 +2222,8 @@
         }
 
     </script>
-    <script src="/static/ui.js"></script>
-    <script src="/static/analytics.js"></script>
+    <script src="/static/analytics_events.js"></script>
+<script src="/static/analytics.js"></script>
     <script src="/static/share.js"></script>
     <script>trackPageView();</script>
 
@@ -2443,11 +2503,36 @@
                 touchOrigin = null;
             }
 
+            // Autoplay is disabled, so "paused" is the visitor's stated
+            // preference: it flips aria-live between polite (paused, safe to
+            // announce page changes) and off, and reduced motion starts paused.
+            var paused = state.reducedMotion;
+
+            function applyPaused() {
+                if (root.setAttribute) root.setAttribute('data-paused', paused ? 'true' : 'false');
+                if (track.setAttribute) track.setAttribute('aria-live', paused ? 'polite' : 'off');
+            }
+
             function onKeyDown(e) {
-                var key = e && e.key;
-                if (key !== 'ArrowLeft' && key !== 'ArrowRight') return;
+                if (!e || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+                var tag = e.target && e.target.tagName ? String(e.target.tagName).toUpperCase() : '';
+                if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (e.target && e.target.isContentEditable)) return;
+                var key = e.key;
+                if (key === ' ' || key === 'Spacebar') {
+                    // Buttons keep native Space activation.
+                    if (tag === 'BUTTON' || tag === 'A') return;
+                    paused = !paused;
+                    applyPaused();
+                } else if (key === 'ArrowLeft' || key === 'ArrowRight') {
+                    goTo(state.page + (key === 'ArrowRight' ? 1 : -1));
+                } else if (key === 'Home') {
+                    goTo(0);
+                } else if (key === 'End') {
+                    goTo(state.pages - 1);
+                } else {
+                    return;
+                }
                 if (e.preventDefault) e.preventDefault();
-                goTo(state.page + (key === 'ArrowRight' ? 1 : -1));
             }
 
             function snapshot() {
@@ -2476,7 +2561,9 @@
 
             function setMotionPreference(reduced) {
                 state.reducedMotion = !!reduced;
+                if (state.reducedMotion) paused = true;
                 applyMotionPreference();
+                applyPaused();
             }
 
             // Keep the inline transition in sync with the OS preference so
@@ -2550,6 +2637,7 @@
             }
             applyIdenticons();
             applyMotionPreference();
+            applyPaused();
             refresh();
 
             return {

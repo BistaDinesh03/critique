@@ -14,11 +14,12 @@ import pytest
 import shutil
 
 try:
-    from playwright.sync_api import sync_playwright
+    from playwright.sync_api import expect, sync_playwright
     _pw_ok = True
 except Exception:
     _pw_ok = False
     sync_playwright = None
+    expect = None
 
 pytestmark = [
     pytest.mark.skipif(not _pw_ok, reason="playwright not installed"),
@@ -395,9 +396,11 @@ def test_email_request_failure_visual_is_retryable(auth_visual_browser, width):
         page.get_by_label("Email").fill("builder@example.com")
         page.get_by_role("button", name="Email me a sign-in link").click()
         error = page.get_by_role("alert")
-        assert error.is_visible()
-        assert error.inner_text() == "We couldn't send the link. Check your connection and try again."
-        assert page.get_by_role("button", name="Email me a sign-in link").is_enabled()
+        expect(error).to_be_visible()
+        expect(error).to_have_text(
+            "We couldn't send the link. Check your connection and try again."
+        )
+        expect(page.get_by_role("button", name="Email me a sign-in link")).to_be_enabled()
         _auth_snapshot(page, "email_request_failure", width)
     finally:
         context.close()
@@ -430,11 +433,11 @@ def test_email_auth_error_recovers_after_a_retry(auth_visual_browser, width):
         email = page.get_by_label("Email")
         email.fill("builder@example.com")
         page.get_by_role("button", name="Email me a sign-in link").click()
-        assert page.get_by_role("alert").is_visible()
+        expect(page.get_by_role("alert")).to_be_visible()
         _auth_snapshot(page, "email_error_recovery", width)
 
         page.get_by_role("button", name="Email me a sign-in link").click()
-        assert page.get_by_role("heading", name="Check your inbox").is_visible()
+        expect(page.get_by_role("heading", name="Check your inbox")).to_be_visible()
         assert response_count == 2
         _auth_snapshot(page, "email_recovered", width)
     finally:

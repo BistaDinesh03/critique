@@ -30,6 +30,7 @@ def _latest_active_question_subquery(db: Session):
     ranked_questions = (
         db.query(
             Question.project_id.label("project_id"),
+            Question.id.label("question_id"),
             Question.text.label("question_text"),
             func.row_number()
             .over(
@@ -44,6 +45,7 @@ def _latest_active_question_subquery(db: Session):
     return (
         db.query(
             ranked_questions.c.project_id,
+            ranked_questions.c.question_id,
             ranked_questions.c.question_text,
         )
         .filter(ranked_questions.c.question_rank == 1)
@@ -194,6 +196,22 @@ def list_projects(
     # Paginate
     page_items = final_ranked[offset:offset + page_size]
 
+    # One query for the whole page: projects whose latest active question
+    # this user has answered. Older superseded questions do not count.
+    responded_ids = set()
+    page_project_ids = [item["project"].id for item in page_items]
+    if current_user and page_project_ids:
+        responded_ids = {
+            row[0]
+            for row in db.query(question_subq.c.project_id)
+            .join(Response, Response.question_id == question_subq.c.question_id)
+            .filter(
+                Response.user_id == current_user.id,
+                question_subq.c.project_id.in_(page_project_ids),
+            )
+            .all()
+        }
+
     items = []
     for item in page_items:
         p = item["project"]
@@ -208,6 +226,7 @@ def list_projects(
                 created_at=p.created_at,
                 question_text=item["question_text"],
                 response_count=item["response_count"],
+                has_responded=p.id in responded_ids,
             )
         )
 
@@ -320,7 +339,17 @@ def get_project(project_id: int, db: Session = Depends(get_db), current_user: Us
         .first()
     )
 
-    return ProjectWithQuestion(project=project, question=question)
+    resp_count = (
+        db.query(func.count(Response.id))
+        .join(Question, Response.question_id == Question.id)
+        .filter(Question.project_id == project_id)
+        .scalar()
+    ) or 0
+    project.response_count = resp_count
+    is_owner = bool(current_user and current_user.id == project.owner_id)
+
+    return ProjectWithQuestion(project=project, question=question, is_owner=is_owner)
+
 
 
 @router.delete("/{project_id}", status_code=204)
