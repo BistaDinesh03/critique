@@ -13,11 +13,15 @@ python -m pytest tests/test_visual_regression.py -q
 
 ## Generate initial baselines
 
-Baselines are created automatically on first run when missing. Review them before committing.
+Baselines are not created automatically. Run the suite with
+`GENERATE_VISUAL_BASELINES=1` to create missing baseline files, then review
+each new image before committing.
 
 ## Update baselines after intentional UI changes
 
-Delete the affected baseline file and re-run the test to regenerate. Review the diff carefully before committing.
+Regenerate only the affected baselines with `GENERATE_VISUAL_BASELINES=1`,
+review the diff carefully, and commit the updated PNGs. Do not blindly
+regenerate all baselines.
 
 ## Run a single test
 
