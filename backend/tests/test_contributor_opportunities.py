@@ -174,22 +174,10 @@ def test_issue_with_open_pull_request_is_in_progress_not_available():
     assert 773 in in_progress
 
 
-def test_readme_snapshot_is_subset_of_start_here():
+def test_readme_links_to_verified_contributor_opportunities():
     readme = _read(README)
-    match = re.search(r"### Good issues to contribute\n(.*?)(?=\n## |\Z)", readme, re.S)
-    assert match, "README is missing the 'Good issues to contribute' section"
-
-    readme_numbers = _issue_numbers(match.group(1))
-    assert readme_numbers, "README shortlist has no issue links"
-    assert len(readme_numbers) == len(set(readme_numbers)), (
-        "README shortlist contains a duplicate issue"
-    )
-
-    start_here = set(_issue_numbers(_section(_split_sections(_read(DOC)), SECTION_START)))
-    missing = set(readme_numbers) - start_here
-    assert not missing, (
-        "README shortlist issues are not in the verified 'Start here' list: "
-        f"{sorted(missing)}"
+    assert "docs/contributor-opportunities.md" in readme, (
+        "README must link to the verified contributor opportunities list"
     )
 
 
