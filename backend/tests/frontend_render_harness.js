@@ -507,15 +507,14 @@ async function main() {
   capturedDownloads = downloads;
   const objectUrls = [];
   const revokedObjectUrls = [];
-  const urlApi = {
-    createObjectURL(blob) {
-      const url = `blob:render-harness/${objectUrls.length + 1}`;
-      objectUrls.push({ url, blob });
-      return url;
-    },
-    revokeObjectURL(url) {
-      revokedObjectUrls.push(url);
-    },
+  const urlApi = URL;
+  urlApi.createObjectURL = function (blob) {
+    const url = `blob:render-harness/${objectUrls.length + 1}`;
+    objectUrls.push({ url, blob });
+    return url;
+  };
+  urlApi.revokeObjectURL = function (url) {
+    revokedObjectUrls.push(url);
   };
   const elements = new Map();
   harnessElements = elements;
