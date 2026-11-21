@@ -1,24 +1,8 @@
-// Critique UI Utilities
+﻿// Critique UI Utilities
 // Shared toast and modal system
 
 var CritiqueUI = (function() {
     'use strict';
-
-    function readReducedMotion() {
-        try {
-            if (typeof window !== 'undefined' && window.matchMedia) {
-                var mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-                if (mq && typeof mq.matches === 'boolean') return mq.matches;
-            }
-        } catch (e) {
-            // Treat an unusable media query as "motion allowed".
-        }
-        return false;
-    }
-
-    function scrollBehavior() {
-        return readReducedMotion() ? 'auto' : 'smooth';
-    }
 
     // ============ TOAST SYSTEM ============
     function showToast(message, type) {
@@ -27,13 +11,13 @@ var CritiqueUI = (function() {
         if (!container) {
             container = document.createElement('div');
             container.id = 'toast-container';
-            // Each toast owns its live-region semantics; keep the wrapper neutral.
+            container.setAttribute('aria-live', 'polite');
             document.body.appendChild(container);
         }
 
         var toast = document.createElement('div');
         toast.className = 'toast toast-' + type;
-        toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
+        toast.setAttribute('role', 'status');
 
         var icon = document.createElement('span');
         icon.className = 'toast-icon';
@@ -44,67 +28,29 @@ var CritiqueUI = (function() {
         text.className = 'toast-text';
         text.textContent = message;
 
-        var dismissBtn = document.createElement('button');
-        dismissBtn.type = 'button';
-        dismissBtn.className = 'toast-dismiss';
-        dismissBtn.setAttribute('aria-label', 'Dismiss notification');
-        dismissBtn.textContent = '×';
-
         toast.appendChild(icon);
         toast.appendChild(text);
-        toast.appendChild(dismissBtn);
 
         container.appendChild(toast);
 
-        var dismissTimeout = null;
-        var isPaused = false;
-
-        function dismissToast() {
+        // Auto dismiss after 3.5 seconds
+        setTimeout(function() {
             toast.classList.add('toast-hide');
             setTimeout(function() {
                 if (toast.parentNode) toast.parentNode.removeChild(toast);
             }, 200);
-        }
-
-        function startTimer() {
-            if (dismissTimeout) clearTimeout(dismissTimeout);
-            dismissTimeout = setTimeout(function() {
-                if (!isPaused) dismissToast();
-            }, 3500);
-        }
-
-        function pauseTimer() {
-            isPaused = true;
-            if (dismissTimeout) {
-                clearTimeout(dismissTimeout);
-                dismissTimeout = null;
-            }
-        }
-
-        function resumeTimer() {
-            isPaused = false;
-            startTimer();
-        }
-
-        toast.addEventListener('mouseenter', pauseTimer);
-        toast.addEventListener('mouseleave', resumeTimer);
-        toast.addEventListener('focusin', pauseTimer);
-        toast.addEventListener('focusout', resumeTimer);
-
-        dismissBtn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            dismissToast();
-        });
+        }, 3500);
 
         // Click to dismiss
-        toast.addEventListener('click', dismissToast);
-
-        startTimer();
+        toast.addEventListener('click', function() {
+            toast.classList.add('toast-hide');
+            setTimeout(function() {
+                if (toast.parentNode) toast.parentNode.removeChild(toast);
+            }, 200);
+        });
     }
 
     // ============ MODAL SYSTEM ============
-    var confirmModalSequence = 0;
-
     function showConfirmModal(options) {
         var title = options.title || 'Confirm';
         var message = options.message || '';
@@ -112,7 +58,6 @@ var CritiqueUI = (function() {
         var cancelText = options.cancelText || 'Cancel';
         var destructive = options.destructive !== false;
         var onConfirm = options.onConfirm || function() {};
-        var modalId = 'confirm-modal-' + (++confirmModalSequence);
 
         // Create backdrop
         var backdrop = document.createElement('div');
@@ -124,16 +69,14 @@ var CritiqueUI = (function() {
         modal.className = 'modal';
         modal.setAttribute('role', 'dialog');
         modal.setAttribute('aria-modal', 'true');
-        modal.setAttribute('aria-labelledby', modalId + '-title');
-        modal.setAttribute('aria-describedby', modalId + '-description');
+        modal.setAttribute('aria-labelledby', 'modal-title');
 
         var titleEl = document.createElement('h3');
-        titleEl.id = modalId + '-title';
+        titleEl.id = 'modal-title';
         titleEl.className = 'modal-title';
         titleEl.textContent = title;
 
         var bodyEl = document.createElement('div');
-        bodyEl.id = modalId + '-description';
         bodyEl.className = 'modal-body';
         bodyEl.textContent = message;
 
@@ -158,43 +101,14 @@ var CritiqueUI = (function() {
         modal.appendChild(actionsEl);
 
         backdrop.appendChild(modal);
-        var previousActiveElement = document.activeElement;
         document.body.appendChild(backdrop);
 
         // Prevent body scroll
         document.body.style.overflow = 'hidden';
 
-        function keyHandler(e) {
-            if (e.key === 'Escape') {
-                closeModal();
-                return;
-            }
-            if (e.key === 'Tab') {
-                var focusable = modal.querySelectorAll('button:not([disabled]), [tabindex]:not([tabindex="-1"])');
-                if (!focusable || focusable.length === 0) return;
-                var first = focusable[0];
-                var last = focusable[focusable.length - 1];
-                if (e.shiftKey) {
-                    if (document.activeElement === first) {
-                        e.preventDefault();
-                        last.focus();
-                    }
-                } else {
-                    if (document.activeElement === last) {
-                        e.preventDefault();
-                        first.focus();
-                    }
-                }
-            }
-        }
-
         function closeModal() {
-            document.removeEventListener('keydown', keyHandler);
             document.body.style.overflow = '';
             if (backdrop.parentNode) backdrop.parentNode.removeChild(backdrop);
-            if (previousActiveElement && typeof previousActiveElement.focus === 'function') {
-                previousActiveElement.focus();
-            }
         }
 
         function handleConfirm() {
@@ -213,7 +127,14 @@ var CritiqueUI = (function() {
             if (e.target === backdrop) closeModal();
         });
         confirmBtn.addEventListener('click', handleConfirm);
-        document.addEventListener('keydown', keyHandler);
+
+        // Escape key
+        document.addEventListener('keydown', function escHandler(e) {
+            if (e.key === 'Escape') {
+                closeModal();
+                document.removeEventListener('keydown', escHandler);
+            }
+        });
 
         // Focus confirm button
         setTimeout(function() { confirmBtn.focus(); }, 100);
@@ -259,63 +180,35 @@ var CritiqueUI = (function() {
         return node;
     }
 
-    // Shared copy. Every login gate uses the same words for the same action so
-    // the choice feels like one product rather than a per-page form.
-    var AUTH_COPY = {
-        welcomeTitle: 'Welcome to Critique',
-        welcomeMessage: 'Get honest feedback on your projects from real people.',
-        githubNote: 'GitHub takes one click if you already have an account. Email works just as well.',
-        emailTitle: 'Continue with email',
-        emailMessage: "We'll send you a secure sign-in link. No password needed.",
-        send: 'Email me a sign-in link',
-        sending: 'Sending sign-in link\u2026',
-        checkTitle: 'Check your inbox',
-        resend: 'Resend sign-in link',
-        resending: 'Sending another link\u2026',
-        changeEmail: 'Change email',
-        genericError: "We couldn't send the link. Check your connection and try again.",
-        rateLimitError: 'Too many attempts. Please wait about 15 minutes, then try again.'
-    };
-
-    var EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    var RESEND_COOLDOWN_MS = 60 * 1000;
-    var emailFieldSeq = 0;
-
-    function makeTitle(text) {
-        var title = document.createElement('h2');
-        title.className = 'login-prompt-title';
-        title.textContent = text;
-        title.setAttribute('tabindex', '-1');
-        return title;
-    }
-
-    function focusAfterRender(node) {
-        if (!node || typeof node.focus !== 'function') return;
-        try {
-            node.focus({ preventScroll: true });
-        } catch (e) {
-            try { node.focus(); } catch (e2) {}
-        }
-    }
-
     // Renders: title / message / GitHub button / email button / supporting notes.
     // config = {
-    //   title, message, notes[], returnTo, context,
+    //   title, message, notes[], returnTo, context, showLabel,
     //   onStart(method)  -> called when a method is chosen (save drafts here),
-    //   emailSentHint, resendCooldownMs
+    //   emailSentHint
     // }
-    function renderAuthChoice(el, config, focusTarget) {
+    function renderAuthChoice(el, config) {
         if (!el) return;
         config = config || {};
         var context = config.context === undefined ? null : config.context;
 
         el.innerHTML = '';
         el.className = 'login-prompt';
-        el.removeAttribute('aria-busy');
 
-        var title = makeTitle(config.title || AUTH_COPY.welcomeTitle);
-        el.appendChild(title);
-        appendText(el, 'login-prompt-text', config.message || AUTH_COPY.welcomeMessage);
+        if (config.title) {
+            var title = document.createElement('div');
+            title.className = 'login-prompt-title';
+            title.textContent = config.title;
+            el.appendChild(title);
+        }
+        if (config.message) {
+            appendText(el, 'login-prompt-text', config.message);
+        }
+        if (config.showLabel !== false) {
+            var label = document.createElement('div');
+            label.className = 'login-prompt-label';
+            label.textContent = 'Continue with:';
+            el.appendChild(label);
+        }
 
         var actions = document.createElement('div');
         actions.className = 'login-prompt-actions';
@@ -328,11 +221,6 @@ var CritiqueUI = (function() {
             trackAuthEvent('auth_method_selected_github', context);
             if (typeof config.onStart === 'function') config.onStart('github');
             trackAuthEvent('login_started', context);
-            ghLink.setAttribute('aria-busy', 'true');
-            ghLink.style.pointerEvents = 'none';
-            ghLink.style.opacity = '0.7';
-            var ghSpan = ghLink.querySelector('span');
-            if (ghSpan) ghSpan.textContent = 'Connecting to GitHub\u2026';
         });
         actions.appendChild(ghLink);
 
@@ -343,131 +231,81 @@ var CritiqueUI = (function() {
         emailBtn.addEventListener('click', function() {
             trackAuthEvent('auth_method_selected_email', context);
             if (typeof config.onStart === 'function') config.onStart('email');
+            trackAuthEvent('login_started', context);
             renderEmailForm(el, config);
         });
         actions.appendChild(emailBtn);
 
         el.appendChild(actions);
 
-        var notes = config.notes && config.notes.length ? config.notes.slice() : ['No password required.'];
-        if (notes.indexOf(AUTH_COPY.githubNote) === -1) notes.push(AUTH_COPY.githubNote);
+        var notes = config.notes && config.notes.length ? config.notes : ['No password required.'];
         for (var i = 0; i < notes.length; i++) {
             appendText(el, 'login-prompt-note', notes[i]);
         }
-
-        // Focus management: the gate is a new screen, so keyboard users start
-        // at its heading. Going Back from the email form targets the email
-        // option they came from instead.
-        if (focusTarget === 'email') focusAfterRender(emailBtn);
-        else focusAfterRender(title);
     }
 
-    function renderEmailForm(el, config, initialEmail) {
+    function renderEmailForm(el, config) {
         config = config || {};
         var context = config.context === undefined ? null : config.context;
 
         el.innerHTML = '';
         el.className = 'login-prompt';
-        el.removeAttribute('aria-busy');
 
-        el.appendChild(makeTitle(AUTH_COPY.emailTitle));
-        appendText(el, 'login-prompt-text', AUTH_COPY.emailMessage);
+        if (config.title) {
+            var title = document.createElement('div');
+            title.className = 'login-prompt-title';
+            title.textContent = config.title;
+            el.appendChild(title);
+        }
+        if (config.message) {
+            appendText(el, 'login-prompt-text', config.message);
+        }
 
         var form = document.createElement('form');
         form.className = 'login-prompt-form';
         form.setAttribute('novalidate', 'novalidate');
 
-        var fieldId = 'auth-email-' + (++emailFieldSeq);
-        var errorId = fieldId + '-error';
-
-        var field = document.createElement('div');
-        field.className = 'login-prompt-field';
-
-        var label = document.createElement('label');
-        label.className = 'login-prompt-field-label';
-        label.setAttribute('for', fieldId);
-        label.textContent = 'Email';
-        field.appendChild(label);
-
         var emailInput = document.createElement('input');
         emailInput.type = 'email';
-        emailInput.id = fieldId;
         emailInput.name = 'email';
         emailInput.required = true;
         emailInput.autocomplete = 'email';
         emailInput.placeholder = 'you@example.com';
-        emailInput.value = initialEmail || '';
-        emailInput.setAttribute('autocomplete', 'email');
-        emailInput.setAttribute('inputmode', 'email');
-        emailInput.setAttribute('autocapitalize', 'none');
-        emailInput.setAttribute('spellcheck', 'false');
-        emailInput.setAttribute('aria-describedby', errorId);
-        emailInput.setAttribute('aria-invalid', 'false');
+        emailInput.setAttribute('aria-label', 'Email address');
         emailInput.className = 'form-input';
-        field.appendChild(emailInput);
-
-        var errorEl = document.createElement('p');
-        errorEl.className = 'login-prompt-error';
-        errorEl.id = errorId;
-        errorEl.setAttribute('role', 'alert');
-        field.appendChild(errorEl);
-
-        form.appendChild(field);
+        form.appendChild(emailInput);
 
         var sendBtn = document.createElement('button');
         sendBtn.type = 'submit';
         sendBtn.className = 'btn btn-primary';
-        sendBtn.textContent = AUTH_COPY.send;
+        sendBtn.textContent = 'Send login link';
         form.appendChild(sendBtn);
+
+        var errorEl = document.createElement('div');
+        errorEl.className = 'login-prompt-error';
+        errorEl.setAttribute('role', 'alert');
+        form.appendChild(errorEl);
 
         var backBtn = document.createElement('button');
         backBtn.type = 'button';
         backBtn.className = 'btn-link';
         backBtn.textContent = 'Back';
-        backBtn.setAttribute('aria-label', 'Back to sign-in options');
         backBtn.addEventListener('click', function() {
-            if (submitting) return;
-            renderAuthChoice(el, config, 'email');
+            renderAuthChoice(el, config);
         });
         form.appendChild(backBtn);
 
-        var submitting = false;
-
-        function setBusy(busy) {
-            submitting = busy;
-            sendBtn.disabled = busy;
-            backBtn.disabled = busy;
-            sendBtn.setAttribute('aria-busy', busy ? 'true' : 'false');
-            sendBtn.textContent = busy ? AUTH_COPY.sending : AUTH_COPY.send;
-        }
-
-        function showError(message) {
-            errorEl.textContent = message;
-            emailInput.setAttribute('aria-invalid', 'true');
-        }
-
-        emailInput.addEventListener('input', function() {
-            if (!errorEl.textContent) return;
-            errorEl.textContent = '';
-            emailInput.setAttribute('aria-invalid', 'false');
-        });
-
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
-            // A second submit while the first request is in flight must not
-            // send a second link.
-            if (submitting) return;
             errorEl.textContent = '';
-            emailInput.setAttribute('aria-invalid', 'false');
-
             var emailValue = (emailInput.value || '').trim();
-            if (!EMAIL_PATTERN.test(emailValue)) {
-                showError('Enter a valid email address, like you@example.com.');
-                focusAfterRender(emailInput);
+            if (!emailValue || emailValue.indexOf('@') === -1) {
+                errorEl.textContent = 'Please enter a valid email address.';
                 return;
             }
 
-            setBusy(true);
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'Sending...';
 
             try {
                 var response = await fetch('/auth/email/start', {
@@ -483,203 +321,50 @@ var CritiqueUI = (function() {
                     })
                 });
                 if (response.ok) {
-                    var data = null;
-                    try {
-                        data = await response.json();
-                    } catch (e) {
-                        data = null;
-                    }
-                    if (data && data.sent === true) {
-                        trackAuthEvent('email_verification_sent', context);
-                        // Count the attempt on the same rule as GitHub: GitHub
-                        // fires login_started when the visitor is handed to the
-                        // provider, so email fires it when the provider confirms
-                        // the sign-in link was accepted. Failed sends emit neither.
-                        trackAuthEvent('login_started', context);
-                    }
-                    // Success is only shown after the backend confirmed the
-                    // request; the endpoint always answers generically, so this
-                    // never reveals whether an account exists.
+                    trackAuthEvent('email_verification_sent', context);
                     renderCheckEmail(el, config, emailValue);
-                    return;
+                } else {
+                    sendBtn.disabled = false;
+                    sendBtn.textContent = 'Send login link';
+                    errorEl.textContent = "Couldn't send the link. Please try again.";
                 }
-                setBusy(false);
-                showError(response.status === 429
-                    ? AUTH_COPY.rateLimitError
-                    : AUTH_COPY.genericError);
             } catch (err) {
-                setBusy(false);
-                showError(AUTH_COPY.genericError);
+                sendBtn.disabled = false;
+                sendBtn.textContent = 'Send login link';
+                errorEl.textContent = "Couldn't send the link. Please try again.";
             }
         });
 
         el.appendChild(form);
-        focusAfterRender(emailInput);
+        emailInput.focus();
     }
 
     function renderCheckEmail(el, config, emailValue) {
         config = config || {};
-        var context = config.context === undefined ? null : config.context;
-        var cooldownMs = typeof config.resendCooldownMs === 'number'
-            ? config.resendCooldownMs
-            : RESEND_COOLDOWN_MS;
 
         el.innerHTML = '';
         el.className = 'login-prompt';
-        el.removeAttribute('aria-busy');
 
-        var title = makeTitle(AUTH_COPY.checkTitle);
+        var title = document.createElement('div');
+        title.className = 'login-prompt-title';
+        title.textContent = 'Check your email';
         el.appendChild(title);
 
-        var sent = document.createElement('p');
-        sent.className = 'login-prompt-text';
-        sent.appendChild(document.createTextNode('We sent a secure sign-in link to '));
-        var address = document.createElement('strong');
-        address.className = 'login-prompt-email';
-        address.textContent = emailValue;
-        sent.appendChild(address);
-        sent.appendChild(document.createTextNode('.'));
-        el.appendChild(sent);
-
+        appendText(el, 'login-prompt-text', 'We sent you a secure login link to ' + emailValue + '.');
         appendText(
             el,
             'login-prompt-note',
             config.emailSentHint || 'Click the link in the email to finish signing in.'
         );
-        appendText(
-            el,
-            'login-prompt-note',
-            'The link expires in 15 minutes and can only be used once.'
-        );
-        appendText(
-            el,
-            'login-prompt-note',
-            "Don't see it? Check your spam or promotions folder."
-        );
 
-        var status = document.createElement('p');
-        status.className = 'login-prompt-status';
-        status.setAttribute('role', 'status');
-        status.setAttribute('aria-live', 'polite');
-        el.appendChild(status);
-
-        var resendBtn = document.createElement('button');
-        resendBtn.type = 'button';
-        resendBtn.className = 'btn btn-secondary';
-        resendBtn.textContent = AUTH_COPY.resend;
-        el.appendChild(resendBtn);
-
-        var changeBtn = document.createElement('button');
-        changeBtn.type = 'button';
-        changeBtn.className = 'btn-link';
-        changeBtn.textContent = AUTH_COPY.changeEmail;
-        el.appendChild(changeBtn);
-
-        if (cooldownMs <= 0) {
-            resendBtn.disabled = false;
-        }
-
-        var lastSentAt = Date.now();
-        var resending = false;
-        var timer = null;
-
-        function secondsLeft() {
-            var elapsed = Date.now() - lastSentAt;
-            var left = cooldownMs - elapsed;
-            return left > 0 ? Math.ceil(left / 1000) : 0;
-        }
-
-        function paintCooldown() {
-            var left = secondsLeft();
-            if (left > 0) {
-                resendBtn.disabled = true;
-                resendBtn.textContent = 'Resend in ' + left + 's';
-            } else {
-                resendBtn.disabled = false;
-                resendBtn.textContent = AUTH_COPY.resend;
-            }
-        }
-
-        paintCooldown();
-        if (cooldownMs > 0 && typeof setInterval === 'function') {
-            timer = setInterval(function() {
-                paintCooldown();
-                if (secondsLeft() === 0 && timer !== null) {
-                    clearInterval(timer);
-                    timer = null;
-                }
-            }, 1000);
-        }
-
-        resendBtn.addEventListener('click', async function() {
-            if (resending) return;
-            var left = secondsLeft();
-            if (left > 0) {
-                status.textContent = 'You can request another link in ' + left + ' seconds.';
-                return;
-            }
-
-            resending = true;
-            status.textContent = '';
-            resendBtn.disabled = true;
-            resendBtn.setAttribute('aria-busy', 'true');
-            resendBtn.textContent = AUTH_COPY.resending;
-
-            try {
-                var response = await fetch('/auth/email/start', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-Token': readCsrfToken()
-                    },
-                    credentials: 'same-origin',
-                    body: JSON.stringify({
-                        email: emailValue,
-                        return_to: authReturnTo(config)
-                    })
-                });
-                if (response.ok) {
-                    var resData = null;
-                    try {
-                        resData = await response.json();
-                    } catch (e) {
-                        resData = null;
-                    }
-                    if (resData && resData.sent === true) {
-                        trackAuthEvent('email_verification_sent', context);
-                    }
-                    lastSentAt = Date.now();
-                    status.textContent = 'A new sign-in link is on its way. Check your inbox.';
-                    paintCooldown();
-                } else if (response.status === 429) {
-                    status.textContent = AUTH_COPY.rateLimitError;
-                    resendBtn.disabled = false;
-                    resendBtn.textContent = AUTH_COPY.resend;
-                } else {
-                    status.textContent = AUTH_COPY.genericError;
-                    resendBtn.disabled = false;
-                    resendBtn.textContent = AUTH_COPY.resend;
-                }
-            } catch (err) {
-                status.textContent = AUTH_COPY.genericError;
-                resendBtn.disabled = false;
-                resendBtn.textContent = AUTH_COPY.resend;
-            }
-
-            resending = false;
-            resendBtn.setAttribute('aria-busy', 'false');
+        var again = document.createElement('button');
+        again.type = 'button';
+        again.className = 'btn-link';
+        again.textContent = 'Use a different email';
+        again.addEventListener('click', function() {
+            renderEmailForm(el, config);
         });
-
-        changeBtn.addEventListener('click', function() {
-            if (resending) return;
-            if (timer !== null) {
-                clearInterval(timer);
-                timer = null;
-            }
-            renderEmailForm(el, config, emailValue);
-        });
-
-        focusAfterRender(title);
+        el.appendChild(again);
     }
 
     // Adds an auth-choice menu to the navbar Login button. The button keeps its
@@ -723,7 +408,11 @@ var CritiqueUI = (function() {
                 trackAuthEvent('login_prompt_shown', null);
             }
             renderAuthChoice(panel, {
+                title: null,
+                message: null,
+                showLabel: false,
                 returnTo: window.location.pathname + window.location.search,
+                notes: ['No password required.'],
                 emailSentHint: 'Click the link in the email to finish signing in.'
             });
         }
@@ -766,282 +455,17 @@ var CritiqueUI = (function() {
         });
     }
 
-    // ============ THEME TOGGLE ============
-    var THEME_STORAGE_KEY = 'critique-theme';
-
-    function getStoredTheme() {
-        try {
-            var saved = localStorage.getItem(THEME_STORAGE_KEY);
-            return (saved === 'dark' || saved === 'light') ? saved : null;
-        } catch (e) {
-            return null;
-        }
-    }
-
-    function getSystemPrefersDark() {
-        try {
-            if (typeof window !== 'undefined' && window.matchMedia) {
-                var mq = window.matchMedia('(prefers-color-scheme: dark)');
-                return !!(mq && mq.matches);
-            }
-        } catch (e) {}
-        return false;
-    }
-
-    function getEffectiveTheme() {
-        var attr = document.documentElement && document.documentElement.getAttribute
-            ? document.documentElement.getAttribute('data-theme')
-            : null;
-        if (attr === 'dark' || attr === 'light') return attr;
-        var stored = getStoredTheme();
-        if (stored) return stored;
-        return getSystemPrefersDark() ? 'dark' : 'light';
-    }
-
-    function syncThemeButton(btn) {
-        if (!btn) return;
-        var isDark = getEffectiveTheme() === 'dark';
-        btn.setAttribute('aria-pressed', isDark ? 'true' : 'false');
-        btn.setAttribute('aria-label', isDark ? 'Switch to light theme' : 'Switch to dark theme');
-        btn.setAttribute('title', isDark ? 'Switch to light theme' : 'Switch to dark theme');
-    }
-
-    function applyTheme(theme) {
-        if (theme !== 'dark' && theme !== 'light') return;
-        if (document.documentElement && document.documentElement.setAttribute) {
-            document.documentElement.setAttribute('data-theme', theme);
-        }
-        try {
-            localStorage.setItem(THEME_STORAGE_KEY, theme);
-        } catch (e) {}
-        syncThemeButton(document.getElementById('theme-toggle'));
-    }
-
-    function toggleTheme() {
-        var next = getEffectiveTheme() === 'dark' ? 'light' : 'dark';
-        applyTheme(next);
-        return next;
-    }
-
-    function initThemeToggle() {
-        var stored = getStoredTheme();
-        if (stored && document.documentElement && document.documentElement.setAttribute) {
-            document.documentElement.setAttribute('data-theme', stored);
-        }
-        var btn = document.getElementById('theme-toggle');
-        if (!btn || btn.dataset.themeInit === 'true') return;
-        btn.dataset.themeInit = 'true';
-        syncThemeButton(btn);
-        btn.addEventListener('click', function() {
-            toggleTheme();
-        });
-        try {
-            if (typeof window !== 'undefined' && window.matchMedia) {
-                var mq = window.matchMedia('(prefers-color-scheme: dark)');
-                var onChange = function() {
-                    if (!getStoredTheme()) {
-                        syncThemeButton(btn);
-                    }
-                };
-                if (mq && mq.addEventListener) mq.addEventListener('change', onChange);
-                else if (mq && mq.addListener) mq.addListener(onChange);
-            }
-        } catch (e) {}
-    }
-
-    function initSharedUI() {
-        initNavLogin();
-        initThemeToggle();
-        initBackToTop();
-    }
-
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initSharedUI);
+        document.addEventListener('DOMContentLoaded', initNavLogin);
     } else {
-        initSharedUI();
+        initNavLogin();
     }
-
-    // ============ BACK-TO-TOP BUTTON ============
-    var SHOW_AFTER = 300;
-
-    function initBackToTop() {
-        var btn = document.getElementById('back-to-top');
-        if (!btn) return;
-
-        function update() {
-            btn.hidden = window.scrollY <= SHOW_AFTER;
-        }
-
-        window.addEventListener('scroll', update, { passive: true });
-        update();
-
-        btn.addEventListener('click', function() {
-            window.scrollTo({
-                top: 0,
-                behavior: scrollBehavior()
-            });
-        });
-    }
-
-    // ============ DATE / AGE FORMATTING ============
-    // Real age from a UTC/ISO timestamp: localized via Intl when available,
-    // falling back to classic English strings when Intl is unavailable.
-    function formatAge(value, locale) {
-        if (!value) return '';
-        var iso = String(value);
-        if (!/[zZ]$|[+-]\d{2}:?\d{2}$/.test(iso)) {
-            iso += /[Tt]/.test(iso) ? 'Z' : 'T00:00:00Z';
-        }
-        var then = new Date(iso);
-        if (isNaN(then.getTime())) return '';
-        var diff = Date.now() - then.getTime();
-        if (diff < 0) diff = 0;
-
-        var resolvedLocale = locale ||
-            (typeof document !== 'undefined' && document.documentElement && document.documentElement.lang) ||
-            (typeof navigator !== 'undefined' && navigator.language) ||
-            undefined;
-
-        var hasRtf = typeof Intl !== 'undefined' && typeof Intl.RelativeTimeFormat === 'function';
-        var hasDtf = typeof Intl !== 'undefined' && typeof Intl.DateTimeFormat === 'function';
-
-        var minutes = Math.floor(diff / 60000);
-        if (minutes < 1) {
-            if (hasRtf) {
-                try {
-                    var rtfAuto = new Intl.RelativeTimeFormat(resolvedLocale, { numeric: 'auto' });
-                    var effectiveLocale = (rtfAuto.resolvedOptions && rtfAuto.resolvedOptions().locale) || resolvedLocale || '';
-                    if (String(effectiveLocale).toLowerCase().indexOf('en') === 0) {
-                        return 'Just now';
-                    }
-                    return rtfAuto.format(0, 'second');
-                } catch (e) {}
-            }
-            return 'Just now';
-        }
-        if (minutes < 60) {
-            if (hasRtf) {
-                try {
-                    return new Intl.RelativeTimeFormat(resolvedLocale, { numeric: 'always', style: 'short' }).format(-minutes, 'minute');
-                } catch (e) {}
-            }
-            return minutes + 'm ago';
-        }
-        var hours = Math.floor(minutes / 60);
-        if (hours < 24) {
-            if (hasRtf) {
-                try {
-                    return new Intl.RelativeTimeFormat(resolvedLocale, { numeric: 'always', style: 'short' }).format(-hours, 'hour');
-                } catch (e) {}
-            }
-            return hours + 'h ago';
-        }
-        var days = Math.floor(hours / 24);
-        if (days === 1) {
-            if (hasRtf) {
-                try {
-                    var dayLabel = new Intl.RelativeTimeFormat(resolvedLocale, { numeric: 'auto' }).format(-1, 'day');
-                    return dayLabel ? dayLabel.charAt(0).toUpperCase() + dayLabel.slice(1) : 'Yesterday';
-                } catch (e) {}
-            }
-            return 'Yesterday';
-        }
-        if (days < 7) {
-            if (hasRtf) {
-                try {
-                    return new Intl.RelativeTimeFormat(resolvedLocale, { numeric: 'always', style: 'long' }).format(-days, 'day');
-                } catch (e) {}
-            }
-            return days + ' days ago';
-        }
-        var sameYear = then.getUTCFullYear() === new Date().getUTCFullYear();
-        if (hasDtf) {
-            try {
-                var opts = sameYear
-                    ? { month: 'short', day: 'numeric', timeZone: 'UTC' }
-                    : { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' };
-                return new Intl.DateTimeFormat(resolvedLocale, opts).format(then);
-            } catch (e) {}
-        }
-        var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        var label = months[then.getUTCMonth()] + ' ' + then.getUTCDate();
-        if (!sameYear) {
-            label += ', ' + then.getUTCFullYear();
-        }
-        return label;
-    }
-
-    // ============ GLOBAL ERROR HANDLER ============
-    // Logs unhandled errors and shows one non-blocking notice. Never calls
-    // preventDefault (DevTools still reports) and never shows error details.
-    function showGlobalErrorNotice() {
-        if (document.getElementById('global-error-notice') || !document.body) return;
-        var box = document.createElement('div');
-        box.id = 'global-error-notice';
-        box.setAttribute('data-global-error', '');
-        box.setAttribute('role', 'alert');
-        box.setAttribute('aria-live', 'assertive');
-        box.style.cssText = 'position:fixed;left:50%;bottom:16px;transform:translateX(-50%);' +
-            'z-index:10000;max-width:92vw;display:flex;gap:12px;align-items:center;flex-wrap:wrap;' +
-            'padding:12px 16px;border-radius:8px;background:#1f2937;color:#fff;' +
-            'box-shadow:0 4px 16px rgba(0,0,0,.3);font:14px/1.4 system-ui,sans-serif;';
-
-        var msg = document.createElement('span');
-        msg.textContent = 'Something went wrong on this page. Reloading may fix it.';
-        box.appendChild(msg);
-
-        [['reload', 'Reload', function() { window.location.reload(); }],
-         ['dismiss', 'Dismiss', function() { box.remove(); }]].forEach(function(a) {
-            var btn = document.createElement('button');
-            btn.type = 'button';
-            btn.setAttribute('data-error-action', a[0]);
-            btn.textContent = a[1];
-            btn.style.cssText = 'cursor:pointer;padding:6px 12px;border-radius:6px;border:1px solid #fff;' +
-                'background:' + (a[0] === 'reload' ? '#fff' : 'transparent') + ';' +
-                'color:' + (a[0] === 'reload' ? '#1f2937' : '#fff') + ';font:inherit;';
-            btn.addEventListener('click', a[2]);
-            box.appendChild(btn);
-        });
-        document.body.appendChild(box);
-    }
-
-    function isBenignError(message, err) {
-        if (err && err.name === 'AbortError') return true;
-        return /ResizeObserver loop/.test(String(message || ''));
-    }
-
-    function handleGlobalError(message, err) {
-        if (isBenignError(message, err)) return;
-        console.error('Unhandled error:', err || message);
-        showGlobalErrorNotice(); // ponytail: no-op while a notice is up, which dedupes error loops
-    }
-
-    window.addEventListener('error', function(e) {
-        handleGlobalError(e.message, e.error);
-    });
-    window.addEventListener('unhandledrejection', function(e) {
-        var r = e.reason;
-        handleGlobalError(r && r.message, r);
-    });
 
     return {
-        readReducedMotion: readReducedMotion,
-        scrollBehavior: scrollBehavior,
         showToast: showToast,
         showConfirmModal: showConfirmModal,
         renderAuthChoice: renderAuthChoice,
         renderEmailForm: renderEmailForm,
-        initNavLogin: initNavLogin,
-        initBackToTop: initBackToTop,
-        initThemeToggle: initThemeToggle,
-        toggleTheme: toggleTheme,
-        getEffectiveTheme: getEffectiveTheme,
-        formatAge: formatAge
+        initNavLogin: initNavLogin
     };
 })();
-
-var formatAge = CritiqueUI.formatAge;
-if (typeof window !== 'undefined') {
-    window.CritiqueUI = CritiqueUI;
-    window.formatAge = formatAge;
-}

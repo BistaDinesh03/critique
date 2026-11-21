@@ -6,18 +6,15 @@
 // clicked it, and a compose window opening is never reported as a posted
 // share.
 //
-// After a submission the success state stays compact: the confirmation, the
-// project's title, one primary action (View project) and one secondary one
-// (Share project). Everything for sharing lives behind that secondary action
-// and stays collapsed until a person asks for it — the four compact actions
-// (X, Reddit, Copy link, Copy post, each with a real, recognizable icon), the
-// editable suggested post behind "Create a share post", and, where a browser
-// offers the Web Share API, one extra "Share via device" control that opens
-// that native sheet with the live post text. Where it does not, no extra
-// control is rendered at all and Copy link remains the fallback, so every
-// browser keeps the same four actions. The sheet opening is never reported as
-// a posted share either — the page cannot see what the person chose to do
-// with it, and dismissing it is a decision, not a failure.
+// The panel offers exactly four compact actions — X, Reddit, Copy link,
+// Copy post — each with a real, recognizable icon.
+//
+// Where a browser offers the Web Share API, one extra "Share project" control
+// opens that native sheet with the live post text. Where it does not, no
+// extra control is rendered at all and Copy link remains the fallback, so
+// every browser keeps the same four actions it has today. The sheet opening
+// is never reported as a posted share either — the page cannot see what the
+// person chose to do with it, and dismissing it is a decision, not a failure.
 //
 // Share endpoints, each checked against live HTTP before use:
 //   X      https://twitter.com/intent/tweet?text=…
@@ -70,17 +67,40 @@ var CritiqueShare = (function() {
     }
 
     function copyText(text, confirmation) {
-        if (!navigator.clipboard || !navigator.clipboard.writeText) {
-            CritiqueUI.showToast('Copying is not available in this browser', 'error');
-            return Promise.resolve(false);
+        // Try the Clipboard API first (requires HTTPS in some browsers).
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            return navigator.clipboard.writeText(text).then(function() {
+                CritiqueUI.showToast(confirmation, 'success');
+                return true;
+            }, function() {
+                // Clipboard API failed; fall back to document.execCommand.
+                return fallbackCopy(text, confirmation);
+            });
         }
-        return navigator.clipboard.writeText(text).then(function() {
-            CritiqueUI.showToast(confirmation, 'success');
-            return true;
-        }, function() {
+        // Fallback for HTTP or browsers without Clipboard API.
+        return fallbackCopy(text, confirmation);
+    }
+
+    function fallbackCopy(text, confirmation) {
+        // Create a temporary textarea to hold the text to copy.
+        var textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+            var successful = document.execCommand('copy');
+            if (successful) {
+                CritiqueUI.showToast(confirmation, 'success');
+            } else {
+                CritiqueUI.showToast('Could not copy. Try again.', 'error');
+            }
+        } catch (e) {
             CritiqueUI.showToast('Could not copy. Try again.', 'error');
-            return false;
-        });
+        }
+        document.body.removeChild(textarea);
+        return Promise.resolve(successful);
     }
 
     // The native share sheet, if this browser has one. The control is only
@@ -112,14 +132,12 @@ var CritiqueShare = (function() {
     // The one control that opens the native sheet, carrying the post exactly
     // as it stands (edits included). It is built only where that sheet exists;
     // when the browser later refuses the payload it copies the link instead,
-    // so the click is never a dead end. `label` (optional) names the control
-    // where "Share project" is already taken — by the success state's
-    // secondary action, which is what reveals this panel.
-    function nativeShareAction(data, getPost, projectId, label) {
+    // so the click is never a dead end.
+    function nativeShareAction(data, getPost, projectId) {
         if (!nativeShareSupported()) return null;
 
         var current = getPost || function() { return data.post; };
-        var button = make('button', 'btn btn-primary share-native', label || 'Share project');
+        var button = make('button', 'btn btn-primary share-native', 'Share project');
         button.type = 'button';
         button.title = 'Open your device share sheet';
 
@@ -130,9 +148,8 @@ var CritiqueShare = (function() {
             if (!canNativeShare(payload)) {
                 // No sheet will take this: copy the link, exactly as the
                 // Copy link action does, and confirm it the same way.
-                copyText(data.url, 'Link copied').then(function(success) {
-                    if (success) track('share_copy_link', projectId);
-                });
+                copyText(data.url, 'Link copied');
+                track('share_copy_link', projectId);
                 return;
             }
 
@@ -200,8 +217,10 @@ var CritiqueShare = (function() {
         button.title = hint;
         withIcon(button, iconName);
         button.addEventListener('click', function() {
-            copyText(getText(), confirmation).then(function(success) {
-                if (success) track(eventName, projectId);
+            copyText(getText(), confirmation).then(function(successful) {
+                if (successful) {
+                    track(eventName, projectId);
+                }
             });
         });
         return button;
@@ -249,96 +268,63 @@ var CritiqueShare = (function() {
 
     // The post-submission success state. Called only after the API has
     // confirmed creation (201 with the created project), never before.
-    //
-    // It is deliberately compact — the confirmation, the title, one primary
-    // action (View project) and one secondary one (Share project) — and the
-    // sharing lives inside the section that secondary action reveals. The
-    // controls are all built up front (so the copy actions and the editable
-    // post stay addressable) but hidden until asked for; `share_ui_shown`
-    // follows that truth and fires the first time the options really are on
-    // screen, not when the confirmation appears.
     function renderSuccess(container, data) {
         var url = data.url || projectUrl(data.projectId);
         var defaultPost = suggestedPost(data.title, url);
 
         container.textContent = '';
         var panel = make('div', 'success-share');
+        panel.setAttribute('role', 'status');
 
-        // Text announcement node carries role="status" so screen readers
-        // announce confirmation without trapping interactive controls (WCAG 4.1.2, #311).
-        var announcement = make('div', 'success-announcement');
-        announcement.setAttribute('role', 'status');
-        announcement.appendChild(make('h3', 'success-title', 'Your project is live'));
-        announcement.appendChild(make('p', 'success-lede', 'Your project is now on Critique.'));
-        announcement.appendChild(make('strong', 'success-project-title', data.title));
-        panel.appendChild(announcement);
+        panel.appendChild(make('h3', 'success-title', 'Your project is live!'));
+        panel.appendChild(make('p', 'success-lede',
+            'Your project has been shared on Critique. Invite people to explore it and share their feedback.'));
 
-        // One primary action: the named destination (never the raw URL) the
-        // whole confirmation is about.
-        var link = make('a', 'btn btn-primary', 'View project');
+        var summary = make('div', 'success-project');
+        summary.appendChild(make('strong', 'success-project-title', data.title));
+        if (data.description) {
+            summary.appendChild(make('p', 'success-project-desc', data.description));
+        }
+        var link = make('a', 'success-link', url);
         link.href = url;
+        summary.appendChild(link);
 
-        // One secondary action reveals the share options; the way onward
-        // stays quiet beside them.
-        var toggle = make('button', 'btn btn-secondary share-toggle', 'Share project');
-        toggle.id = 'share-toggle';
-        toggle.type = 'button';
-        toggle.setAttribute('aria-expanded', 'false');
-        toggle.setAttribute('aria-controls', 'share-section');
-
-        var actions = make('div', 'success-actions');
-        actions.appendChild(link);
-        actions.appendChild(toggle);
-        actions.appendChild(make('span', 'success-actions-spacer'));
-        var myProjects = make('a', 'btn btn-ghost share-continue', 'Continue to My Projects');
-        myProjects.href = '/my-projects';
-        actions.appendChild(myProjects);
-        panel.appendChild(actions);
+        if (data.questionText) {
+            var question = make('div', 'success-question');
+            question.appendChild(make('span', 'success-question-label', 'Your question'));
+            question.appendChild(make('p', 'success-question-text', data.questionText));
+            summary.appendChild(question);
+        }
+        panel.appendChild(summary);
 
         var share = make('section', 'share-section');
         share.id = 'share-section';
-        share.hidden = true;
         share.setAttribute('aria-label', 'Share your project (optional)');
+        share.appendChild(make('h4', 'share-title', 'Let more people discover your project'));
+        share.appendChild(make('p', 'share-support',
+            'Share your project with your community to reach more builders and get different perspectives.'));
 
-        // The suggested post is real but optional: it stays in the DOM (so
-        // the copy and compose actions always carry the live text, edits
-        // included) and is revealed only when someone asks to work on it.
+        share.appendChild(make('p', 'share-post-label', 'Suggested post'));
         var postInput = make('textarea', 'share-post');
         postInput.value = defaultPost;
         postInput.setAttribute('aria-label', 'Suggested post — edit it before copying or sharing');
         postInput.setAttribute('rows', '4');
-        var getLivePost = function() { return postInput.value || defaultPost; };
-
-        var postWrap = make('div', 'share-post-wrap');
-        postWrap.id = 'share-post-wrap';
-        postWrap.hidden = true;
-        postWrap.appendChild(make('p', 'share-post-label', 'Suggested post'));
-        postWrap.appendChild(postInput);
+        share.appendChild(postInput);
         // Handle kept on the container so page scripts (and tests) can read or
         // edit the live post text without hunting through children.
         container.postInput = postInput;
 
-        var postToggle = make('button', 'btn btn-ghost share-post-toggle', 'Create a share post');
-        postToggle.id = 'share-post-toggle';
-        postToggle.type = 'button';
-        postToggle.setAttribute('aria-expanded', 'false');
-        postToggle.setAttribute('aria-controls', 'share-post-wrap');
-        postToggle.addEventListener('click', function() {
-            var opening = postWrap.hidden;
-            postWrap.hidden = !opening;
-            postToggle.setAttribute('aria-expanded', opening ? 'true' : 'false');
-        });
+        var getLivePost = function() { return postInput.value || defaultPost; };
 
         // The native sheet sits above the four compact actions, so the
-        // primary way to share comes first — under a name of its own, so it
-        // can never be confused with the "Share project" toggle. Rendered
-        // only where a browser has one; nothing changes where it does not.
+        // primary way to share comes first. Rendered only where a browser
+        // has one; nothing changes where it does not.
         var nativeShare = nativeShareAction({
             projectId: data.projectId,
             title: data.title,
             url: url,
             post: defaultPost
-        }, getLivePost, data.projectId, 'Share via device');
+        }, getLivePost, data.projectId);
         if (nativeShare) share.appendChild(nativeShare);
 
         share.appendChild(buildActions({
@@ -347,25 +333,28 @@ var CritiqueShare = (function() {
             url: url,
             post: defaultPost
         }, getLivePost));
-        share.appendChild(postToggle);
-        share.appendChild(postWrap);
-        panel.appendChild(share);
 
-        var shareUiShown = false;
-        toggle.addEventListener('click', function() {
-            var opening = share.hidden;
-            share.hidden = !opening;
-            toggle.setAttribute('aria-expanded', opening ? 'true' : 'false');
-            // The UI appeared; the clicks themselves are tracked where they
-            // happen. One event, fired once, when the section first really
-            // is on screen.
-            if (opening && !shareUiShown) {
-                shareUiShown = true;
-                track('share_ui_shown', data.projectId);
-            }
+        // The way onward, quiet and apart from the sharing actions.
+        var actions = make('div', 'share-actions');
+        var skip = make('button', 'btn btn-ghost share-skip', 'Skip for now');
+        skip.type = 'button';
+        skip.addEventListener('click', function() {
+            share.style.display = 'none';
+            if (link && link.focus) link.focus();
         });
+        actions.appendChild(skip);
+        actions.appendChild(make('span', 'share-actions-spacer'));
+        var myProjects = make('a', 'btn btn-secondary share-continue', 'Continue to My Projects');
+        myProjects.href = '/my-projects';
+        actions.appendChild(myProjects);
+        share.appendChild(actions);
 
+        panel.appendChild(share);
         container.appendChild(panel);
+
+        // The UI appeared; the clicks themselves are tracked where they
+        // happen. One event, fired once, when the section actually renders.
+        track('share_ui_shown', data.projectId);
 
         return panel;
     }
