@@ -94,6 +94,77 @@ def test_duplicate_response_rejected(auth_client):
     cleanup_database()
 
 
+def test_owner_cannot_submit_response_to_own_project(auth_client):
+    """Owner cannot submit feedback or change project/user counters."""
+    cleanup_database()
+
+    try:
+        create_resp = create_test_project(auth_client)
+        assert create_resp.status_code == 201
+        project_id = create_resp.json()["project"]["id"]
+
+        db = SessionLocal()
+        try:
+            project = db.query(Project).filter(
+                Project.id == project_id
+            ).first()
+            question = db.query(Question).filter(
+                Question.project_id == project_id
+            ).first()
+
+            assert project is not None
+            assert question is not None
+
+            before = {
+                "rows": db.query(Response).filter(
+                    Response.question_id == question.id
+                ).count(),
+                "feedback_count": project.feedback_count,
+                "last_feedback_at": project.last_feedback_at,
+                "given": project.owner.feedback_given_count,
+                "score": project.owner.feedback_score,
+            }
+        finally:
+            db.close()
+
+        response = auth_client.post(
+            f"/api/projects/{project_id}/responses",
+            json={
+                "clarity": "very_clear",
+                "would_use": "yes",
+                "suggestion": "Self-review",
+            },
+        )
+
+        assert response.status_code == 403
+        assert response.json()["detail"] == (
+            "You cannot respond to your own project. "
+            "View aggregated results instead."
+        )
+
+        db = SessionLocal()
+        try:
+            project = db.query(Project).filter(
+                Project.id == project_id
+            ).first()
+            question = db.query(Question).filter(
+                Question.project_id == project_id
+            ).first()
+
+            assert db.query(Response).filter(
+                Response.question_id == question.id
+            ).count() == before["rows"]
+
+            assert project.feedback_count == before["feedback_count"]
+            assert project.last_feedback_at == before["last_feedback_at"]
+            assert project.owner.feedback_given_count == before["given"]
+            assert project.owner.feedback_score == before["score"]
+        finally:
+            db.close()
+    finally:
+        cleanup_database()
+
+
 def test_invalid_clarity_rejected(auth_client):
     """Test that invalid clarity value is rejected."""
     cleanup_database()
