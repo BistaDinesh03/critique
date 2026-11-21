@@ -94,7 +94,21 @@ def test_idor_results_owner_can_access_own():
     client_a, user_a = create_user_and_client(333333, "idor_owner_test")
     create_resp = create_project(client_a, "Owner Project")
     project_id = create_resp.json()["project"]["id"]
-    submit_response(client_a, project_id)
+
+    saved = {
+        get_current_user: app.dependency_overrides.pop(get_current_user, None),
+        get_current_user_optional: app.dependency_overrides.pop(get_current_user_optional, None),
+    }
+
+    client_b, user_b = create_user_and_client(222222, "idor_user_b")
+
+    submit_response(client_b, project_id)
+
+    for dep, mock in saved.items():
+        if mock is None:
+            app.dependency_overrides.pop(dep, None)
+        else:
+            app.dependency_overrides[dep] = mock
 
     response = client_a.get(f"/api/projects/{project_id}/results")
     data = response.json()
@@ -171,7 +185,9 @@ def test_idor_unauthenticated_gets_public_only():
     client_a, user_a = create_user_and_client(888888, "idor_unauth_test")
     create_resp = create_project(client_a, "Public Test")
     project_id = create_resp.json()["project"]["id"]
-    submit_response(client_a, project_id)
+
+    client_b, user_b = create_user_and_client(222222, "idor_user_b")
+    submit_response(client_b, project_id)
 
     app.dependency_overrides.clear()
     public_client = TestClient(app)

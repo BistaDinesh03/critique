@@ -36,6 +36,16 @@ def create_response(
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
+    # Prevent project owners from submitting feedback to themselves.
+    if user is not None and user.id == project.owner_id:
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "You cannot respond to your own project. "
+                "View aggregated results instead."
+            ),
+        )
+
     question = (
         db.query(Question)
         .filter(Question.project_id == project_id, Question.is_active == True)
