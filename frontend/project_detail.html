@@ -549,11 +549,10 @@
                         + '<div class="response-form-card" style="margin-block:var(--space-2);font-size:var(--text-sm);color:var(--text-secondary); padding:var(--space-4)">This is your project, so you can\'t submit feedback on it yourself. See how others responded on the <a href="/project/' + encodeURIComponent(String(p.id)) + '/results" style="color:var(--accent);">results page</a></div></div>';
                 } else {
                     html += '<div class="eyebrow">Your feedback</div>';
-                    if (feedbackAlreadySubmitted()) {
-                    // This session already answered: offering the form again
-                    // would only earn a 409 from the server, so show the
-                    // recorded state and its next step instead.
-                    html += '<div class="response-form-card"><div id="feedback-thanks" role="status"></div></div>';
+                    if (serverResponded || sessionSubmitted) {
+                        // Server record (has_responded) OR this session already answered:
+                        // re-offering the form would earn a 409, show the recorded state.
+                        html += '<div class="response-form-card"><div id="feedback-thanks" role="status"></div></div>';
                 } else {
                     // Three short, numbered steps: the form reads as a task
                     // with an end rather than an open-ended questionnaire.
