@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request, HTTPException
+﻿from fastapi import APIRouter, Depends, Request, HTTPException
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -13,7 +13,6 @@ VALID_EVENTS = {
     "page_view",
     "discover_view",
     "project_view",
-    "feedback_form_viewed",
     "feedback_start",
     "feedback_submit",
     "feedback_submit_attempt",

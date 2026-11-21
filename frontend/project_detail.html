@@ -1,42 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="color-scheme" content="light dark">
-    <title>Project - Critique</title>
-    <meta name="description" id="meta-description" content="Review this project and give honest feedback on Critique.">
-
-    <!-- Open Graph -->
-    <meta property="og:type" content="website">
-    <meta property="og:title" id="og-title" content="Project — Critique">
-    <meta property="og:description" id="og-description" content="Give focused feedback on this project on Critique.">
-    <meta property="og:image" id="og-image" content="https://critique.page/static/og-image.webp">
-    <meta property="og:image:type" content="image/webp">
-    <meta property="og:image:width" content="1200">
-    <meta property="og:image:height" content="630">
-    <meta property="og:image:alt" content="Critique — Ask one question. Get real answers.">
-    <meta property="og:site_name" content="Critique">
-
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" id="tw-title" content="Project — Critique">
-    <meta name="twitter:description" id="tw-description" content="Give focused feedback on this project on Critique.">
-    <meta name="twitter:image" id="tw-image" content="https://critique.page/static/og-image.webp">
-    <meta name="twitter:image:alt" content="Critique — Ask one question. Get real answers.">
-
+    <title>Project — Critique</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
-    <link rel="apple-touch-icon" href="/static/logo.png">
-    <link rel="mask-icon" href="/static/favicon.svg" color="#2563eb">
-    <script>
-        try {
-            var savedTheme = localStorage.getItem('critique-theme');
-            if (savedTheme === 'dark' || savedTheme === 'light') {
-                document.documentElement.setAttribute('data-theme', savedTheme);
-            }
-        } catch (e) {}
-    </script>
-    <link rel="alternate" type="application/rss+xml" title="Critique - new projects" href="/feed.xml">
     <link rel="stylesheet" href="/static/shared.css">
     <style>
         .back-link {
@@ -88,19 +56,6 @@
 
         /* What is being reviewed, stated before anything is asked of the
            visitor. Kept to the builder's own words: no summary, no truncation. */
-        .project-header-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: var(--space-3);
-            margin-bottom: var(--space-2);
-        }
-
-        .project-header-row .project-title {
-            margin-bottom: 0;
-        }
-
         .project-summary {
             color: var(--text-secondary);
             font-size: var(--text-base);
@@ -193,18 +148,13 @@
 
         .form-section {
             margin-bottom: var(--space-5);
-            border: 0;
-            padding: 0;
-            min-inline-size: min-content;
         }
 
-        .form-section h3,
-        .form-section legend {
+        .form-section h3 {
             font-size: var(--text-base);
             font-weight: 600;
             margin-bottom: var(--space-3);
             color: var(--text-primary);
-            padding: 0;
         }
 
         .radio-group {
@@ -306,7 +256,6 @@
     </style>
 </head>
 <body>
-    <a href="#main-content" class="skip-link">Skip to main content</a>
     <header class="navbar">
         <a href="/" class="navbar-brand">
             <img src="/static/logo.svg" alt="Critique" width="32" height="32">
@@ -321,20 +270,11 @@
             <a href="/#submit" class="btn-nav">Submit a project</a>
             <a href="/auth/login" class="btn-nav" id="login-btn" aria-label="Login with GitHub"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg> Login</a>
             <a href="/auth/logout" class="btn-nav" id="logout-btn"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> Logout</a>
-            <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Switch to dark theme" aria-pressed="false" title="Switch to dark theme"><svg class="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg><svg class="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg></button>
         </nav>
     </header>
 
-    <main id="main-content" class="container" tabindex="-1">
-        <nav aria-label="Breadcrumb" class="breadcrumb-nav">
-            <ol class="breadcrumbs">
-                <li><a href="/">Home</a></li>
-                <li aria-hidden="true" class="breadcrumb-separator">/</li>
-                <li><a href="/discover">Discover</a></li>
-                <li aria-hidden="true" class="breadcrumb-separator">/</li>
-                <li aria-current="page"><span id="breadcrumb-current">Project</span></li>
-            </ol>
-        </nav>
+    <main class="container">
+        <a href="/discover" class="back-link">Back to discover</a>
         <div id="content" aria-busy="true">
             <div role="status">
                 <p class="sr-only">Loading project...</p>
@@ -386,83 +326,21 @@
         function clarityLabel(v) { return {'very_clear':'Very clear','mostly_clear':'Mostly clear','confusing':'Confusing'}[v] || v; }
         function wouldUseLabel(v) { return {'yes':'Yes','maybe':'Maybe','no':'No'}[v] || v; }
 
-        var currentUserId = null;
-
         function getCurrentUserId() {
-            return currentUserId || '';
-        }
-
-        function setCurrentUserId(uid) {
-            currentUserId = uid ? String(uid) : null;
-        }
-
-        function fetchResponses() {
-            return fetch('/api/projects/' + projectId + '/responses').then(function(res) {
-                if (!res.ok) throw new Error('Could not load responses');
-                return res.json();
-            }).then(function(list) {
-                if (!Array.isArray(list)) throw new Error('Invalid responses');
-                return list;
-            });
-        }
-
-        function showResponsesError() {
-            const section = document.getElementById('responses-section');
-            if (!section) return;
-            section.setAttribute('aria-busy', 'false');
-            section.innerHTML = '<div class="error-state" role="alert"><p>Couldn\'t load written feedback.</p><button type="button" class="btn btn-secondary" id="responses-retry">Retry</button></div>';
-            const retry = document.getElementById('responses-retry');
-            if (retry) retry.addEventListener('click', function() {
-                retry.disabled = true;
-                retry.textContent = 'Retrying\u2026';
-                section.setAttribute('aria-busy', 'true');
-                fetchResponses().then(renderResponses, showResponsesError);
-            });
-        }
-
-        // Only the responses section is touched, so a half-filled feedback form
-        // keeps its state however late (or often) the list arrives.
-        function renderResponses(responses) {
-            const section = document.getElementById('responses-section');
-            if (!section) return;
-            section.setAttribute('aria-busy', 'false');
-            section.innerHTML = responsesHtml(responses);
-            const badge = document.getElementById('owner-response-count');
-            if (badge) {
-                badge.textContent = responses.length + ' ' + (responses.length === 1 ? 'response' : 'responses');
-            }
-        }
-
-        function responsesHtml(responses) {
-            let html = '';
-            if (responses.length > 0) {
-                html += '<div class="eyebrow">Responses</div>';
-                html += '<div class="responses-list"><h3>' + responses.length + ' response' + (responses.length !== 1 ? 's' : '') + '</h3>';
-                responses.forEach(function(r) {
-                    html += '<div class="response-item"><div class="response-meta"><span>Clarity: ' + clarityLabel(r.clarity) + '</span><span>Would use: ' + wouldUseLabel(r.would_use) + '</span></div>';
-                    if (r.suggestion) html += '<p class="response-suggestion">' + escapeHtml(r.suggestion) + '</p>';
-                    html += '</div>';
-                });
-                html += '</div>';
-            }
-            return html;
+            return localStorage.getItem('user_id') || '';
         }
 
         async function loadProject() {
             const content = document.getElementById('content');
             try {
-                // Both requests start together; the page paints as soon as the
-                // project arrives and the list fills in on its own.
-                const projectPromise = fetch('/api/projects/' + projectId);
-                const responsesPromise = fetchResponses();
-                // Handled here so a failed project never leaves this one unhandled.
-                responsesPromise.catch(function() {});
-                const projectRes = await projectPromise;
+                const [projectRes, responsesRes] = await Promise.all([
+                    fetch('/api/projects/' + projectId),
+                    fetch('/api/projects/' + projectId + '/responses')
+                ]);
                 if (!projectRes.ok) throw new Error('Project not found');
                 const projectData = await projectRes.json();
-
-                renderProject(projectData);
-                responsesPromise.then(renderResponses, showResponsesError);
+                const responses = responsesRes.ok ? await responsesRes.json() : [];
+                renderProject(projectData, responses);
             } catch (e) {
                 // The placeholder is never the end state: a real message plus a
                 // way to try again if the backend is slow or unreachable.
@@ -490,193 +368,68 @@
 
         let feedbackStartTracked = false;
         let feedbackFormViewedTracked = false;
-        let serverHasResponded = false;
 
         function renderProject(data, responses) {
             feedbackStartTracked = false;
             const content = document.getElementById('content');
             const p = data.project;
             const q = data.question;
-            const isOwner = Boolean(data.is_owner);
-            const serverResponded = !isOwner && Boolean(data.has_responded);
-            const sessionSubmitted = !isOwner && feedbackAlreadySubmitted();
-            serverHasResponded = serverResponded;
-            const bcCurrent = document.getElementById('breadcrumb-current');
-            if (bcCurrent && p && p.title) {
-                bcCurrent.textContent = p.title;
-            }
-
-            // Dynamically update document title and social sharing meta tags
-            if (p && p.title) {
-                document.title = p.title + ' — Critique';
-                var ogTitle = document.getElementById('og-title');
-                if (ogTitle) ogTitle.setAttribute('content', p.title + ' — Critique');
-                var twTitle = document.getElementById('tw-title');
-                if (twTitle) twTitle.setAttribute('content', p.title + ' — Critique');
-            }
-            if (p && p.description) {
-                var metaDesc = document.getElementById('meta-description');
-                if (metaDesc) metaDesc.setAttribute('content', p.description);
-                var ogDesc = document.getElementById('og-description');
-                if (ogDesc) ogDesc.setAttribute('content', p.description);
-                var twDesc = document.getElementById('tw-description');
-                if (twDesc) twDesc.setAttribute('content', p.description);
-            }
-            if (p && p.image_url) {
-                var ogImg = document.getElementById('og-image');
-                if (ogImg) ogImg.setAttribute('content', p.image_url);
-                var twImg = document.getElementById('tw-image');
-                if (twImg) twImg.setAttribute('content', p.image_url);
-            }
             let html = '';
-            html += '<div class="project-header-row"><h1 class="project-title">' + escapeHtml(p.title);
-            if (data.is_owner || (Array.isArray(responses) && responses.length > 0)) {
-                const count = Array.isArray(responses) && responses.length > 0 ? responses.length : (p.response_count || 0);
-                html += ' <span class="badge response-count-badge" id="owner-response-count">' + count + ' ' + (count === 1 ? 'response' : 'responses') + '</span>';
-            }
-            html += '</h1>';
-            html += '<button type="button" class="btn btn-secondary" id="copy-project-link" aria-label="Copy project link" style="font-size:var(--text-xs);padding:var(--space-1) var(--space-3);"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-right:6px;"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>Copy link</button></div>';
+            html += '<h2 class="project-title">' + escapeHtml(p.title) + '</h2>';
             // What is being reviewed is stated before anything is asked of the
             // visitor, so the answer is given with the context in view.
             if (p.description) { html += '<p class="project-summary">' + escapeHtml(p.description) + '</p>'; }
-            if (p.url) { html += '<p class="project-link"><a href="' + escapeHtml(p.url) + '" target="_blank" rel="noopener noreferrer" class="btn btn-secondary visit-project-btn">Visit project \u2192</a></p>'; }
             if (q) {
                 html += '<div class="question-block"><div class="question-label">The Maker\'s Question</div><div class="question-text">' + escapeHtml(q.text) + '</div></div>';
-                if (isOwner) {
-                    html += '<div class="response-form-card" id="owner-project-notice"><p class="project-description">You own this project.</p><a href="/project/' + encodeURIComponent(String(p.id || projectId)) + '/results" class="btn btn-primary" id="view-project-results">View results →</a></div>';
+                html += '<div class="eyebrow">Your feedback</div>';
+                if (feedbackAlreadySubmitted()) {
+                    // This session already answered: offering the form again
+                    // would only earn a 409 from the server, so show the
+                    // recorded state and its next step instead.
+                    html += '<div class="response-form-card"><div id="feedback-thanks" role="status"></div></div>';
                 } else {
-                    html += '<div class="eyebrow">Your feedback</div>';
-                    if (serverResponded || sessionSubmitted) {
-                        // Already answered (server record or this session): offering
-                        // the form again would only earn a 409 from the server, so
-                        // show the recorded state and its next step instead.
-                        html += '<div class="response-form-card"><div id="feedback-thanks" role="status"></div></div>';
-                    } else {
-                        // Three short, numbered steps: the form reads as a task
-                        // with an end rather than an open-ended questionnaire.
-                        html += '<div class="response-form-card"><form id="response-form">';
-                        html += '<div class="feedback-progress-indicator" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="3" aria-label="Feedback progress"><div class="progress-track" style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-bottom:var(--space-2);"><div class="progress-fill" id="progress-fill" style="width:0%;height:100%;background:var(--accent);transition:width 0.2s ease;"></div></div><div class="progress-label" id="progress-label" style="font-size:var(--text-xs);color:var(--text-secondary);margin-bottom:var(--space-4);">Step 0 of 3 completed</div></div>';
-                        html += '<fieldset class="form-section"><legend>1. How clear is it?</legend><div class="radio-cards">';
-                        html += '<label class="radio-card"><input type="radio" id="c1" name="clarity" value="very_clear" required><span class="radio-card-label"><span class="radio-card-title">Very clear</span><span class="radio-card-desc">I understood the project quickly.</span></span></label>';
-                        html += '<label class="radio-card"><input type="radio" id="c2" name="clarity" value="mostly_clear"><span class="radio-card-label"><span class="radio-card-title">Mostly clear</span><span class="radio-card-desc">I understood it, but needed some explanation.</span></span></label>';
-                        html += '<label class="radio-card"><input type="radio" id="c3" name="clarity" value="confusing"><span class="radio-card-label"><span class="radio-card-title">Confusing</span><span class="radio-card-desc">I was not sure what it does.</span></span></label>';
-                        html += '</div></fieldset>';
-                        html += '<fieldset class="form-section"><legend>2. Would you use it?</legend><div class="radio-cards">';
-                        html += '<label class="radio-card"><input type="radio" id="u1" name="would_use" value="yes" required><span class="radio-card-label"><span class="radio-card-title">Yes</span><span class="radio-card-desc">I would use this.</span></span></label>';
-                        html += '<label class="radio-card"><input type="radio" id="u2" name="would_use" value="maybe"><span class="radio-card-label"><span class="radio-card-title">Maybe</span><span class="radio-card-desc">I might use this in some cases.</span></span></label>';
-                        html += '<label class="radio-card"><input type="radio" id="u3" name="would_use" value="no"><span class="radio-card-label"><span class="radio-card-title">No</span><span class="radio-card-desc">I would not use this.</span></span></label>';
-                        html += '</div></fieldset>';
-                        html += '<div class="form-section"><h3>3. What would you change? <span style="font-weight:400;color:var(--text-muted);">(optional)</span></h3><textarea class="form-textarea" id="suggestion" maxlength="2000" placeholder="Your honest feedback..." aria-keyshortcuts="Control+Enter Meta+Enter"></textarea><p class="form-helper" style="font-size:var(--text-xs);color:var(--text-muted);margin-top:var(--space-1);">Press <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd> to submit</p><div id="suggestion-char-count" style="font-size:12px;color:var(--text-muted);text-align:right;margin-top:4px;">0 / 2000</div></div>';
-                        html += '<button type="submit" class="btn btn-primary" id="submit-btn" style="width:100%;" aria-keyshortcuts="Control+Enter Meta+Enter">Submit feedback</button>';
-                        html += '<div class="message" id="message" role="alert" aria-live="polite"></div></form></div>';
-                    }
+                    // Three short, numbered steps: the form reads as a task
+                    // with an end rather than an open-ended questionnaire.
+                    html += '<div class="response-form-card"><form id="response-form">';
+                    html += '<div class="form-section"><h3>1. How clear is it?</h3><div class="radio-cards">';
+                    html += '<label class="radio-card"><input type="radio" id="c1" name="clarity" value="very_clear" required onclick="trackFeedbackStart()"><span class="radio-card-label"><span class="radio-card-title">Very clear</span><span class="radio-card-desc">I understood the project quickly.</span></span></label>';
+                    html += '<label class="radio-card"><input type="radio" id="c2" name="clarity" value="mostly_clear" onclick="trackFeedbackStart()"><span class="radio-card-label"><span class="radio-card-title">Mostly clear</span><span class="radio-card-desc">I understood it, but needed some explanation.</span></span></label>';
+                    html += '<label class="radio-card"><input type="radio" id="c3" name="clarity" value="confusing" onclick="trackFeedbackStart()"><span class="radio-card-label"><span class="radio-card-title">Confusing</span><span class="radio-card-desc">I was not sure what it does.</span></span></label>';
+                    html += '</div></div>';
+                    html += '<div class="form-section"><h3>2. Would you use it?</h3><div class="radio-cards">';
+                    html += '<label class="radio-card"><input type="radio" id="u1" name="would_use" value="yes" required><span class="radio-card-label"><span class="radio-card-title">Yes</span><span class="radio-card-desc">I would use this.</span></span></label>';
+                    html += '<label class="radio-card"><input type="radio" id="u2" name="would_use" value="maybe"><span class="radio-card-label"><span class="radio-card-title">Maybe</span><span class="radio-card-desc">I might use this in some cases.</span></span></label>';
+                    html += '<label class="radio-card"><input type="radio" id="u3" name="would_use" value="no"><span class="radio-card-label"><span class="radio-card-title">No</span><span class="radio-card-desc">I would not use this.</span></span></label>';
+                    html += '</div></div>';
+                    html += '<div class="form-section"><h3>3. What would you change? <span style="font-weight:400;color:var(--text-muted);">(optional)</span></h3><textarea class="form-textarea" id="suggestion" maxlength="2000" placeholder="Your honest feedback..."></textarea></div>';
+                    html += '<button type="submit" class="btn btn-primary" id="submit-btn" style="width:100%;">Submit feedback</button>';
+                    html += '<div class="message" id="message"></div></form></div>';
                 }
                 var details = '';
-                if (p.image_url) {
-                    const projectTitle = p.title || 'project';
-                    const altText = 'Screenshot of ' + escapeHtml(projectTitle);
-                    details += '<img class="project-screenshot" src="' + escapeHtml(p.image_url) + '" alt="' + altText + '" loading="lazy" onerror="this.style.display=\'none\'">';
-                }
+                if (p.image_url) { details += '<img class="project-screenshot" src="' + escapeHtml(p.image_url) + '" alt="Screenshot of ' + escapeHtml(p.title) + '" loading="lazy" onerror="this.style.display=\'none\'">'; }
+                if (p.url) { details += '<a href="' + escapeHtml(p.url) + '" target="_blank" rel="noopener" class="project-url">' + escapeHtml(p.url) + '</a>'; }
                 if (details) { html += '<div class="eyebrow">About this project</div><div class="project-header" style="margin-top: var(--space-5);">' + details + '</div>'; }
-                if (Array.isArray(responses)) {
-                    html += '<div id="responses-section" aria-live="polite" aria-busy="false">' + responsesHtml(responses) + '</div>';
-                } else {
-                    html += '<div id="responses-section" aria-live="polite" aria-busy="true"><p class="form-helper" role="status">Loading written feedback\u2026</p></div>';
+                if (responses.length > 0) {
+                    html += '<div class="eyebrow">Responses</div>';
+                    html += '<div class="responses-list"><h3>' + responses.length + ' response' + (responses.length !== 1 ? 's' : '') + '</h3>';
+                    responses.forEach(function(r) {
+                        html += '<div class="response-item"><div class="response-meta"><span>Clarity: ' + clarityLabel(r.clarity) + '</span><span>Would use: ' + wouldUseLabel(r.would_use) + '</span></div>';
+                        if (r.suggestion) html += '<p class="response-suggestion">' + escapeHtml(r.suggestion) + '</p>';
+                        html += '</div>';
+                    });
+                    html += '</div>';
                 }
             }
             content.innerHTML = html;
-            const suggestionInput = document.getElementById('suggestion');
-            if (suggestionInput) suggestionInput.addEventListener('input', syncSuggestionCharCount);
-            syncSuggestionCharCount();
-            const copyBtn = document.getElementById('copy-project-link');
-            if (copyBtn) copyBtn.addEventListener('click', copyProjectLink);
             const form = document.getElementById('response-form');
-            if (form) {
-                form.addEventListener('submit', handleSubmit);
-                form.addEventListener('input', updateFeedbackProgress);
-                form.addEventListener('change', updateFeedbackProgress);
-                form.addEventListener('keydown', function(e) {
-                    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-                        e.preventDefault();
-                        if (typeof form.requestSubmit === 'function') {
-                            form.requestSubmit();
-                        } else {
-                            form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
-                        }
-                    }
-                });
-                // Listen at the form level so keyboard radio selection (arrow keys)
-                // is captured, not just pointer clicks.
-                form.addEventListener('change', function(e) {
-                    if (e.target && (e.target.name === 'clarity' || e.target.name === 'would_use')) {
-                        trackFeedbackStart();
-                    }
-                });
-                const feedbackSuggestion = form.querySelector('textarea[name="suggestion"]') || document.getElementById('suggestion');
-                if (feedbackSuggestion) {
-                    feedbackSuggestion.addEventListener('input', trackFeedbackStart);
-                }
-            }
+            if (form) form.addEventListener('submit', handleSubmit);
             if (form && !feedbackFormViewedTracked) { feedbackFormViewedTracked = true; window.CritiqueAnalytics.trackEvent('feedback_form_viewed', projectId); }
-            if (serverResponded) {
-                if (getCurrentUserId()) markFeedbackSubmitted();
-                showAlreadyRespondedState(document.getElementById('feedback-thanks'));
-            } else if (sessionSubmitted) {
+            if (feedbackAlreadySubmitted()) {
                 showFeedbackSuccessNextStep(document.getElementById('feedback-thanks'));
             }
             // Restore any saved feedback draft from before OAuth
             maybeRestoreAfterLogin();
             maybeResumeToFeedback();
-            // Draft restoration assigns textarea.value directly (no input event),
-            // so refresh the counter once more after all restore paths run.
-            syncSuggestionCharCount();
-            updateFeedbackProgress();
-        }
-
-        function updateFeedbackProgress() {
-            var indicator = document.querySelector('.feedback-progress-indicator');
-            var fill = document.getElementById('progress-fill');
-            var label = document.getElementById('progress-label');
-            if (!indicator || !fill || !label) return;
-            var clarity = document.querySelector('input[name="clarity"]:checked');
-            var wouldUse = document.querySelector('input[name="would_use"]:checked');
-            var suggestion = document.getElementById('suggestion');
-            var completed = 0;
-            if (clarity) completed++;
-            if (wouldUse) completed++;
-            if (suggestion && suggestion.value && suggestion.value.trim().length > 0) completed++;
-            var pct = Math.round((completed / 3) * 100);
-            indicator.setAttribute('aria-valuenow', String(completed));
-            fill.style.width = pct + '%';
-            label.textContent = 'Step ' + completed + ' of 3 completed';
-        }
-
-        // Keep the suggestion character count aligned with the textarea for both
-        // user input and programmatic value changes. Restoring a saved draft
-        // assigns .value directly, which does not fire an "input" event.
-        function syncSuggestionCharCount() {
-            var input = document.getElementById('suggestion');
-            var counter = document.getElementById('suggestion-char-count');
-            if (input && counter) {
-                counter.textContent = input.value.length + ' / 2000';
-            }
-        }
-
-        function copyProjectLink() {
-            var url = window.location.href;
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(url).then(function() {
-                    if (window.CritiqueUI && CritiqueUI.showToast) {
-                        CritiqueUI.showToast('Project link copied to clipboard', 'success');
-                    }
-                }).catch(function() {
-                    if (window.CritiqueUI && CritiqueUI.showToast) {
-                        CritiqueUI.showToast('Could not copy link.', 'error');
-                    }
-                });
-            } else if (window.CritiqueUI && CritiqueUI.showToast) {
-                CritiqueUI.showToast('Copying not supported in this browser', 'error');
-            }
         }
 
         function trackFeedbackStart() {
@@ -687,8 +440,7 @@
 
         // ===== Feedback form state persistence =====
         function feedbackStorageKey() {
-            var uid = getCurrentUserId();
-            return uid ? ('critique_feedback_' + uid + '_' + projectId) : ('critique_feedback_' + projectId);
+            return 'critique_feedback_' + projectId;
         }
 
         function saveFeedbackDraft() {
@@ -707,11 +459,7 @@
 
         function restoreFeedbackDraft() {
             try {
-                var key = feedbackStorageKey();
-                var raw = sessionStorage.getItem(key);
-                if (!raw && getCurrentUserId()) {
-                    raw = sessionStorage.getItem('critique_feedback_' + projectId);
-                }
+                var raw = sessionStorage.getItem(feedbackStorageKey());
                 if (!raw) return false;
                 var draft = JSON.parse(raw);
                 if (!draft || typeof draft !== 'object') return false;
@@ -788,8 +536,7 @@
         // not offer the form again (the server would only answer 409), and the
         // next step stays reachable instead of vanishing with a page refresh.
         function feedbackSubmittedKey() {
-            var uid = getCurrentUserId();
-            return uid ? ('critique_responded_' + uid + '_' + projectId) : ('critique_responded_' + projectId);
+            return 'critique_responded_' + projectId;
         }
 
         function markFeedbackSubmitted() {
@@ -800,13 +547,7 @@
 
         function feedbackAlreadySubmitted() {
             try {
-                var key = feedbackSubmittedKey();
-                var val = sessionStorage.getItem(key);
-                if (val === '1') return true;
-                if (!getCurrentUserId() && sessionStorage.getItem('critique_responded_' + projectId) === '1') {
-                    return true;
-                }
-                return false;
+                return sessionStorage.getItem(feedbackSubmittedKey()) === '1';
             } catch (e) {
                 return false;
             }
@@ -825,7 +566,7 @@
         // real project waiting for an answer. It starts at the real project
         // list and is upgraded as soon as the feed answers -- no invented
         // content, and a fetch failure simply leaves the honest fallback.
-        function attachNextProjectLink(link, label) {
+        function attachNextProjectLink(link) {
             if (!link) return;
             link.href = '/discover';
             fetch('/api/projects/?page=1&page_size=6')
@@ -839,9 +580,6 @@
                         var id = parseInt(items[i] && items[i].id, 10);
                         if (!isNaN(id) && id !== own) {
                             link.href = '/project/' + id;
-                            if (label && items[i].title) {
-                                link.textContent = label + ' ' + items[i].title + ' \u2192';
-                            }
                             return;
                         }
                     }
@@ -853,46 +591,12 @@
             if (!container) return;
             container.className = 'alert alert-success';
             container.setAttribute('role', 'status');
-            container.setAttribute('aria-live', 'polite');
-            // Set the full confirmation text first so the harness and assistive
-            // tech both see it; appended children below are tracked separately.
-            container.textContent = '\u2713 Feedback submitted successfully! Thank you for helping this builder improve their project.';
-
-            var dismissBtn = document.createElement('button');
-            dismissBtn.type = 'button';
-            dismissBtn.className = 'confirmation-dismiss-btn';
-            dismissBtn.setAttribute('aria-label', 'Dismiss confirmation');
-            dismissBtn.textContent = '\u00d7';
-            dismissBtn.style.cssText = 'float:right;background:none;border:none;font-size:1.25rem;cursor:pointer;color:inherit;padding:0 var(--space-1);line-height:1;';
-            dismissBtn.onclick = function() {
-                container.style.display = 'none';
-            };
-            container.appendChild(dismissBtn);
-
-            var discoverLink = document.createElement('a');
-            discoverLink.href = '/discover';
-            discoverLink.className = 'btn btn-secondary';
-            discoverLink.id = 'discover-more-projects';
-            discoverLink.textContent = 'Discover more projects';
-            discoverLink.style.cssText = 'margin: 0 var(--space-2); display: inline-block; font-size: 0.875rem; padding: 4px 10px;';
-            container.appendChild(discoverLink);
-
+            container.textContent = 'Thank you! Your feedback has been submitted. ';
             var link = document.createElement('a');
             link.id = 'help-another-builder';
             link.textContent = 'Help another builder \u2192';
-            link.style.display = 'block';
-            link.style.marginTop = 'var(--space-2)';
             container.appendChild(link);
-            attachNextProjectLink(link, 'Help');
-
-            var badgeLink = document.createElement('a');
-            badgeLink.id = 'project-badge-link';
-            badgeLink.href = '/badge/' + projectId + '.svg';
-            badgeLink.className = 'badge-share-link';
-            badgeLink.textContent = 'Get a live feedback badge for your README';
-            badgeLink.style.display = 'block';
-            badgeLink.style.marginTop = 'var(--space-2)';
-            container.appendChild(badgeLink);
+            attachNextProjectLink(link);
         }
 
         // The server already holds a response from this person (a second
@@ -945,7 +649,6 @@
         function showInlineLoginPrompt(msg, message) {
             msg = msg || document.getElementById('message');
             if (!msg) return;
-            msg.setAttribute('role', 'alert');
             // An anonymous visitor cannot get past this point, so the button
             // that would only ever answer 401 stops pretending otherwise. The
             // answers themselves stay editable.
@@ -980,7 +683,7 @@
             var form = document.getElementById('response-form');
             if (!form) return;
             setTimeout(function() {
-                form.scrollIntoView({ behavior: CritiqueUI.scrollBehavior(), block: 'start' });
+                form.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 var firstRadio = form.querySelector('input[name="clarity"]');
                 if (firstRadio) {
                     setTimeout(function() { firstRadio.focus({ preventScroll: true }); }, 400);
@@ -1059,7 +762,11 @@
                         suggestion: fallback.suggestion
                     };
                     sessionStorage.setItem(feedbackStorageKey(), JSON.stringify(draft));
-                    if (restoreFeedbackDraft() && returnedFromAuth()) {
+                    // Track verification success when a valid email verification
+                    // link was consumed. The draft existence and successful restore
+                    // indicate the user completed email verification; the resume
+                    // parameter is not required for this outcome.
+                    if (restoreFeedbackDraft()) {
                         window.CritiqueAnalytics.trackEvent('email_verification_success', projectId);
                     }
                 }
@@ -1071,27 +778,7 @@
             const btn = document.getElementById('submit-btn');
             msg.className = 'alert';
             msg.textContent = '';
-
-            // Validate required fields before submitting.
-            const clarityEl = document.querySelector('input[name="clarity"]:checked');
-            const wouldUseEl = document.querySelector('input[name="would_use"]:checked');
-            if (!clarityEl || !wouldUseEl) {
-                msg.className = 'alert alert-error';
-                msg.setAttribute('role', 'alert');
-                msg.textContent = 'Please answer both required questions before submitting.';
-                if (!clarityEl) {
-                    const firstClarity = document.querySelector('input[name="clarity"]');
-                    if (firstClarity) firstClarity.focus();
-                } else if (!wouldUseEl) {
-                    const firstWouldUse = document.querySelector('input[name="would_use"]');
-                    if (firstWouldUse) firstWouldUse.focus();
-                }
-                return;
-            }
-
             btn.disabled = true;
-            btn.textContent = 'Submitting feedback\u2026';
-            btn.setAttribute('aria-busy', 'true');
             // Set once the outcome is settled, so the finally block does not
             // hand the visitor a live submit button on a form that has been
             // recorded (finished) or is waiting for sign-in (gated).
@@ -1123,6 +810,7 @@
                 }
                 if (response.ok) {
                     window.CritiqueAnalytics.trackEvent('feedback_submit', projectId);
+                    CritiqueUI.showToast('Feedback submitted', 'success');
                     clearFeedbackDraft();
                     clearEmailFallbackDraft();
                     // Keep the confirmation on screen instead of wiping it with
@@ -1132,8 +820,6 @@
                     finished = true;
                     markFeedbackSubmitted();
                     disableResponseForm();
-                    const doneBtn = document.getElementById('submit-btn');
-                    if (doneBtn) doneBtn.style.display = 'none';
                     showFeedbackSuccessNextStep(msg);
                 } else if (response.status === 401) {
                     // The designed sign-in gate, not a failed submission: the
@@ -1146,8 +832,10 @@
                     showInlineLoginPrompt(msg);
                 } else if (response.status === 409) {
                     // The server already holds a response from this person
-                    // (another device, a cleared session). Emit feedback_already_responded
-                    // rather than feedback_submit_error to avoid polluting error metrics (#270).
+                    // (another device, a cleared session). The attempt created
+                    // nothing, so it is a completed state — not an error.
+                    // Show the calm "already gave feedback" state and track
+                    // the outcome separately from genuine submission errors.
                     window.CritiqueAnalytics.trackEvent('feedback_already_responded', projectId);
                     finished = true;
                     markFeedbackSubmitted();
@@ -1157,33 +845,20 @@
                     showAlreadyRespondedState(msg);
                 } else if (response.status === 403) {
                     window.CritiqueAnalytics.trackEvent('feedback_submit_error', projectId);
-                    // A stale CSRF/session pair is fixed by refreshing, which
-                    // reloads the page. Keep the answers first, or the retry
-                    // starts from an empty form.
-                    saveFeedbackDraft();
                     msg.className = 'alert alert-error';
-                    msg.setAttribute('role', 'alert');
-                    msg.textContent = 'Session expired. Your answers are saved — refresh and try again.';
+                    msg.textContent = 'Session expired. Please refresh.';
                 } else {
                     window.CritiqueAnalytics.trackEvent('feedback_submit_error', projectId);
                     msg.className = 'alert alert-error';
-                    msg.setAttribute('role', 'alert');
-                    saveFeedbackDraft();
                     msg.textContent = data.detail || 'Failed to submit.';
                 }
             } catch (e) {
                 window.CritiqueAnalytics.trackEvent('feedback_submit_error', projectId);
                 console.error('Submit error:', e);
                 msg.className = 'alert alert-error';
-                msg.setAttribute('role', 'alert');
-                saveFeedbackDraft();
-                msg.textContent = 'Network error. Your answers are saved — please try again.';
+                msg.textContent = 'Network error: ' + e.message;
             } finally {
-                if (!finished && !gated) {
-                    btn.disabled = false;
-                    btn.textContent = 'Submit feedback';
-                    btn.removeAttribute('aria-busy');
-                }
+                if (!finished && !gated) btn.disabled = false;
             }
         }
 
@@ -1193,24 +868,13 @@
             try {
                 const response = await fetch('/auth/check', { credentials: 'same-origin' });
                 if (response.status === 200) {
-                    const data = await response.json();
-                    if (data && data.id) {
-                        setCurrentUserId(data.id);
-                    } else if (data && data.username) {
-                        setCurrentUserId(data.username);
-                    }
-                    if (serverHasResponded && getCurrentUserId()) {
-                        markFeedbackSubmitted();
-                    }
                     document.getElementById('login-btn').style.display = 'none';
                     document.getElementById('logout-btn').style.display = 'inline';
                 } else {
-                    setCurrentUserId(null);
                     document.getElementById('login-btn').style.display = 'inline';
                     document.getElementById('logout-btn').style.display = 'none';
                 }
             } catch (e) {
-                setCurrentUserId(null);
                 document.getElementById('login-btn').style.display = 'inline';
                 document.getElementById('logout-btn').style.display = 'none';
             }
@@ -1219,8 +883,7 @@
             try { checkAuth(); } catch(e) {}
     </script>
     <script src="/static/ui.js"></script>
-    <script src="/static/analytics_events.js"></script>
-<script src="/static/analytics.js"></script>
+    <script src="/static/analytics.js"></script>
     <script>trackPageView();</script>
 
     <footer class="site-footer">
@@ -1234,28 +897,19 @@
             </div>
             <div class="footer-links">
                 <div class="footer-col">
-                    <h4>Explore</h4>
+                    <h4>Product</h4>
                     <ul>
                         <li><a href="/discover">Discover</a></li>
                         <li><a href="/#submit">Submit a project</a></li>
                     </ul>
                 </div>
                 <div class="footer-col">
-                    <h4>Community</h4>
+                    <h4>Connect</h4>
                     <ul>
-                        <li><a href="https://github.com/BistaDinesh03/critique/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">Contribute</a></li>
-                        <li><a href="https://github.com/BistaDinesh03/critique" target="_blank" rel="noopener noreferrer" aria-label="Critique on GitHub"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>GitHub</a></li>
-                        <li><a href="https://github.com/BistaDinesh03/critique/issues/new" target="_blank" rel="noopener noreferrer">Report an issue</a></li>
+                        <li><a href="https://github.com/BistaDinesh03/critique" target="_blank" rel="noopener" aria-label="Critique on GitHub"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>GitHub</a></li>
                     </ul>
                 </div>
             </div>
-        </div>
-        <div class="footer-contribute">
-            <div class="footer-contribute-copy">
-                <h4>Want to help improve Critique?</h4>
-                <p>Contribute code, report an issue, or help make feedback better for everyone.</p>
-            </div>
-            <a href="https://github.com/BistaDinesh03/critique/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer" class="btn btn-secondary footer-contribute-btn">Explore contributions</a>
         </div>
         <div class="footer-bottom">
             <span>© 2026 Critique · Open source · Free to use</span>
