@@ -1,6 +1,8 @@
+from fastapi.testclient import TestClient
 import pytest
-
+from app.auth import get_current_user, get_current_user_optional
 from app.database import SessionLocal
+from app.main import app
 from app.models import Project, Question, Response, User
 
 
@@ -18,6 +20,24 @@ def cleanup_database():
         db.commit()
     finally:
         db.close()
+
+def create_user_and_client(github_id, username):
+    db = SessionLocal()
+    user = User(github_id=github_id, username=username)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    db.close()
+
+    db2 = SessionLocal()
+    user = db2.query(User).filter(User.id == user.id).first()
+
+    app.dependency_overrides[get_current_user] = lambda: user
+    app.dependency_overrides[get_current_user_optional] = lambda: user
+    client = TestClient(app)
+    client.cookies.set("critique_csrf", "response_test_token")
+    client.headers["X-CSRF-Token"] = "response_test_token"
+    return client, user
 
 
 def create_test_project(client):
@@ -47,7 +67,11 @@ def test_submit_response(auth_client):
         "would_use": "yes",
         "suggestion": "Looks great!",
     }
-    response = auth_client.post(f"/api/projects/{project_id}/responses", json=payload)
+
+    app.dependency_overrides.clear()
+    reviewer, user = create_user_and_client(111111, "reviewer")
+
+    response = reviewer.post(f"/api/projects/{project_id}/responses", json=payload)
 
     assert response.status_code == 201
     data = response.json()
@@ -68,7 +92,11 @@ def test_submit_response_without_suggestion(auth_client):
         "would_use": "no",
         "suggestion": None,
     }
-    response = auth_client.post(f"/api/projects/{project_id}/responses", json=payload)
+
+    app.dependency_overrides.clear()
+    reviewer, user = create_user_and_client(111111, "reviewer")
+
+    response = reviewer.post(f"/api/projects/{project_id}/responses", json=payload)
     assert response.status_code == 201
     data = response.json()
     assert "suggestion" not in data  # public response has no suggestion field
@@ -86,10 +114,15 @@ def test_duplicate_response_rejected(auth_client):
         "would_use": "yes",
         "suggestion": "First",
     }
-    response1 = auth_client.post(f"/api/projects/{project_id}/responses", json=payload)
+
+    app.dependency_overrides.clear()
+    reviewer, user = create_user_and_client(111111, "reviewer")
+
+    response1 = reviewer.post(f"/api/projects/{project_id}/responses", json=payload)
+    
     assert response1.status_code == 201
 
-    response2 = auth_client.post(f"/api/projects/{project_id}/responses", json=payload)
+    response2 = reviewer.post(f"/api/projects/{project_id}/responses", json=payload)
     assert response2.status_code == 409
     cleanup_database()
 
@@ -205,7 +238,22 @@ def test_list_responses(auth_client):
     project_id = create_resp.json()["project"]["id"]
 
     payload = {"clarity": "very_clear", "would_use": "yes", "suggestion": "Nice!"}
-    auth_client.post(f"/api/projects/{project_id}/responses", json=payload)
+
+    # Save the fixture's owner overrides so step 3 can restore them.
+    saved = {
+        get_current_user: app.dependency_overrides.pop(get_current_user, None),
+        get_current_user_optional: app.dependency_overrides.pop(get_current_user_optional, None),
+    }
+
+    reviewer, user = create_user_and_client(111111, "reviewer")
+
+    reviewer.post(f"/api/projects/{project_id}/responses", json=payload)
+
+    for dep, mock in saved.items():
+        if mock is None:
+            app.dependency_overrides.pop(dep, None)
+        else:
+            app.dependency_overrides[dep] = mock
 
     response = auth_client.get(f"/api/projects/{project_id}/responses")
     assert response.status_code == 200
@@ -307,9 +355,24 @@ def test_suggestion_is_trimmed_or_dropped(auth_client, raw, expected):
     project_id = create_resp.json()["project"]["id"]
 
     payload = {"clarity": "confusing", "would_use": "no", "suggestion": raw}
-    submit = auth_client.post(f"/api/projects/{project_id}/responses", json=payload)
+
+    saved = {
+        get_current_user: app.dependency_overrides.pop(get_current_user, None),
+        get_current_user_optional: app.dependency_overrides.pop(get_current_user_optional, None),
+    }
+
+    reviewer, user = create_user_and_client(111111, "reviewer")    
+
+    submit = reviewer.post(f"/api/projects/{project_id}/responses", json=payload)
+
     assert submit.status_code == 201
 
+    for dep, mock in saved.items():
+        if mock is None:
+            app.dependency_overrides.pop(dep, None)
+        else:
+            app.dependency_overrides[dep] = mock  
+    
     results = auth_client.get(f"/api/projects/{project_id}/results")
     assert results.status_code == 200
     suggestions = [item["suggestion"] for item in results.json()["responses"]]

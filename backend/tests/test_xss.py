@@ -2,6 +2,7 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app.database import SessionLocal
 from app.models import Project, Question, Response, User
+from app.auth import get_current_user, get_current_user_optional
 from app.rate_limit import reset_rate_limits
 
 
@@ -62,7 +63,12 @@ def test_xss_in_suggestion(auth_client):
     }
     create_resp = auth_client.post("/api/projects/", json=payload)
     project_id = create_resp.json()["project"]["id"]
-    
+
+    saved = {
+        get_current_user: app.dependency_overrides.pop(get_current_user, None),
+        get_current_user_optional: app.dependency_overrides.pop(get_current_user_optional, None),
+    }
+
     # Submit response with XSS payload
     xss_payload = '<img src="x" onerror="alert(1)">'
     response_payload = {
@@ -70,8 +76,34 @@ def test_xss_in_suggestion(auth_client):
         "would_use": "yes",
         "suggestion": xss_payload,
     }
-    response = auth_client.post(f"/api/projects/{project_id}/responses", json=response_payload)
+
+    # Reviewer's client: point the endpoint at the reviewer (the fixture's
+    # owner overrides were popped above) and attach any matching CSRF
+    # cookie/header pair -- require_csrf only checks the two agree.
+    db = SessionLocal()
+    try:
+        reviewer = User(github_id=222222, username="reviewer")
+        db.add(reviewer)
+        db.commit()
+        db.refresh(reviewer)
+    finally:
+        db.close()
+
+    token = "xss_test_token"
+    reviewer_client = TestClient(app)
+    reviewer_client.cookies.set("critique_csrf", token)
+    reviewer_client.headers["X-CSRF-Token"] = token
+    app.dependency_overrides[get_current_user] = lambda: reviewer
+    app.dependency_overrides[get_current_user_optional] = lambda: reviewer
+
+    response = reviewer_client.post(f"/api/projects/{project_id}/responses", json=response_payload)
     assert response.status_code == 201
+
+    for dep, mock in saved.items():
+        if mock is None:
+            app.dependency_overrides.pop(dep, None)
+        else:
+            app.dependency_overrides[dep] = mock
 
     # Verify stored in database and retrieved accurately
     with SessionLocal() as db:
