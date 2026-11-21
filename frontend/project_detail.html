@@ -101,6 +101,52 @@
             margin-bottom: 0;
         }
 
+        .project-header-actions {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: var(--space-2);
+            max-width: 100%;
+        }
+
+        .project-header-actions .btn {
+            min-height: 44px;
+            min-width: 44px;
+            padding: var(--space-2) var(--space-3);
+            font-size: var(--text-sm);
+            white-space: nowrap;
+        }
+
+        .project-header-actions .btn:focus-visible {
+            outline: 2px solid var(--focus);
+            outline-offset: 2px;
+        }
+
+        .project-share-panel {
+            margin-bottom: var(--space-4);
+            max-width: 100%;
+        }
+
+        .project-share-panel[hidden] {
+            display: none;
+        }
+
+        .project-share-panel .share-native {
+            min-height: 44px;
+            min-width: 44px;
+            margin-top: var(--space-2);
+        }
+
+        .project-share-panel .card-share {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            margin-top: var(--space-2);
+        }
+
+        .project-share-panel .share-action {
+            min-height: 44px;
+            min-width: 44px;
+        }
+
         .project-summary {
             color: var(--text-secondary);
             font-size: var(--text-base);
@@ -280,6 +326,18 @@
         }
 
         @media (max-width: 600px) {
+            .project-header-actions {
+                width: 100%;
+            }
+
+            .project-header-actions .btn {
+                flex: 1 1 auto;
+            }
+
+            .project-share-panel .card-share {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
             .radio-group {
                 flex-direction: column;
             }
@@ -491,6 +549,16 @@
         let feedbackStartTracked = false;
         let feedbackFormViewedTracked = false;
         let serverHasResponded = false;
+        let currentProjectId = projectId;
+
+        function canonicalProjectUrl(id) {
+            var targetId = (id !== undefined && id !== null && id !== '') ? id : (currentProjectId || projectId);
+            var shareLib = window.CritiqueShare;
+            if (shareLib && typeof shareLib.projectUrl === 'function') {
+                return shareLib.projectUrl(targetId);
+            }
+            return window.location.origin + '/project/' + encodeURIComponent(String(targetId));
+        }
 
         function renderProject(data, responses) {
             feedbackStartTracked = false;
@@ -501,6 +569,11 @@
             const serverResponded = !isOwner && Boolean(data.has_responded);
             const sessionSubmitted = !isOwner && feedbackAlreadySubmitted();
             serverHasResponded = serverResponded;
+            const resolvedProjectId = (p && p.id !== undefined && p.id !== null) ? p.id : projectId;
+            currentProjectId = resolvedProjectId;
+            const shareLib = (window.CritiqueShare && typeof window.CritiqueShare.renderCardShareRow === 'function')
+                ? window.CritiqueShare
+                : null;
             const bcCurrent = document.getElementById('breadcrumb-current');
             if (bcCurrent && p && p.title) {
                 bcCurrent.textContent = p.title;
@@ -535,7 +608,15 @@
                 html += ' <span class="badge response-count-badge" id="owner-response-count">' + count + ' ' + (count === 1 ? 'response' : 'responses') + '</span>';
             }
             html += '</h1>';
-            html += '<button type="button" class="btn btn-secondary" id="copy-project-link" aria-label="Copy project link" style="font-size:var(--text-xs);padding:var(--space-1) var(--space-3);"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-right:6px;"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>Copy link</button></div>';
+            html += '<div class="project-header-actions no-print">';
+            html += '<button type="button" class="btn btn-secondary" id="copy-project-link" aria-label="Copy project link"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Copy link</button>';
+            if (shareLib) {
+                html += '<button type="button" class="btn btn-secondary" id="toggle-project-share" aria-expanded="false" aria-controls="project-share-panel"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>Share</button>';
+            }
+            html += '</div></div>';
+            if (shareLib) {
+                html += '<div class="project-share-panel no-print" id="project-share-panel" hidden></div>';
+            }
             // What is being reviewed is stated before anything is asked of the
             // visitor, so the answer is given with the context in view.
             if (p.description) { html += '<p class="project-summary">' + escapeHtml(p.description) + '</p>'; }
@@ -589,7 +670,31 @@
             if (suggestionInput) suggestionInput.addEventListener('input', syncSuggestionCharCount);
             syncSuggestionCharCount();
             const copyBtn = document.getElementById('copy-project-link');
-            if (copyBtn) copyBtn.addEventListener('click', copyProjectLink);
+            if (copyBtn) {
+                copyBtn.addEventListener('click', function() {
+                    copyProjectLink(resolvedProjectId);
+                });
+            }
+            if (shareLib) {
+                const shareToggle = document.getElementById('toggle-project-share');
+                const sharePanel = document.getElementById('project-share-panel');
+                if (shareToggle && sharePanel) {
+                    sharePanel.hidden = true;
+                    let sharePanelRendered = false;
+                    shareToggle.addEventListener('click', function() {
+                        const opening = sharePanel.hidden;
+                        if (opening && !sharePanelRendered) {
+                            sharePanelRendered = true;
+                            shareLib.renderCardShareRow(sharePanel, {
+                                projectId: resolvedProjectId,
+                                title: (p && p.title) ? p.title : ''
+                            });
+                        }
+                        sharePanel.hidden = !opening;
+                        shareToggle.setAttribute('aria-expanded', opening ? 'true' : 'false');
+                    });
+                }
+            }
             const form = document.getElementById('response-form');
             if (form) {
                 form.addEventListener('submit', handleSubmit);
@@ -662,21 +767,28 @@
             }
         }
 
-        function copyProjectLink() {
-            var url = window.location.href;
+        function copyProjectLink(id) {
+            var targetId = (id !== undefined && id !== null && id !== '') ? id : (currentProjectId || projectId);
+            var url = canonicalProjectUrl(targetId);
             if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(url).then(function() {
-                    if (window.CritiqueUI && CritiqueUI.showToast) {
-                        CritiqueUI.showToast('Project link copied to clipboard', 'success');
+                return navigator.clipboard.writeText(url).then(function() {
+                    if (window.CritiqueAnalytics && typeof window.CritiqueAnalytics.trackEvent === 'function') {
+                        window.CritiqueAnalytics.trackEvent('share_copy_link', targetId);
                     }
+                    if (window.CritiqueUI && CritiqueUI.showToast) {
+                        CritiqueUI.showToast('Link copied', 'success');
+                    }
+                    return true;
                 }).catch(function() {
                     if (window.CritiqueUI && CritiqueUI.showToast) {
                         CritiqueUI.showToast('Could not copy link.', 'error');
                     }
+                    return false;
                 });
             } else if (window.CritiqueUI && CritiqueUI.showToast) {
                 CritiqueUI.showToast('Copying not supported in this browser', 'error');
             }
+            return Promise.resolve(false);
         }
 
         function trackFeedbackStart() {
@@ -1219,6 +1331,7 @@
             try { checkAuth(); } catch(e) {}
     </script>
     <script src="/static/ui.js"></script>
+    <script src="/static/share.js"></script>
     <script src="/static/analytics_events.js"></script>
 <script src="/static/analytics.js"></script>
     <script>trackPageView();</script>
