@@ -490,12 +490,17 @@
 
         let feedbackStartTracked = false;
         let feedbackFormViewedTracked = false;
+        let serverHasResponded = false;
 
         function renderProject(data, responses) {
             feedbackStartTracked = false;
             const content = document.getElementById('content');
             const p = data.project;
             const q = data.question;
+            const isOwner = Boolean(data.is_owner);
+            const serverResponded = !isOwner && Boolean(data.has_responded);
+            const sessionSubmitted = !isOwner && feedbackAlreadySubmitted();
+            serverHasResponded = serverResponded;
             const bcCurrent = document.getElementById('breadcrumb-current');
             if (bcCurrent && p && p.title) {
                 bcCurrent.textContent = p.title;
@@ -616,7 +621,10 @@
                 }
             }
             if (form && !feedbackFormViewedTracked) { feedbackFormViewedTracked = true; window.CritiqueAnalytics.trackEvent('feedback_form_viewed', projectId); }
-            if (feedbackAlreadySubmitted()) {
+            if (serverResponded) {
+                if (getCurrentUserId()) markFeedbackSubmitted();
+                showAlreadyRespondedState(document.getElementById('feedback-thanks'));
+            } else if (sessionSubmitted) {
                 showFeedbackSuccessNextStep(document.getElementById('feedback-thanks'));
             }
             // Restore any saved feedback draft from before OAuth
@@ -1193,6 +1201,9 @@
                         setCurrentUserId(data.id);
                     } else if (data && data.username) {
                         setCurrentUserId(data.username);
+                    }
+                    if (serverHasResponded && getCurrentUserId()) {
+                        markFeedbackSubmitted();
                     }
                     document.getElementById('login-btn').style.display = 'none';
                     document.getElementById('logout-btn').style.display = 'inline';
