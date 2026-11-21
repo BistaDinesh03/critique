@@ -849,10 +849,21 @@ var CritiqueUI = (function() {
         } catch (e) {}
     }
 
+    function initFooterYear() {
+        if (!document.querySelectorAll) return;
+        var nodes = document.querySelectorAll('.footer-year');
+        if (!nodes || !nodes.length) return;
+        var year = String(new Date().getFullYear());
+        for (var i = 0; i < nodes.length; i++) {
+            nodes[i].textContent = year;
+        }
+    }
+
     function initSharedUI() {
         initNavLogin();
         initThemeToggle();
         initBackToTop();
+        initFooterYear();
     }
 
     if (document.readyState === 'loading') {
@@ -1033,6 +1044,7 @@ var CritiqueUI = (function() {
         renderEmailForm: renderEmailForm,
         initNavLogin: initNavLogin,
         initBackToTop: initBackToTop,
+        initFooterYear: initFooterYear,
         initThemeToggle: initThemeToggle,
         toggleTheme: toggleTheme,
         getEffectiveTheme: getEffectiveTheme,
