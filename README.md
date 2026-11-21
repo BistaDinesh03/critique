@@ -382,14 +382,22 @@ Contributions, bug reports, documentation improvements, and thoughtful
 product feedback are welcome. A good place to start is an issue labeled
 [`good first issue`](https://github.com/BistaDinesh03/critique/labels/good%20first%20issue).
 
-1. Fork the repository
-2. Create a branch for your change
-3. Make your changes and add tests
-4. Run the test suite
-5. Open a pull request
+Take a look at the [First-Time Contributor Guide](
+CONTRIBUTING.md#first-time-contributor-guide) in CONTRIBUTING.md for
+guidance on choosing an issue, understanding the expected scope, setting up
+the project, writing a useful PR description, and responding to review
+feedback. The guide emphasizes that you do not need to be an experienced
+developer to help -- many contributions are documentation, accessibility,
+or "good first issue" tasks.
 
-[CONTRIBUTING.md](CONTRIBUTING.md) has the full guidelines, and
-[SECURITY.md](SECURITY.md) explains how to report vulnerabilities.
+1. Fork the repository and clone your fork.
+2. Create a branch for your change (`git checkout -b main/issue-XXX`).
+3. Make your changes following the [code style](
+CONTRIBUTING.md#code-style) guidelines.
+4. Run the test suite: `cd backend && python -m pytest tests/ -q`
+   (expected: **346 passed**).
+5. Open a pull request -- reference the issue you are solving (e.g.,
+   `Fixes #853`).
 
 **Looking for something to work on?** Start with the curated plan in
 [docs/issue-roadmap.md](docs/issue-roadmap.md) — 50 reviewed issues with the
