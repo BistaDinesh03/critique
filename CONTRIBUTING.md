@@ -179,6 +179,87 @@ before the merge is confirmed, or send a second message. Full usage:
 - Assume good intentions
 - Focus on the work, not the person
 
+## First-Time Contributor Guide
+
+Thanks for volunteering to contribute to Critique! You do not need to be
+an experienced developer to help. Many contributions are documentation,
+accessibility, or "good first issue" tasks that only require careful
+reading and writing.
+
+### Choosing an issue
+
+- Start by looking for issues labeled [`good first issue`](
+  https://github.com/BistaDinesh03/critique/labels/good%20first%20issue)
+  — these are specifically scoped for newcomers.
+- You can also filter issues by area (`frontend`, `backend`, `tests`,
+  `accessibility`, `security`, `performance`) to match your skills or
+  interests.
+- If you are unsure whether an issue is the right scope, ask in [issue
+  #1](https://github.com/BistaDinesh03/critique/issues/1) — no question
+  is too small, and the maintainer can steer you.
+- Read the full issue description, acceptance criteria, and testing
+  instructions before commenting that you intend to work on it.
+
+### Understanding the expected scope
+
+- Each issue in the roadmap (`docs/issue-roadmap.md`) and on GitHub has
+  acceptance criteria and a defined scope. Read these carefully before
+  starting.
+- If an issue seems too large or vague, comment asking for it to be
+  broken down — maintainers will help refine it.
+- Remember: small, focused pull requests are much easier to review and
+  more likely to be merged quickly.
+
+### Setting up the project
+
+1. Fork the repository and clone your fork.
+2. Create a virtual environment: `python -m venv .venv` and activate it.
+3. Install dependencies: `pip install -r requirements.txt`.
+4. Copy `.env.example` to `.env` (or `copy .env.example .env` on Windows)
+   and set any needed environment variables.
+5. Start the server: `cd backend && uvicorn app.main:app --reload`.
+6. Open http://127.0.0.1:8000 in your browser.
+
+Run `python -m pytest tests/ -q` to verify the test suite (expected:
+**346 passed**). Note: frontend-render tests require Node.js on PATH and
+are skipped without it.
+
+### Following code conventions
+
+- Follow existing patterns in the codebase — look at similar functions
+  or components for style reference.
+- Use meaningful names; keep functions small.
+- Comment only where useful; avoid dead code.
+- Follow the existing line ending and whitespace conventions (the
+  repository uses LF line endings, UTF-8 without BOM).
+
+### Writing a useful pull request description
+
+Describe what you changed and why, using this structure:
+
+- **Summary:** One sentence on what the PR changes.
+- **Problem/issue:** Link to the issue you are solving (e.g., `Fixes #853`).
+- **What changed:** Bullet list of the specific files modified and why.
+- **How tested:** The exact test command you ran and the result (e.g.,
+  `python -m pytest tests/ -q — passed all 346 tests`).
+- **Self-review:** Note any known limitations or areas where you welcome
+  feedback.
+
+### Responding to review feedback
+
+- Read each piece of feedback carefully; the maintainer's goal is to help
+  your contribution land, not to critique you personally.
+- Make changes in small, discrete commits on your branch — do not squash
+  or rebase unless the maintainer requests it.
+- If you disagree with a comment, start a constructive discussion in the
+  PR — assume good intentions.
+- After making changes, request a re-review by commenting `Review please`
+  or `python scripts/review_pr.py PR_NUMBER --request-changes`.
+
+You are always welcome to ask questions in [issue #1](https://github.com/BistaDinesh03/critique/issues/1)
+or on the PR discussion. The maintainer is happy to help you through the
+process.
+
 ## Reporting a security issue
 
 Please do not open a public issue for a vulnerability. Follow the private
