@@ -537,8 +537,14 @@
             if (p.url) { html += '<p class="project-link"><a href="' + escapeHtml(p.url) + '" target="_blank" rel="noopener noreferrer" class="btn btn-secondary visit-project-btn">Visit project \u2192</a></p>'; }
             if (q) {
                 html += '<div class="question-block"><div class="question-label">The Maker\'s Question</div><div class="question-text">' + escapeHtml(q.text) + '</div></div>';
-                html += '<div class="eyebrow">Your feedback</div>';
-                if (feedbackAlreadySubmitted()) {
+                if (data.is_owner) {
+                    // Owners cannot self-review: no "Your feedback" section at all,
+                    // just a banner that tells them where others' answers live.
+                    html += '<div class="eyebrow">Project owner</div>'
+                        + '<div class="response-form-card" style="margin-block:var(--space-2);font-size:var(--text-sm);color:var(--text-secondary); padding:var(--space-4)">This is your project, so you can\'t submit feedback on it yourself. See how others responded on the <a href="/project/' + encodeURIComponent(String(p.id)) + '/results" style="color:var(--accent);">results page</a></div></div>';
+                } else {
+                    html += '<div class="eyebrow">Your feedback</div>';
+                    if (feedbackAlreadySubmitted()) {
                     // This session already answered: offering the form again
                     // would only earn a 409 from the server, so show the
                     // recorded state and its next step instead.
@@ -561,6 +567,7 @@
                     html += '<div class="form-section"><h3>3. What would you change? <span style="font-weight:400;color:var(--text-muted);">(optional)</span></h3><textarea class="form-textarea" id="suggestion" maxlength="2000" placeholder="Your honest feedback..." aria-keyshortcuts="Control+Enter Meta+Enter"></textarea><p class="form-helper" style="font-size:var(--text-xs);color:var(--text-muted);margin-top:var(--space-1);">Press <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd> to submit</p><div id="suggestion-char-count" style="font-size:12px;color:var(--text-muted);text-align:right;margin-top:4px;">0 / 2000</div></div>';
                     html += '<button type="submit" class="btn btn-primary" id="submit-btn" style="width:100%;" aria-keyshortcuts="Control+Enter Meta+Enter">Submit feedback</button>';
                     html += '<div class="message" id="message" role="alert" aria-live="polite"></div></form></div>';
+                    }
                 }
                 var details = '';
                 if (p.image_url) {
