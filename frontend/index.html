@@ -54,6 +54,8 @@
     }
     </script>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16.png">
     <link rel="apple-touch-icon" href="/static/logo.png">
     <link rel="mask-icon" href="/static/favicon.svg" color="#2563eb">
     <script>
@@ -1275,6 +1277,12 @@
         <section class="projects-section">
             <h2>Help a builder improve something</h2>
             <p class="subtitle">Pick a project and answer the one question its builder asked.</p>
+            <noscript>
+                <div class="alert alert-warning" role="note">
+                    Critique needs JavaScript to show live content.
+                    Please enable it and reload.
+                </div>
+            </noscript>
             <!-- Static placeholder: the project grid paints immediately while
                  /api/projects/ is in flight, and is replaced by real cards,
                  an empty state or a retryable error state. -->
