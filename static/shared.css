@@ -2265,7 +2265,9 @@ img {
    ============================================ */
 
 @media print {
-    :root {
+    :root,
+    :root[data-theme="dark"],
+    :root:not([data-theme="light"]) {
         color-scheme: light;
         --background: #fff;
         --surface: #fff;
@@ -2275,6 +2277,8 @@ img {
         --text-muted: #333;
         --border: #999;
         --border-light: #bbb;
+        --success-bg: #fff;
+        --success-text: #000;
     }
 
     body {
@@ -2283,13 +2287,19 @@ img {
         min-height: 0;
     }
 
+    .skip-link,
     .navbar,
     .site-footer,
     .breadcrumb-nav,
+    .pagination,
+    .skeleton-card,
+    .back-to-top,
+    .modal-backdrop,
     #toast-container,
     .btn,
     button,
     form,
+    input,
     textarea,
     select,
     .no-print {
@@ -2303,13 +2313,47 @@ img {
     }
 
     main,
-    .card {
-        overflow: visible;
-        box-shadow: none;
+    .card,
+    .project-card {
+        overflow: visible !important;
+        box-shadow: none !important;
         backdrop-filter: none;
+        transform: none !important;
     }
 
-    .card {
+    .card,
+    .project-card {
         break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .page-title {
+        break-after: avoid;
+        page-break-after: avoid;
+    }
+
+    .project-list {
+        display: block !important;
+        max-width: none !important;
+    }
+
+    .project-list .project-card {
+        background: #fff !important;
+        border-color: var(--border) !important;
+        margin-bottom: var(--space-4);
+    }
+
+    .project-screenshot {
+        max-height: 200px;
+    }
+
+    .project-description {
+        display: block !important;
+        -webkit-line-clamp: unset !important;
+        overflow: visible !important;
+    }
+
+    .badge {
+        border: 1px solid var(--border);
     }
 }
