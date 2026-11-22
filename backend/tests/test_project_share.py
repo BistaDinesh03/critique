@@ -465,6 +465,62 @@ def test_missing_clipboard_api_does_not_track_share_copy_event(tmp_path):
     assert events(result, "share_copy_link") == []
 
 
+def test_clipboard_fallback_success_tracks_share_copy_event(tmp_path):
+    """execCommand fallback success must report copy success and track the event."""
+    fallback_stub = {
+        "evaluate": (
+            "delete navigator.clipboard; "
+            "document.execCommand = function() { return true; }; "
+            "'fallback_installed'"
+        )
+    }
+    result = submitted_page(
+        tmp_path,
+        pre_calls=[fallback_stub],
+        extra_calls=[{"clickCreatedContaining": "Copy link"}],
+    )
+    assert result["clipboard"] == []
+    assert len(events(result, "share_copy_link")) == 1
+    assert any(t == "Link copied" for t in texts(result))
+
+
+def test_clipboard_fallback_failure_does_not_track_share_copy_event(tmp_path):
+    """execCommand fallback failure must not report success or track the event."""
+    fallback_stub = {
+        "evaluate": (
+            "delete navigator.clipboard; "
+            "document.execCommand = function() { return false; }; "
+            "'fallback_installed'"
+        )
+    }
+    result = submitted_page(
+        tmp_path,
+        pre_calls=[fallback_stub],
+        extra_calls=[{"clickCreatedContaining": "Copy link"}],
+    )
+    assert result["clipboard"] == []
+    assert events(result, "share_copy_link") == []
+    assert any(t == "Could not copy. Try again." for t in texts(result))
+
+
+def test_clipboard_api_rejection_falls_back_to_exec_command(tmp_path):
+    """A rejected Clipboard API write should fall back to execCommand and track on success."""
+    fallback_stub = {
+        "evaluate": (
+            "navigator.clipboard.writeText = function() { return Promise.reject(new Error('denied')); }; "
+            "document.execCommand = function() { return true; }; "
+            "'fallback_installed'"
+        )
+    }
+    result = submitted_page(
+        tmp_path,
+        pre_calls=[fallback_stub],
+        extra_calls=[{"clickCreatedContaining": "Copy link"}],
+    )
+    assert len(events(result, "share_copy_link")) == 1
+    assert any(t == "Link copied" for t in texts(result))
+
+
 
 def test_copy_suggested_post_copies_the_current_edited_text(tmp_path):
     result = submitted_page(
