@@ -49,6 +49,19 @@ per-email cooldown described after the table.
 | `response_submit` | 10 requests / 5 min |
 | `analytics` (track) | 60 requests / 60 s |
 
+**Rate-limit headers:** every response from a rate-limited endpoint, including
+redirects, errors and the `429`, carries three headers so clients can slow down
+before they hit the limit. Endpoints without a limit send none of them.
+
+| Header | Meaning |
+|---|---|
+| `RateLimit-Limit` | The bucket's maximum requests per window (the table above). |
+| `RateLimit-Remaining` | Requests left in the window after this one. Decreases by one per request; `0` on a `429`. |
+| `RateLimit-Reset` | Whole seconds, rounded up and at least `1`, until the oldest request in the window expires and a slot frees up. On a `429` it equals `Retry-After`. |
+
+Limits use a sliding window, so slots free up one at a time as each request
+ages out, rather than all at once. A `429` still carries `Retry-After`.
+
 **Per-email cooldown:** a repeat `/auth/email/start` request for the same
 normalized email address within 60 seconds intentionally returns `{"ok": true, "sent": false}`
 without sending another email. This is separate from the IP-based

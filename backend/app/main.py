@@ -19,6 +19,7 @@ from app.config import settings
 from app.csrf import generate_csrf_token, set_csrf_cookie
 from app.database import get_db, in_int64_range, init_db
 from app.models import Project
+from app.rate_limit import rate_limit_headers_for
 from app.routes_analytics import router as analytics_router
 from app.routes_analytics_dashboard import router as analytics_dashboard_router
 from app.routes_badge import router as badge_router
@@ -48,6 +49,21 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
         request.state.request_id = request_id
         response = await call_next(request)
         response.headers["X-Request-ID"] = request_id
+        return response
+
+
+class RateLimitHeadersMiddleware(BaseHTTPMiddleware):
+    """Copy the RateLimit-* headers computed by the rate_limit dependency onto
+    the response.
+
+    A dependency's ``response: Response`` parameter is ignored when a route
+    returns a Response itself (the OAuth and magic-link routes redirect), and
+    a 429 is raised as an exception, so the headers are set here instead.
+    """
+
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        response.headers.update(rate_limit_headers_for(request))
         return response
 
 
@@ -112,6 +128,7 @@ app = FastAPI(
 
 app.add_middleware(CacheControlMiddleware)
 app.add_middleware(RequestIDMiddleware)
+app.add_middleware(RateLimitHeadersMiddleware)
 
 app.include_router(auth_router)
 app.include_router(projects_router)
