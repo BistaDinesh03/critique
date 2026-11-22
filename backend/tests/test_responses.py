@@ -378,3 +378,126 @@ def test_suggestion_is_trimmed_or_dropped(auth_client, raw, expected):
     suggestions = [item["suggestion"] for item in results.json()["responses"]]
     assert suggestions == [expected]
     cleanup_database()
+
+
+def test_owner_cannot_submit_with_forged_identity_fields(auth_client):
+    """Owner identity is server-side; forged request fields cannot override it."""
+    cleanup_database()
+    create_resp = create_test_project(auth_client)
+    assert create_resp.status_code == 201
+    project_id = create_resp.json()["project"]["id"]
+
+    response = auth_client.post(
+        f"/api/projects/{project_id}/responses",
+        json={
+            "clarity": "very_clear",
+            "would_use": "yes",
+            "suggestion": "forged identity",
+            "user_id": 999999,
+            "project_id": project_id,
+            "owner_id": 999999,
+        },
+    )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == (
+        "You cannot respond to your own project. "
+        "View aggregated results instead."
+    )
+
+    db = SessionLocal()
+    try:
+        question = db.query(Question).filter(Question.project_id == project_id).first()
+        assert db.query(Response).filter(Response.question_id == question.id).count() == 0
+    finally:
+        db.close()
+    cleanup_database()
+
+
+def test_owner_cannot_bypass_via_request_parameters(auth_client):
+    """Path and query parameters cannot make an owner submission succeed."""
+    cleanup_database()
+    create_resp = create_test_project(auth_client)
+    assert create_resp.status_code == 201
+    project_id = create_resp.json()["project"]["id"]
+
+    response = auth_client.post(
+        f"/api/projects/{project_id}/responses?user_id=999999&project_id={project_id}",
+        json={
+            "clarity": "very_clear",
+            "would_use": "yes",
+            "suggestion": "parameter bypass attempt",
+        },
+    )
+
+    assert response.status_code == 403
+    cleanup_database()
+
+
+def test_anonymous_submission_to_owner_project_follows_guest_policy(auth_client):
+    """Anonymous users are not owners and follow the existing guest submission policy."""
+    cleanup_database()
+    create_resp = create_test_project(auth_client)
+    assert create_resp.status_code == 201
+    project_id = create_resp.json()["project"]["id"]
+
+    saved = {
+        get_current_user: app.dependency_overrides.pop(get_current_user, None),
+        get_current_user_optional: app.dependency_overrides.pop(get_current_user_optional, None),
+    }
+
+    token = "anonymous_owner_project_token"
+    anon_client = TestClient(app)
+    anon_client.cookies.set("critique_csrf", token)
+    anon_client.headers["X-CSRF-Token"] = token
+
+    response = anon_client.post(
+        f"/api/projects/{project_id}/responses",
+        json={
+            "clarity": "very_clear",
+            "would_use": "yes",
+            "suggestion": "anonymous feedback",
+        },
+    )
+
+    for dep, mock in saved.items():
+        if mock is None:
+            app.dependency_overrides.pop(dep, None)
+        else:
+            app.dependency_overrides[dep] = mock
+
+    assert response.status_code == 201
+    cleanup_database()
+
+
+def test_authenticated_non_owner_can_submit_feedback(auth_client):
+    """A different authenticated user can still submit feedback to the project."""
+    cleanup_database()
+    create_resp = create_test_project(auth_client)
+    assert create_resp.status_code == 201
+    project_id = create_resp.json()["project"]["id"]
+
+    saved = {
+        get_current_user: app.dependency_overrides.pop(get_current_user, None),
+        get_current_user_optional: app.dependency_overrides.pop(get_current_user_optional, None),
+    }
+
+    reviewer, _ = create_user_and_client(900001, "security_reviewer")
+
+    response = reviewer.post(
+        f"/api/projects/{project_id}/responses",
+        json={
+            "clarity": "very_clear",
+            "would_use": "yes",
+            "suggestion": "non-owner feedback",
+        },
+    )
+
+    for dep, mock in saved.items():
+        if mock is None:
+            app.dependency_overrides.pop(dep, None)
+        else:
+            app.dependency_overrides[dep] = mock
+
+    assert response.status_code == 201
+    cleanup_database()

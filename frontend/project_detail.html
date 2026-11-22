@@ -530,7 +530,7 @@
             }
             let html = '';
             html += '<div class="project-header-row"><h1 class="project-title">' + escapeHtml(p.title);
-            if (data.is_owner || (Array.isArray(responses) && responses.length > 0)) {
+            if (isOwner || (Array.isArray(responses) && responses.length > 0)) {
                 const count = Array.isArray(responses) && responses.length > 0 ? responses.length : (p.response_count || 0);
                 html += ' <span class="badge response-count-badge" id="owner-response-count">' + count + ' ' + (count === 1 ? 'response' : 'responses') + '</span>';
             }
@@ -542,11 +542,11 @@
             if (p.url) { html += '<p class="project-link"><a href="' + escapeHtml(p.url) + '" target="_blank" rel="noopener noreferrer" class="btn btn-secondary visit-project-btn">Visit project \u2192</a></p>'; }
             if (q) {
                 html += '<div class="question-block"><div class="question-label">The Maker\'s Question</div><div class="question-text">' + escapeHtml(q.text) + '</div></div>';
-                if (data.is_owner) {
+                if (isOwner) {
                     // Owners cannot self-review: no "Your feedback" section at all,
                     // just a banner that tells them where others' answers live.
                     html += '<div class="eyebrow">Project owner</div>'
-                        + '<div class="response-form-card" style="margin-block:var(--space-2);font-size:var(--text-sm);color:var(--text-secondary); padding:var(--space-4)">This is your project, so you can\'t submit feedback on it yourself. See how others responded on the <a href="/project/' + encodeURIComponent(String(p.id)) + '/results" style="color:var(--accent);">results page</a></div></div>';
+                        + '<div class="response-form-card" style="margin-block:var(--space-2);font-size:var(--text-sm);color:var(--text-secondary); padding:var(--space-4)">This is your project, so you can\'t submit feedback on it yourself. See how others responded on the <a href="/project/' + encodeURIComponent(String(p.id)) + '/results" style="color:var(--accent);">results page</a></div>';
                 } else {
                     html += '<div class="eyebrow">Your feedback</div>';
                     if (serverResponded || sessionSubmitted) {
