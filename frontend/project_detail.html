@@ -498,8 +498,64 @@
         let feedbackFormViewedTracked = false;
         let serverHasResponded = false;
 
+        var STEP3_CONFUSING_HINT = 'Which part was unclear — the description, the screenshot, the pricing, or what it does?';
+        var STEP3_WOULD_NOT_USE_HINT = 'For example: you already use something similar, the value is unclear, or it is not for you.';
+        var STEP3_PROMPTS = {
+            '00': {
+                heading: '3. What would you change?',
+                placeholder: 'Your honest feedback...',
+                hint: ''
+            },
+            '10': {
+                heading: '3. What was confusing?',
+                placeholder: STEP3_CONFUSING_HINT,
+                hint: STEP3_CONFUSING_HINT
+            },
+            '01': {
+                heading: "3. Why wouldn't you use it?",
+                placeholder: STEP3_WOULD_NOT_USE_HINT,
+                hint: STEP3_WOULD_NOT_USE_HINT
+            },
+            '11': {
+                heading: "3. What was confusing, and why wouldn't you use it?",
+                placeholder: STEP3_CONFUSING_HINT + '\n' + STEP3_WOULD_NOT_USE_HINT,
+                hint: STEP3_CONFUSING_HINT + '\n' + STEP3_WOULD_NOT_USE_HINT
+            }
+        };
+        var lastStep3PromptKey = null;
+
+        function updateStep3Prompt() {
+            var headingText = document.getElementById('suggestion-heading-text');
+            var suggestion = document.getElementById('suggestion');
+            var hintEl = document.getElementById('suggestion-followup-hint');
+            if (!headingText || !suggestion) return;
+            var clarityEl = document.querySelector('input[name="clarity"]:checked');
+            var wouldUseEl = document.querySelector('input[name="would_use"]:checked');
+            var isConfusing = !!(clarityEl && clarityEl.value === 'confusing');
+            var isWouldNotUse = !!(wouldUseEl && wouldUseEl.value === 'no');
+            var stateKey = (isConfusing ? '1' : '0') + (isWouldNotUse ? '1' : '0');
+            if (stateKey === lastStep3PromptKey) return;
+            lastStep3PromptKey = stateKey;
+            var copy = STEP3_PROMPTS[stateKey];
+            headingText.textContent = copy.heading;
+            suggestion.placeholder = copy.placeholder;
+            if (hintEl) {
+                var nextHint = copy.hint;
+                hintEl.hidden = !nextHint;
+                if (nextHint) {
+                    hintEl.removeAttribute('hidden');
+                } else {
+                    hintEl.setAttribute('hidden', '');
+                }
+                if (hintEl.textContent !== nextHint) {
+                    hintEl.textContent = nextHint;
+                }
+            }
+        }
+
         function renderProject(data, responses) {
             feedbackStartTracked = false;
+            lastStep3PromptKey = null;
             const content = document.getElementById('content');
             const p = data.project;
             const q = data.question;
@@ -572,7 +628,7 @@
                         html += '<label class="radio-card"><input type="radio" id="u2" name="would_use" value="maybe"><span class="radio-card-label"><span class="radio-card-title">Maybe</span><span class="radio-card-desc">I might use this in some cases.</span></span></label>';
                         html += '<label class="radio-card"><input type="radio" id="u3" name="would_use" value="no"><span class="radio-card-label"><span class="radio-card-title">No</span><span class="radio-card-desc">I would not use this.</span></span></label>';
                         html += '</div></fieldset>';
-                        html += '<div class="form-section"><h3>3. What would you change? <span style="font-weight:400;color:var(--text-muted);">(optional)</span></h3><textarea class="form-textarea" id="suggestion" maxlength="2000" placeholder="Your honest feedback..." aria-keyshortcuts="Control+Enter Meta+Enter"></textarea><p class="form-helper" style="font-size:var(--text-xs);color:var(--text-muted);margin-top:var(--space-1);">Press <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd> to submit</p><div id="suggestion-char-count" style="font-size:12px;color:var(--text-muted);text-align:right;margin-top:4px;">0 / 2000</div></div>';
+                        html += '<div class="form-section"><h3 id="suggestion-heading"><span id="suggestion-heading-text">3. What would you change?</span> <span style="font-weight:400;color:var(--text-muted);">(optional)</span></h3><p id="suggestion-followup-hint" class="form-helper" aria-live="polite" hidden style="margin-top:0;margin-bottom:var(--space-2);white-space:pre-line;"></p><textarea class="form-textarea" id="suggestion" maxlength="2000" placeholder="Your honest feedback..." aria-labelledby="suggestion-heading" aria-describedby="suggestion-followup-hint" aria-keyshortcuts="Control+Enter Meta+Enter"></textarea><p class="form-helper" style="font-size:var(--text-xs);color:var(--text-muted);margin-top:var(--space-1);">Press <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd> to submit</p><div id="suggestion-char-count" style="font-size:12px;color:var(--text-muted);text-align:right;margin-top:4px;">0 / 2000</div></div>';
                         html += '<button type="submit" class="btn btn-primary" id="submit-btn" style="width:100%;" aria-keyshortcuts="Control+Enter Meta+Enter">Submit feedback</button>';
                         html += '<div class="message" id="message" role="alert" aria-live="polite"></div></form></div>';
                     }
@@ -616,6 +672,7 @@
                 form.addEventListener('change', function(e) {
                     if (e.target && (e.target.name === 'clarity' || e.target.name === 'would_use')) {
                         trackFeedbackStart();
+                        updateStep3Prompt();
                     }
                 });
                 const feedbackSuggestion = form.querySelector('textarea[name="suggestion"]') || document.getElementById('suggestion');
@@ -637,6 +694,7 @@
             // so refresh the counter once more after all restore paths run.
             syncSuggestionCharCount();
             updateFeedbackProgress();
+            updateStep3Prompt();
         }
 
         function updateFeedbackProgress() {
@@ -733,6 +791,7 @@
                     var s = document.getElementById('suggestion');
                     if (s) s.value = draft.suggestion;
                 }
+                updateStep3Prompt();
                 return true;
             } catch (e) {
                 return false;
