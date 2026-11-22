@@ -141,6 +141,7 @@ class ProjectWithQuestion(BaseModel):
     project: ProjectOut
     question: Optional[QuestionOut] = None
     is_owner: Optional[bool] = False
+    has_responded: bool = False
 
 
 class PaginatedProjects(BaseModel):
