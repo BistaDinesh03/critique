@@ -101,6 +101,52 @@
             margin-bottom: 0;
         }
 
+        .project-header-actions {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: var(--space-2);
+            max-width: 100%;
+        }
+
+        .project-header-actions .btn {
+            min-height: 44px;
+            min-width: 44px;
+            padding: var(--space-2) var(--space-3);
+            font-size: var(--text-sm);
+            white-space: nowrap;
+        }
+
+        .project-header-actions .btn:focus-visible {
+            outline: 2px solid var(--focus);
+            outline-offset: 2px;
+        }
+
+        .project-share-panel {
+            margin-bottom: var(--space-4);
+            max-width: 100%;
+        }
+
+        .project-share-panel[hidden] {
+            display: none;
+        }
+
+        .project-share-panel .share-native {
+            min-height: 44px;
+            min-width: 44px;
+            margin-top: var(--space-2);
+        }
+
+        .project-share-panel .card-share {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            margin-top: var(--space-2);
+        }
+
+        .project-share-panel .share-action {
+            min-height: 44px;
+            min-width: 44px;
+        }
+
         .project-summary {
             color: var(--text-secondary);
             font-size: var(--text-base);
@@ -280,6 +326,18 @@
         }
 
         @media (max-width: 600px) {
+            .project-header-actions {
+                width: 100%;
+            }
+
+            .project-header-actions .btn {
+                flex: 1 1 auto;
+            }
+
+            .project-share-panel .card-share {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
             .radio-group {
                 flex-direction: column;
             }
@@ -335,6 +393,12 @@
                 <li aria-current="page"><span id="breadcrumb-current">Project</span></li>
             </ol>
         </nav>
+        <noscript>
+            <div class="alert alert-warning" role="note">
+                Critique needs JavaScript to show live content.
+                Please enable it and reload.
+            </div>
+        </noscript>
         <div id="content" aria-busy="true">
             <div role="status">
                 <p class="sr-only">Loading project...</p>
@@ -491,9 +555,75 @@
         let feedbackStartTracked = false;
         let feedbackFormViewedTracked = false;
         let serverHasResponded = false;
+        let currentProjectId = projectId;
+
+        function canonicalProjectUrl(id) {
+            var targetId = (id !== undefined && id !== null && id !== '') ? id : (currentProjectId || projectId);
+            var shareLib = window.CritiqueShare;
+            if (shareLib && typeof shareLib.projectUrl === 'function') {
+                return shareLib.projectUrl(targetId);
+            }
+            return window.location.origin + '/project/' + encodeURIComponent(String(targetId));
+        }
+
+        var STEP3_CONFUSING_HINT = 'Which part was unclear — the description, the screenshot, the pricing, or what it does?';
+        var STEP3_WOULD_NOT_USE_HINT = 'For example: you already use something similar, the value is unclear, or it is not for you.';
+        var STEP3_PROMPTS = {
+            '00': {
+                heading: '3. What would you change?',
+                placeholder: 'Your honest feedback...',
+                hint: ''
+            },
+            '10': {
+                heading: '3. What was confusing?',
+                placeholder: STEP3_CONFUSING_HINT,
+                hint: STEP3_CONFUSING_HINT
+            },
+            '01': {
+                heading: "3. Why wouldn't you use it?",
+                placeholder: STEP3_WOULD_NOT_USE_HINT,
+                hint: STEP3_WOULD_NOT_USE_HINT
+            },
+            '11': {
+                heading: "3. What was confusing, and why wouldn't you use it?",
+                placeholder: STEP3_CONFUSING_HINT + '\n' + STEP3_WOULD_NOT_USE_HINT,
+                hint: STEP3_CONFUSING_HINT + '\n' + STEP3_WOULD_NOT_USE_HINT
+            }
+        };
+        var lastStep3PromptKey = null;
+
+        function updateStep3Prompt() {
+            var headingText = document.getElementById('suggestion-heading-text');
+            var suggestion = document.getElementById('suggestion');
+            var hintEl = document.getElementById('suggestion-followup-hint');
+            if (!headingText || !suggestion) return;
+            var clarityEl = document.querySelector('input[name="clarity"]:checked');
+            var wouldUseEl = document.querySelector('input[name="would_use"]:checked');
+            var isConfusing = !!(clarityEl && clarityEl.value === 'confusing');
+            var isWouldNotUse = !!(wouldUseEl && wouldUseEl.value === 'no');
+            var stateKey = (isConfusing ? '1' : '0') + (isWouldNotUse ? '1' : '0');
+            if (stateKey === lastStep3PromptKey) return;
+            lastStep3PromptKey = stateKey;
+            var copy = STEP3_PROMPTS[stateKey];
+            headingText.textContent = copy.heading;
+            suggestion.placeholder = copy.placeholder;
+            if (hintEl) {
+                var nextHint = copy.hint;
+                hintEl.hidden = !nextHint;
+                if (nextHint) {
+                    hintEl.removeAttribute('hidden');
+                } else {
+                    hintEl.setAttribute('hidden', '');
+                }
+                if (hintEl.textContent !== nextHint) {
+                    hintEl.textContent = nextHint;
+                }
+            }
+        }
 
         function renderProject(data, responses) {
             feedbackStartTracked = false;
+            lastStep3PromptKey = null;
             const content = document.getElementById('content');
             const p = data.project;
             const q = data.question;
@@ -501,6 +631,11 @@
             const serverResponded = !isOwner && Boolean(data.has_responded);
             const sessionSubmitted = !isOwner && feedbackAlreadySubmitted();
             serverHasResponded = serverResponded;
+            const resolvedProjectId = (p && p.id !== undefined && p.id !== null) ? p.id : projectId;
+            currentProjectId = resolvedProjectId;
+            const shareLib = (window.CritiqueShare && typeof window.CritiqueShare.renderCardShareRow === 'function')
+                ? window.CritiqueShare
+                : null;
             const bcCurrent = document.getElementById('breadcrumb-current');
             if (bcCurrent && p && p.title) {
                 bcCurrent.textContent = p.title;
@@ -535,7 +670,15 @@
                 html += ' <span class="badge response-count-badge" id="owner-response-count">' + count + ' ' + (count === 1 ? 'response' : 'responses') + '</span>';
             }
             html += '</h1>';
-            html += '<button type="button" class="btn btn-secondary" id="copy-project-link" aria-label="Copy project link" style="font-size:var(--text-xs);padding:var(--space-1) var(--space-3);"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-right:6px;"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>Copy link</button></div>';
+            html += '<div class="project-header-actions no-print">';
+            html += '<button type="button" class="btn btn-secondary" id="copy-project-link" aria-label="Copy project link"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Copy link</button>';
+            if (shareLib) {
+                html += '<button type="button" class="btn btn-secondary" id="toggle-project-share" aria-expanded="false" aria-controls="project-share-panel"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>Share</button>';
+            }
+            html += '</div></div>';
+            if (shareLib) {
+                html += '<div class="project-share-panel no-print" id="project-share-panel" hidden></div>';
+            }
             // What is being reviewed is stated before anything is asked of the
             // visitor, so the answer is given with the context in view.
             if (p.description) { html += '<p class="project-summary">' + escapeHtml(p.description) + '</p>'; }
@@ -553,24 +696,24 @@
                         // Server record (has_responded) OR this session already answered:
                         // re-offering the form would earn a 409, show the recorded state.
                         html += '<div class="response-form-card"><div id="feedback-thanks" role="status"></div></div>';
-                } else {
-                    // Three short, numbered steps: the form reads as a task
-                    // with an end rather than an open-ended questionnaire.
-                    html += '<div class="response-form-card"><form id="response-form">';
-                    html += '<div class="feedback-progress-indicator" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="3" aria-label="Feedback progress"><div class="progress-track" style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-bottom:var(--space-2);"><div class="progress-fill" id="progress-fill" style="width:0%;height:100%;background:var(--accent);transition:width 0.2s ease;"></div></div><div class="progress-label" id="progress-label" style="font-size:var(--text-xs);color:var(--text-secondary);margin-bottom:var(--space-4);">Step 0 of 3 completed</div></div>';
-                    html += '<fieldset class="form-section"><legend>1. How clear is it?</legend><div class="radio-cards">';
-                    html += '<label class="radio-card"><input type="radio" id="c1" name="clarity" value="very_clear" required><span class="radio-card-label"><span class="radio-card-title">Very clear</span><span class="radio-card-desc">I understood the project quickly.</span></span></label>';
-                    html += '<label class="radio-card"><input type="radio" id="c2" name="clarity" value="mostly_clear"><span class="radio-card-label"><span class="radio-card-title">Mostly clear</span><span class="radio-card-desc">I understood it, but needed some explanation.</span></span></label>';
-                    html += '<label class="radio-card"><input type="radio" id="c3" name="clarity" value="confusing"><span class="radio-card-label"><span class="radio-card-title">Confusing</span><span class="radio-card-desc">I was not sure what it does.</span></span></label>';
-                    html += '</div></fieldset>';
-                    html += '<fieldset class="form-section"><legend>2. Would you use it?</legend><div class="radio-cards">';
-                    html += '<label class="radio-card"><input type="radio" id="u1" name="would_use" value="yes" required><span class="radio-card-label"><span class="radio-card-title">Yes</span><span class="radio-card-desc">I would use this.</span></span></label>';
-                    html += '<label class="radio-card"><input type="radio" id="u2" name="would_use" value="maybe"><span class="radio-card-label"><span class="radio-card-title">Maybe</span><span class="radio-card-desc">I might use this in some cases.</span></span></label>';
-                    html += '<label class="radio-card"><input type="radio" id="u3" name="would_use" value="no"><span class="radio-card-label"><span class="radio-card-title">No</span><span class="radio-card-desc">I would not use this.</span></span></label>';
-                    html += '</div></fieldset>';
-                    html += '<div class="form-section"><h3>3. What would you change? <span style="font-weight:400;color:var(--text-muted);">(optional)</span></h3><textarea class="form-textarea" id="suggestion" maxlength="2000" placeholder="Your honest feedback..." aria-keyshortcuts="Control+Enter Meta+Enter"></textarea><p class="form-helper" style="font-size:var(--text-xs);color:var(--text-muted);margin-top:var(--space-1);">Press <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd> to submit</p><div id="suggestion-char-count" style="font-size:12px;color:var(--text-muted);text-align:right;margin-top:4px;">0 / 2000</div></div>';
-                    html += '<button type="submit" class="btn btn-primary" id="submit-btn" style="width:100%;" aria-keyshortcuts="Control+Enter Meta+Enter">Submit feedback</button>';
-                    html += '<div class="message" id="message" role="alert" aria-live="polite"></div></form></div>';
+                    } else {
+                        // Three short, numbered steps: the form reads as a task
+                        // with an end rather than an open-ended questionnaire.
+                        html += '<div class="response-form-card"><form id="response-form">';
+                        html += '<div class="feedback-progress-indicator" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="3" aria-label="Feedback progress"><div class="progress-track" style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-bottom:var(--space-2);"><div class="progress-fill" id="progress-fill" style="width:0%;height:100%;background:var(--accent);transition:width 0.2s ease;"></div></div><div class="progress-label" id="progress-label" style="font-size:var(--text-xs);color:var(--text-secondary);margin-bottom:var(--space-4);">Step 0 of 3 completed</div></div>';
+                        html += '<fieldset class="form-section"><legend>1. How clear is it?</legend><div class="radio-cards">';
+                        html += '<label class="radio-card"><input type="radio" id="c1" name="clarity" value="very_clear" required><span class="radio-card-label"><span class="radio-card-title">Very clear</span><span class="radio-card-desc">I understood the project quickly.</span></span></label>';
+                        html += '<label class="radio-card"><input type="radio" id="c2" name="clarity" value="mostly_clear"><span class="radio-card-label"><span class="radio-card-title">Mostly clear</span><span class="radio-card-desc">I understood it, but needed some explanation.</span></span></label>';
+                        html += '<label class="radio-card"><input type="radio" id="c3" name="clarity" value="confusing"><span class="radio-card-label"><span class="radio-card-title">Confusing</span><span class="radio-card-desc">I was not sure what it does.</span></span></label>';
+                        html += '</div></fieldset>';
+                        html += '<fieldset class="form-section"><legend>2. Would you use it?</legend><div class="radio-cards">';
+                        html += '<label class="radio-card"><input type="radio" id="u1" name="would_use" value="yes" required><span class="radio-card-label"><span class="radio-card-title">Yes</span><span class="radio-card-desc">I would use this.</span></span></label>';
+                        html += '<label class="radio-card"><input type="radio" id="u2" name="would_use" value="maybe"><span class="radio-card-label"><span class="radio-card-title">Maybe</span><span class="radio-card-desc">I might use this in some cases.</span></span></label>';
+                        html += '<label class="radio-card"><input type="radio" id="u3" name="would_use" value="no"><span class="radio-card-label"><span class="radio-card-title">No</span><span class="radio-card-desc">I would not use this.</span></span></label>';
+                        html += '</div></fieldset>';
+                        html += '<div class="form-section"><h3 id="suggestion-heading"><span id="suggestion-heading-text">3. What would you change?</span> <span style="font-weight:400;color:var(--text-muted);">(optional)</span></h3><p id="suggestion-followup-hint" class="form-helper" aria-live="polite" hidden style="margin-top:0;margin-bottom:var(--space-2);white-space:pre-line;"></p><textarea class="form-textarea" id="suggestion" maxlength="2000" placeholder="Your honest feedback..." aria-labelledby="suggestion-heading" aria-describedby="suggestion-followup-hint" aria-keyshortcuts="Control+Enter Meta+Enter"></textarea><p class="form-helper" style="font-size:var(--text-xs);color:var(--text-muted);margin-top:var(--space-1);">Press <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd> to submit</p><div id="suggestion-char-count" style="font-size:12px;color:var(--text-muted);text-align:right;margin-top:4px;">0 / 2000</div></div>';
+                        html += '<button type="submit" class="btn btn-primary" id="submit-btn" style="width:100%;" aria-keyshortcuts="Control+Enter Meta+Enter">Submit feedback</button>';
+                        html += '<div class="message" id="message" role="alert" aria-live="polite"></div></form></div>';
                     }
                 }
                 var details = '';
@@ -591,7 +734,31 @@
             if (suggestionInput) suggestionInput.addEventListener('input', syncSuggestionCharCount);
             syncSuggestionCharCount();
             const copyBtn = document.getElementById('copy-project-link');
-            if (copyBtn) copyBtn.addEventListener('click', copyProjectLink);
+            if (copyBtn) {
+                copyBtn.addEventListener('click', function() {
+                    copyProjectLink(resolvedProjectId);
+                });
+            }
+            if (shareLib) {
+                const shareToggle = document.getElementById('toggle-project-share');
+                const sharePanel = document.getElementById('project-share-panel');
+                if (shareToggle && sharePanel) {
+                    sharePanel.hidden = true;
+                    let sharePanelRendered = false;
+                    shareToggle.addEventListener('click', function() {
+                        const opening = sharePanel.hidden;
+                        if (opening && !sharePanelRendered) {
+                            sharePanelRendered = true;
+                            shareLib.renderCardShareRow(sharePanel, {
+                                projectId: resolvedProjectId,
+                                title: (p && p.title) ? p.title : ''
+                            });
+                        }
+                        sharePanel.hidden = !opening;
+                        shareToggle.setAttribute('aria-expanded', opening ? 'true' : 'false');
+                    });
+                }
+            }
             const form = document.getElementById('response-form');
             if (form) {
                 form.addEventListener('submit', handleSubmit);
@@ -612,6 +779,7 @@
                 form.addEventListener('change', function(e) {
                     if (e.target && (e.target.name === 'clarity' || e.target.name === 'would_use')) {
                         trackFeedbackStart();
+                        updateStep3Prompt();
                     }
                 });
                 const feedbackSuggestion = form.querySelector('textarea[name="suggestion"]') || document.getElementById('suggestion');
@@ -633,6 +801,7 @@
             // so refresh the counter once more after all restore paths run.
             syncSuggestionCharCount();
             updateFeedbackProgress();
+            updateStep3Prompt();
         }
 
         function updateFeedbackProgress() {
@@ -664,21 +833,28 @@
             }
         }
 
-        function copyProjectLink() {
-            var url = window.location.href;
+        function copyProjectLink(id) {
+            var targetId = (id !== undefined && id !== null && id !== '') ? id : (currentProjectId || projectId);
+            var url = canonicalProjectUrl(targetId);
             if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(url).then(function() {
-                    if (window.CritiqueUI && CritiqueUI.showToast) {
-                        CritiqueUI.showToast('Project link copied to clipboard', 'success');
+                return navigator.clipboard.writeText(url).then(function() {
+                    if (window.CritiqueAnalytics && typeof window.CritiqueAnalytics.trackEvent === 'function') {
+                        window.CritiqueAnalytics.trackEvent('share_copy_link', targetId);
                     }
+                    if (window.CritiqueUI && CritiqueUI.showToast) {
+                        CritiqueUI.showToast('Link copied', 'success');
+                    }
+                    return true;
                 }).catch(function() {
                     if (window.CritiqueUI && CritiqueUI.showToast) {
                         CritiqueUI.showToast('Could not copy link.', 'error');
                     }
+                    return false;
                 });
             } else if (window.CritiqueUI && CritiqueUI.showToast) {
                 CritiqueUI.showToast('Copying not supported in this browser', 'error');
             }
+            return Promise.resolve(false);
         }
 
         function trackFeedbackStart() {
@@ -729,6 +905,7 @@
                     var s = document.getElementById('suggestion');
                     if (s) s.value = draft.suggestion;
                 }
+                updateStep3Prompt();
                 return true;
             } catch (e) {
                 return false;
@@ -1221,6 +1398,7 @@
             try { checkAuth(); } catch(e) {}
     </script>
     <script src="/static/ui.js"></script>
+    <script src="/static/share.js"></script>
     <script src="/static/analytics_events.js"></script>
 <script src="/static/analytics.js"></script>
     <script>trackPageView();</script>
@@ -1260,7 +1438,7 @@
             <a href="https://github.com/BistaDinesh03/critique/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer" class="btn btn-secondary footer-contribute-btn">Explore contributions</a>
         </div>
         <div class="footer-bottom">
-            <span>© 2026 Critique · Open source · Free to use</span>
+            <span>© <span id="footer-year" class="footer-year">2026</span> Critique · Open source · Free to use</span>
         </div>
     </footer>
 

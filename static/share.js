@@ -69,18 +69,75 @@ var CritiqueShare = (function() {
         }
     }
 
-    function copyText(text, confirmation) {
-        if (!navigator.clipboard || !navigator.clipboard.writeText) {
-            CritiqueUI.showToast('Copying is not available in this browser', 'error');
-            return Promise.resolve(false);
+    function fallbackCopy(text, confirmation) {
+        // Legacy fallback for browsers without the async Clipboard API (or
+        // where it is unavailable, e.g. non-secure contexts). Returns a
+        // resolved promise whose value reports whether the copy succeeded.
+        var textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.top = '-9999px';
+        textarea.style.left = '-9999px';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+
+        var selection = (typeof document.getSelection === 'function')
+            ? document.getSelection()
+            : null;
+        var savedRange = null;
+        if (selection && typeof selection.rangeCount === 'number' && selection.rangeCount > 0) {
+            savedRange = selection.getRangeAt(0);
         }
-        return navigator.clipboard.writeText(text).then(function() {
+
+        var successful = false;
+        if (typeof document.execCommand === 'function') {
+            try {
+                if (typeof textarea.select === 'function') textarea.select();
+                if (typeof textarea.setSelectionRange === 'function') {
+                    textarea.setSelectionRange(0, text.length);
+                }
+                successful = document.execCommand('copy');
+            } catch (e) {
+                successful = false;
+            }
+        }
+
+        if (successful) {
             CritiqueUI.showToast(confirmation, 'success');
-            return true;
-        }, function() {
+        } else {
             CritiqueUI.showToast('Could not copy. Try again.', 'error');
-            return false;
-        });
+        }
+
+        document.body.removeChild(textarea);
+
+        if (savedRange && selection) {
+            try {
+                selection.removeAllRanges();
+                selection.addRange(savedRange);
+            } catch (e) {
+                // Restoring the selection is best-effort; never fail the copy.
+            }
+        }
+
+        return Promise.resolve(successful);
+    }
+
+    function copyText(text, confirmation) {
+        // Prefer the async Clipboard API when it is available.
+        if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+            return navigator.clipboard.writeText(text).then(function() {
+                CritiqueUI.showToast(confirmation, 'success');
+                return true;
+            }, function() {
+                // The Clipboard API rejected (often a non-secure context or
+                // a permission denial). Fall back to execCommand instead of
+                // reporting failure immediately.
+                return fallbackCopy(text, confirmation);
+            });
+        }
+        // No async Clipboard API: use the legacy fallback directly.
+        return fallbackCopy(text, confirmation);
     }
 
     // The native share sheet, if this browser has one. The control is only
@@ -409,3 +466,7 @@ var CritiqueShare = (function() {
         renderCardShareRow: renderCardShareRow
     };
 })();
+
+if (typeof window !== 'undefined') {
+    window.CritiqueShare = CritiqueShare;
+}
