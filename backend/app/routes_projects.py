@@ -366,7 +366,24 @@ def get_project(project_id: int, db: Session = Depends(get_db), current_user: Us
     project.response_count = resp_count
     is_owner = bool(current_user and current_user.id == project.owner_id)
 
-    return ProjectWithQuestion(project=project, question=question, is_owner=is_owner)
+    has_responded = False
+    if current_user is not None and question is not None:
+        has_responded = (
+            db.query(Response.id)
+            .filter(
+                Response.question_id == question.id,
+                Response.user_id == current_user.id,
+            )
+            .first()
+            is not None
+        )
+
+    return ProjectWithQuestion(
+        project=project,
+        question=question,
+        is_owner=is_owner,
+        has_responded=has_responded,
+    )
 
 
 
