@@ -462,6 +462,37 @@ product feedback are welcome. A good place to start is an issue labeled
 4. Run the test suite
 5. Open a pull request
 
+### Good issues to contribute
+
+First-time contributors are genuinely welcome here. These beginner-friendly
+issues each have a clear problem statement, acceptance criteria, and a suggested
+starting point; each is estimated at roughly one to three hours. Comment on an
+issue to claim it, and ask questions in
+[issue #1](https://github.com/BistaDinesh03/critique/issues/1) before you begin —
+no question is too small.
+
+**Documentation**
+
+- [#869 — Document `hide_answered` and `has_responded` in the API reference](https://github.com/BistaDinesh03/critique/issues/869)
+- [#873 — Explain fork PR CI approval for first-time contributors](https://github.com/BistaDinesh03/critique/issues/873)
+
+**Accessibility**
+
+- [#870 — Give the generated badge SVG an accessible name](https://github.com/BistaDinesh03/critique/issues/870)
+- [#871 — Fix Discover project card heading hierarchy](https://github.com/BistaDinesh03/critique/issues/871)
+- [#875 — Announce My Projects loading and error states](https://github.com/BistaDinesh03/critique/issues/875)
+- [#878 — Label My Projects card actions with the project title](https://github.com/BistaDinesh03/critique/issues/878)
+
+**Frontend**
+
+- [#872 — Extend the back-to-top control to My Projects and Project Detail](https://github.com/BistaDinesh03/critique/issues/872)
+- [#876 — Add a copy-results-link action to the results page](https://github.com/BistaDinesh03/critique/issues/876)
+- [#877 — Explain the active hide_answered filter in the empty state](https://github.com/BistaDinesh03/critique/issues/877)
+
+**Testing**
+
+- [#874 — Add render coverage for My Projects states](https://github.com/BistaDinesh03/critique/issues/874)
+
 [CONTRIBUTING.md](CONTRIBUTING.md) has the full guidelines, and the
 [first-contributor walkthrough](docs/first-contributors.md) shows how to take
 one issue from claiming it to opening a pull request.
