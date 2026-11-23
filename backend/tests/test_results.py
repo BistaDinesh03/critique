@@ -1,5 +1,8 @@
+from fastapi.testclient import TestClient
+from app.main import app
 from app.database import SessionLocal
 from app.models import Project, Question, Response, User
+from app.auth import get_current_user, get_current_user_optional
 
 
 def cleanup_database():
@@ -55,7 +58,22 @@ def test_results_zero_responses(auth_client):
 def test_results_one_response(auth_client):
     create_resp = create_project(auth_client)
     project_id = create_resp.json()["project"]["id"]
-    submit_response(auth_client, project_id, "very_clear", "yes", "Great!")
+    # Seed directly in the DB: bypasses the API (and the owner-403 rule) — this test is about reading stats, not submitting
+    db = SessionLocal()
+    try:
+        question = db.query(Question).filter(Question.project_id == project_id).first()
+        db.add(Response(
+            clarity="very_clear", 
+            would_use="yes", 
+            suggestion="Great!",
+            question_id=question.id, 
+            user_id=None, 
+            ip_hash="hash1"
+        ))
+        db.commit()
+    finally:
+        db.close()
+
     response = auth_client.get(f"/api/projects/{project_id}/results")
     assert response.status_code == 200
     data = response.json()
@@ -70,7 +88,35 @@ def test_results_many_responses(auth_client):
     project_id = create_resp.json()["project"]["id"]
     
     # Submit one response via API
-    submit_response(auth_client, project_id, "very_clear", "yes", "Nice!")
+    saved = {
+        get_current_user: app.dependency_overrides.pop(get_current_user, None),
+        get_current_user_optional: app.dependency_overrides.pop(get_current_user_optional, None),
+    }
+
+    # Reviewer (non-owner) submits via API; owner is blocked by the 403 rule
+    db = SessionLocal()
+    try:
+        reviewer = User(github_id=222222, username="reviewer")
+        db.add(reviewer)
+        db.commit()
+        db.refresh(reviewer)
+    finally:
+        db.close()
+
+    token = "result_test_token"
+    reviewer_client = TestClient(app)
+    reviewer_client.cookies.set("critique_csrf", token)
+    reviewer_client.headers["X-CSRF-Token"] = token
+    app.dependency_overrides[get_current_user] = lambda: reviewer
+    app.dependency_overrides[get_current_user_optional] = lambda: reviewer
+    submit = submit_response(reviewer_client, project_id, "very_clear", "yes", "Nice!")
+    assert submit.status_code == 201
+
+    for dep, mock in saved.items():
+        if mock is None:
+            app.dependency_overrides.pop(dep, None)
+        else:
+            app.dependency_overrides[dep] = mock
     
     # Create a second user and insert two more responses directly
     db = SessionLocal()
@@ -184,8 +230,22 @@ def test_export_csv_requires_owner_and_escapes_formulas(auth_client):
     create_resp = create_project(auth_client)
     project_id = create_resp.json()["project"]["id"]
 
+    # Seed directly in the DB: bypasses the API (and the owner-403 rule)
     # Submit response containing formula trigger characters (=, +, -, @)
-    submit_response(auth_client, project_id, "very_clear", "yes", "=cmd|' /C calc'!A0")
+    db = SessionLocal()
+    try:
+        question = db.query(Question).filter(Question.project_id == project_id).first()
+        db.add(Response(
+            clarity="very_clear", 
+            would_use="yes",
+            suggestion="=cmd|' /C calc'!A0",
+            question_id=question.id, 
+            user_id=None, 
+            ip_hash="hash1",
+        ))
+        db.commit()
+    finally:
+        db.close()
 
     # Anonymous user gets 401 when get_current_user is not overridden
     mock_user = app.dependency_overrides.pop(get_current_user, None)

@@ -21,6 +21,24 @@ def cleanup_database():
     finally:
         db.close()
 
+def create_user_and_client(github_id, username):
+    db = SessionLocal()
+    user = User(github_id=github_id, username=username)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    db.close()
+
+    db2 = SessionLocal()
+    user = db2.query(User).filter(User.id == user.id).first()
+
+    app.dependency_overrides[get_current_user] = lambda: user
+    app.dependency_overrides[get_current_user_optional] = lambda: user
+    client = TestClient(app)
+    client.cookies.set("critique_csrf", "response_test_token")
+    client.headers["X-CSRF-Token"] = "response_test_token"
+    return client, user
+
 
 def test_owner_sees_suggestion_public_does_not(auth_client):
     """Test that owner sees suggestion but public response has no suggestion field."""
@@ -41,8 +59,22 @@ def test_owner_sees_suggestion_public_does_not(auth_client):
         "would_use": "yes",
         "suggestion": "Owner should see this.",
     }
-    submit_resp = auth_client.post(f"/api/projects/{project_id}/responses", json=response_payload)
+
+    saved = {
+        get_current_user: app.dependency_overrides.pop(get_current_user, None),
+        get_current_user_optional: app.dependency_overrides.pop(get_current_user_optional, None),
+    }
+
+    reviewer, user = create_user_and_client(222222, "reviewer")
+
+    submit_resp = reviewer.post(f"/api/projects/{project_id}/responses", json=response_payload)
     assert submit_resp.status_code == 201
+
+    for dep, mock in saved.items():
+        if mock is None:
+            app.dependency_overrides.pop(dep, None)
+        else:
+            app.dependency_overrides[dep] = mock
 
     # Owner gets responses (auth_client has get_current_user mocked as owner)
     response = auth_client.get(f"/api/projects/{project_id}/responses")
@@ -81,7 +113,21 @@ def test_results_privacy(auth_client):
         "would_use": "yes",
         "suggestion": "Private written feedback.",
     }
-    auth_client.post(f"/api/projects/{project_id}/responses", json=response_payload)
+
+    saved = {
+        get_current_user: app.dependency_overrides.pop(get_current_user, None),
+        get_current_user_optional: app.dependency_overrides.pop(get_current_user_optional, None),
+    }
+
+    reviewer, user = create_user_and_client(222222, "reviewer")
+    reviewer.post(f"/api/projects/{project_id}/responses", json=response_payload)
+
+    for dep, mock in saved.items():
+        if mock is None:
+            app.dependency_overrides.pop(dep, None)
+        else:
+            app.dependency_overrides[dep] = mock
+
 
     # Owner gets full results (auth_client is the owner)
     response = auth_client.get(f"/api/projects/{project_id}/results")
