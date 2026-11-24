@@ -49,9 +49,11 @@ per-email cooldown described after the table.
 | `response_submit` | 10 requests / 5 min |
 | `analytics` (track) | 60 requests / 60 s |
 
-**Rate-limit headers:** every response from a rate-limited endpoint, including
-redirects, errors and the `429`, carries three headers so clients can slow down
-before they hit the limit. Endpoints without a limit send none of them.
+**Rate-limit headers:** once the limiter has checked a request, its response
+carries three headers so clients can slow down before they hit the limit. That
+includes redirects, errors such as `404` and `422`, and the `429`. Endpoints
+without a limit, requests rejected before the limiter runs (such as a failed
+CSRF check) and unexpected `500` errors send none of them.
 
 | Header | Meaning |
 |---|---|
