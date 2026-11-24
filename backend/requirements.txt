@@ -4,7 +4,7 @@ pytest==9.2.0
 pytest-cov==7.1.0
 httpx==0.28.1
 python-dotenv==1.0.1
-sqlalchemy==2.1.8
+sqlalchemy==2.1.9
 itsdangerous==2.2.0
 psycopg[binary]==3.3.9
 resend==2.55.0
