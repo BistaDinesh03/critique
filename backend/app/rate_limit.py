@@ -78,6 +78,7 @@ def rate_limit(endpoint: str):
                 # Retry-After is the whole seconds until the oldest request in the
                 # window expires and frees a slot, rounded up and at least 1.
                 retry_after = max(1, math.ceil(timestamps[0] + config["window"] - now))
+                request.state.rate_limit_headers = _rate_limit_headers(config["max_requests"], 0, retry_after)
                 raise HTTPException(
                     status_code=429,
                     detail="Too many requests. Please slow down.",
@@ -85,8 +86,27 @@ def rate_limit(endpoint: str):
                 )
 
             timestamps.append(now)
+            # Reset counts to the same moment as Retry-After: when the oldest
+            # request in the window expires and a slot frees up again.
+            reset = max(1, math.ceil(timestamps[0] + config["window"] - now))
+            remaining = config["max_requests"] - len(timestamps)
+            request.state.rate_limit_headers = _rate_limit_headers(config["max_requests"], remaining, reset)
 
     return dependency
+
+
+def _rate_limit_headers(limit: int, remaining: int, reset: int) -> dict:
+    return {
+        "RateLimit-Limit": str(limit),
+        "RateLimit-Remaining": str(remaining),
+        "RateLimit-Reset": str(reset),
+    }
+
+
+def rate_limit_headers_for(request: Request) -> dict:
+    """The RateLimit-* headers the rate_limit dependency computed for this
+    request, or an empty dict when the endpoint is not rate-limited."""
+    return getattr(request.state, "rate_limit_headers", {})
 
 
 def reset_rate_limits():

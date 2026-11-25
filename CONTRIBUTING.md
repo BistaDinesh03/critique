@@ -152,6 +152,32 @@ model.
 
 For a step-by-step example of claiming an issue, working in a fork, running relevant checks, and opening a pull request, see the [first-contributor walkthrough](docs/first-contributors.md).
 
+### Fork PR CI approval
+
+When you open a pull request from a fork, GitHub runs workflows from the base
+repository, not from your fork. For a first-time contributor, those runs start
+in an `action_required` state and need a maintainer to approve them before they
+execute. This is normal and not a sign that something is wrong with your PR.
+
+What you will see:
+
+- **"No checks reported"** — the workflow has not been triggered yet. This is
+  expected for a brand-new fork branch; a maintainer will approve it.
+- **`action_required`** — the run is queued and waiting for maintainer approval.
+  Nothing is broken.
+- **`pass` / `fail`** — the run has executed and you can read the logs.
+
+What to do while waiting:
+
+1. Do not force-push or open a replacement PR. Keep the branch as-is.
+2. Reply on the PR if you want to nudge a maintainer — a single comment is
+   enough.
+3. Re-run a check only if a maintainer asks you to.
+
+Maintainers approve fork runs as part of reviewing the PR. If your run has been
+waiting more than a day, mention it in [issue #1](https://github.com/BistaDinesh03/critique/issues/1)
+and we will take a look.
+
 Changes that affect layout should also run the visual regression suite.
 [docs/visual-regression.md](docs/visual-regression.md) explains what the
 baselines cover and how to update them when a visual change is intentional.
