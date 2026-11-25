@@ -474,7 +474,6 @@ no question is too small.
 **Documentation**
 
 - [#869 — Document `hide_answered` and `has_responded` in the API reference](https://github.com/BistaDinesh03/critique/issues/869)
-- [#873 — Explain fork PR CI approval for first-time contributors](https://github.com/BistaDinesh03/critique/issues/873)
 
 **Accessibility**
 
@@ -488,10 +487,6 @@ no question is too small.
 - [#872 — Extend the back-to-top control to My Projects and Project Detail](https://github.com/BistaDinesh03/critique/issues/872)
 - [#876 — Add a copy-results-link action to the results page](https://github.com/BistaDinesh03/critique/issues/876)
 - [#877 — Explain the active hide_answered filter in the empty state](https://github.com/BistaDinesh03/critique/issues/877)
-
-**Testing**
-
-- [#874 — Add render coverage for My Projects states](https://github.com/BistaDinesh03/critique/issues/874)
 
 [CONTRIBUTING.md](CONTRIBUTING.md) has the full guidelines, and the
 [first-contributor walkthrough](docs/first-contributors.md) shows how to take
