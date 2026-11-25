@@ -685,14 +685,16 @@
             if (p.url) { html += '<p class="project-link"><a href="' + escapeHtml(p.url) + '" target="_blank" rel="noopener noreferrer" class="btn btn-secondary visit-project-btn">Visit project \u2192</a></p>'; }
             if (q) {
                 html += '<div class="question-block"><div class="question-label">The Maker\'s Question</div><div class="question-text">' + escapeHtml(q.text) + '</div></div>';
-                if (isOwner) {
-                    html += '<div class="response-form-card" id="owner-project-notice"><p class="project-description">You own this project.</p><a href="/project/' + encodeURIComponent(String(p.id || projectId)) + '/results" class="btn btn-primary" id="view-project-results">View results →</a></div>';
+                if (data.is_owner) {
+                    // Owners cannot self-review: no "Your feedback" section at all,
+                    // just a banner that tells them where others' answers live.
+                    html += '<div class="eyebrow">Project owner</div>'
+                        + '<div class="response-form-card" style="margin-block:var(--space-2);font-size:var(--text-sm);color:var(--text-secondary); padding:var(--space-4)">This is your project, so you can\'t submit feedback on it yourself. See how others responded on the <a href="/project/' + encodeURIComponent(String(p.id)) + '/results" style="color:var(--accent);">results page</a></div></div>';
                 } else {
                     html += '<div class="eyebrow">Your feedback</div>';
                     if (serverResponded || sessionSubmitted) {
-                        // Already answered (server record or this session): offering
-                        // the form again would only earn a 409 from the server, so
-                        // show the recorded state and its next step instead.
+                        // Server record (has_responded) OR this session already answered:
+                        // re-offering the form would earn a 409, show the recorded state.
                         html += '<div class="response-form-card"><div id="feedback-thanks" role="status"></div></div>';
                     } else {
                         // Three short, numbered steps: the form reads as a task

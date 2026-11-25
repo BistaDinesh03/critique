@@ -59,6 +59,72 @@
             color: var(--text-muted);
         }
 
+        .discover-filters {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--space-1);
+            margin: 0 auto var(--space-5);
+            max-width: 1100px;
+        }
+
+        .filter-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-2);
+            min-height: 44px;
+            padding: var(--space-2) var(--space-4);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            font-size: var(--text-sm);
+            font-weight: 500;
+            color: var(--text-primary);
+            cursor: pointer;
+            user-select: none;
+            transition: border-color var(--transition-fast), background-color var(--transition-fast);
+        }
+
+        .filter-toggle:hover:not(.is-disabled) {
+            border-color: var(--accent);
+            background: var(--surface-muted);
+        }
+
+        .filter-toggle:focus-within {
+            outline: 2px solid var(--focus);
+            outline-offset: 2px;
+        }
+
+        .filter-toggle input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--accent);
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .filter-toggle.is-disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+        }
+
+        .filter-toggle.is-disabled input[type="checkbox"] {
+            cursor: not-allowed;
+        }
+
+        .filter-hint {
+            font-size: var(--text-xs);
+            color: var(--text-muted);
+        }
+
+        .empty-state-actions {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: var(--space-3);
+        }
+
         .project-list {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -256,6 +322,13 @@
                 Please enable it and reload.
             </div>
         </noscript>
+        <div class="discover-filters" id="discover-filters">
+            <label class="filter-toggle is-disabled" for="hide-answered-toggle" id="hide-answered-label">
+                <input type="checkbox" id="hide-answered-toggle" disabled aria-describedby="hide-answered-hint">
+                <span>Hide projects I've answered</span>
+            </label>
+            <span class="filter-hint" id="hide-answered-hint">Sign in to skip projects you've already answered.</span>
+        </div>
         <div id="project-list" class="project-list" role="list" aria-label="Projects asking for feedback" aria-busy="true"></div>
         <p id="project-list-status" class="sr-only" role="status"></p>
         <nav class="pagination" id="pagination" style="display: none;" aria-label="Pagination">
@@ -267,10 +340,79 @@
 
     <script src="/static/ui.js"></script>
     <script>
+        function readSearchParams(search) {
+            const origin = (window.location && window.location.origin) || 'http://localhost';
+            const pathname = (window.location && window.location.pathname) || '/discover';
+            return new URL(pathname + (search || ''), origin).searchParams;
+        }
+
+        function parseHideAnsweredParam(search) {
+            try {
+                const val = readSearchParams(search).get('hide_answered');
+                return val === '1' || val === 'true';
+            } catch (e) {
+                return false;
+            }
+        }
+
         let currentPage = 1;
         const pageSize = 9;
         let totalPages = 1;
         let lastPaginationFocus = null;
+        let isAuthenticated = !!(document.documentElement && document.documentElement.getAttribute('data-auth') === 'in');
+        let hideAnswered = parseHideAnsweredParam(window.location.search);
+        let lastLoadedEmpty = false;
+
+        function syncHideAnsweredControl() {
+            const toggle = document.getElementById('hide-answered-toggle');
+            const label = document.getElementById('hide-answered-label');
+            const hint = document.getElementById('hide-answered-hint');
+            if (toggle) {
+                toggle.disabled = !isAuthenticated;
+                toggle.checked = isAuthenticated && hideAnswered;
+                if (isAuthenticated) {
+                    toggle.removeAttribute('aria-describedby');
+                } else {
+                    toggle.setAttribute('aria-describedby', 'hide-answered-hint');
+                }
+            }
+            if (label) {
+                label.classList.toggle('is-disabled', !isAuthenticated);
+            }
+            if (hint) {
+                hint.hidden = isAuthenticated;
+                hint.style.display = isAuthenticated ? 'none' : 'inline';
+            }
+        }
+
+        function updateDiscoverUrl(page, shouldHide) {
+            try {
+                const url = new URL(window.location.pathname + window.location.search, window.location.origin);
+                if (page > 1) {
+                    url.searchParams.set('page', page);
+                } else {
+                    url.searchParams.delete('page');
+                }
+                if (shouldHide) {
+                    url.searchParams.set('hide_answered', '1');
+                } else {
+                    url.searchParams.delete('hide_answered');
+                }
+                history.pushState({ page: page, hide_answered: shouldHide }, '', url.pathname + url.search + (window.location.hash || ''));
+            } catch (e) {}
+        }
+
+        function setHideAnswered(enabled) {
+            if (!isAuthenticated) {
+                hideAnswered = false;
+                syncHideAnsweredControl();
+                return;
+            }
+            hideAnswered = Boolean(enabled);
+            syncHideAnsweredControl();
+            updateDiscoverUrl(1, hideAnswered);
+            return loadProjects(1);
+        }
 
         // Attribute-safe HTML escaping: &, <, >, " and ' are all escaped so a
         // user-controlled value can never break out of a quoted HTML attribute.
@@ -314,6 +456,7 @@
         }
 
         function showLoading() {
+            lastLoadedEmpty = false;
             const list = document.getElementById('project-list');
             list.setAttribute('role', 'list');
             list.setAttribute('aria-label', 'Projects asking for feedback');
@@ -331,16 +474,34 @@
         }
 
         function showEmpty() {
+            lastLoadedEmpty = true;
             const list = document.getElementById('project-list');
             list.removeAttribute('role');
             list.removeAttribute('aria-label');
             const iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="empty-state-icon" aria-hidden="true" style="margin:0 auto var(--space-3);color:var(--text-muted);display:block;"><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>';
-            list.innerHTML = '<div class="empty-state" role="status">' + iconSvg + '<h3>No projects waiting for feedback yet</h3><p>Be the first maker to ask a question.</p><a href="/" class="btn btn-primary">Submit a project</a></div>';
+            if (hideAnswered && isAuthenticated) {
+                list.innerHTML = '<div class="empty-state" role="status">' + iconSvg +
+                    '<h3>You\'re all caught up</h3>' +
+                    '<p>You\'ve answered every project here. Turn off the filter to see them again, or submit a project of your own.</p>' +
+                    '<div class="empty-state-actions">' +
+                    '<button type="button" id="turn-off-hide-answered" class="btn btn-secondary">Show answered projects</button>' +
+                    '<a href="/" class="btn btn-primary">Submit a project</a>' +
+                    '</div></div>';
+                const turnOffBtn = document.getElementById('turn-off-hide-answered');
+                if (turnOffBtn) {
+                    turnOffBtn.addEventListener('click', function() {
+                        setHideAnswered(false);
+                    });
+                }
+            } else {
+                list.innerHTML = '<div class="empty-state" role="status">' + iconSvg + '<h3>No projects waiting for feedback yet</h3><p>Be the first maker to ask a question.</p><a href="/" class="btn btn-primary">Submit a project</a></div>';
+            }
             setListBusy(false, '');
             document.getElementById('pagination').style.display = 'none';
         }
 
         function showError() {
+            lastLoadedEmpty = false;
             const list = document.getElementById('project-list');
             list.removeAttribute('role');
             list.removeAttribute('aria-label');
@@ -350,6 +511,7 @@
         }
 
         function showProjects(items) {
+            lastLoadedEmpty = false;
             const listContainer = document.getElementById('project-list');
             listContainer.setAttribute('role', 'list');
             listContainer.setAttribute('aria-label', 'Projects asking for feedback');
@@ -447,11 +609,15 @@
             throw lastError;
         }
 
-async function loadProjects(page) {
+        async function loadProjects(page) {
             currentPage = page;
             showLoading();
             try {
-                const response = await fetchWithRetry('/api/projects/?page=' + page + '&page_size=' + pageSize);
+                let url = '/api/projects/?page=' + page + '&page_size=' + pageSize;
+                if (hideAnswered) {
+                    url += '&hide_answered=true';
+                }
+                const response = await fetchWithRetry(url);
                 if (!response.ok) { throw new Error('Failed to load projects'); }
                 const data = await response.json();
                 totalPages = data.total_pages;
@@ -466,27 +632,33 @@ async function loadProjects(page) {
             const newPage = currentPage + delta;
             if (newPage >= 1 && newPage <= totalPages) {
                 lastPaginationFocus = delta > 0 ? 'next' : 'prev';
-                try {
-                    const url = new URL(window.location);
-                    url.searchParams.set('page', newPage);
-                    history.pushState({ page: newPage }, '', url);
-                } catch (e) {}
-                loadProjects(newPage);
+                updateDiscoverUrl(newPage, hideAnswered);
+                return loadProjects(newPage);
             }
         }
 
         window.addEventListener('popstate', function(e) {
             try {
-                const params = new URLSearchParams(window.location.search);
+                const params = readSearchParams(window.location.search);
                 const p = parseInt(params.get('page') || '1', 10);
+                hideAnswered = isAuthenticated && parseHideAnsweredParam(window.location.search);
+                syncHideAnsweredControl();
                 if (!isNaN(p) && p >= 1) {
                     loadProjects(p);
                 }
             } catch (err) {}
         });
 
+        const hideAnsweredToggle = document.getElementById('hide-answered-toggle');
+        if (hideAnsweredToggle) {
+            hideAnsweredToggle.addEventListener('change', function() {
+                setHideAnswered(hideAnsweredToggle.checked);
+            });
+        }
+        syncHideAnsweredControl();
+
         document.getElementById('project-list').addEventListener('click', function(e) {
-            const link = e.target.closest('a[href^="/project/"]');
+            const link = e.target && e.target.closest ? e.target.closest('a[href^="/project/"]') : null;
             if (link) {
                 try {
                     sessionStorage.setItem('critique_discover_scroll', window.scrollY.toString());
@@ -498,7 +670,7 @@ async function loadProjects(page) {
         let initialPage = 1;
         let hasUrlPage = false;
         try {
-            const params = new URLSearchParams(window.location.search);
+            const params = readSearchParams(window.location.search);
             const p = parseInt(params.get('page') || '1', 10);
             if (!isNaN(p) && p >= 1) {
                 initialPage = p;
@@ -517,20 +689,31 @@ async function loadProjects(page) {
         } catch (err) {}
 
         loadProjects(initialPage);
-    
+
         async function checkAuth() {
             try {
                 const response = await fetch('/auth/check', { credentials: 'same-origin' });
                 if (response.status === 200) {
                     document.getElementById('login-btn').style.display = 'none';
                     document.getElementById('logout-btn').style.display = 'inline';
+                    isAuthenticated = true;
+                    syncHideAnsweredControl();
+                    if (lastLoadedEmpty && hideAnswered) {
+                        showEmpty();
+                    }
                 } else {
                     document.getElementById('login-btn').style.display = 'inline';
                     document.getElementById('logout-btn').style.display = 'none';
+                    isAuthenticated = false;
+                    hideAnswered = false;
+                    syncHideAnsweredControl();
                 }
             } catch (e) {
                 document.getElementById('login-btn').style.display = 'inline';
                 document.getElementById('logout-btn').style.display = 'none';
+                isAuthenticated = false;
+                hideAnswered = false;
+                syncHideAnsweredControl();
             }
         }
 

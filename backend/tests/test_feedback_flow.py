@@ -760,6 +760,60 @@ def test_project_detail_shows_response_count_to_owner(tmp_path):
 
     non_owner_res = run(tmp_path, "project_detail.html", [{"fn": "renderProject", "args": [non_owner_data, []]}], read={"byId": "content"})
     assert "owner-response-count" not in non_owner_res["html"]
+
+
+def test_owner_view_replaces_feedback_form_with_owner_banner(tmp_path):
+    """An owner never gets the feedback section: no "Your feedback" label,
+    no form controls — instead a PROJECT OWNER note that links to the
+    results page (fixes #814). A non-owner still sees the form."""
+    owner_data = {
+        "project": {
+            "id": 1,
+            "title": "Owner's App",
+            "description": "App description",
+            "response_count": 1,
+            "image_url": None,
+            "url": None,
+        },
+        "question": {
+            "id": 1,
+            "text": "What do you think?",
+            "is_active": True,
+            "project_id": 1,
+        },
+        "is_owner": True,
+    }
+    owner_html = run(
+        tmp_path, "project_detail.html",
+        [{"fn": "renderProject", "args": [owner_data, []]}],
+        read={"byId": "content"},
+    )["html"]
+
+    # The banner replaces the whole feedback section.
+    assert '<div class="eyebrow">Project owner</div>' in owner_html
+    assert "This is your project" in owner_html
+    assert 'href="/project/1/results"' in owner_html
+    assert 'class="response-form-card"' in owner_html
+
+    # Nothing of the form leaks through: no label, no container, no controls.
+    assert '<div class="eyebrow">Your feedback</div>' not in owner_html
+    assert 'id="response-form"' not in owner_html
+    assert 'name="clarity"' not in owner_html
+    assert "Submit feedback" not in owner_html
+
+
+    non_owner_html = run(
+        tmp_path, "project_detail.html",
+        [{"fn": "renderProject", "args": [PROJECT, []]}],
+        read={"byId": "content"},
+    )["html"]
+
+    # A visitor (no is_owner flag) still gets the label and the full form.
+    assert '<div class="eyebrow">Your feedback</div>' in non_owner_html
+    assert 'id="response-form"' in non_owner_html
+    assert 'id="owner-note"' not in non_owner_html
+
+
 def test_feedback_form_suggestion_textarea_has_maxlength(tmp_path):
     """The suggestion textarea caps input at 2000 characters to match the API schema (fixes #279)."""
     result = run(

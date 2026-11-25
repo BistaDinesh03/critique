@@ -376,6 +376,9 @@ def test_project_detail_owner_sees_owner_view_even_when_has_responded_true(tmp_p
     assert 'id="response-form"' not in result["html"]
     assert 'id="feedback-thanks"' not in result["html"]
     assert 'id="owner-response-count"' in result["html"]
-    assert 'id="view-project-results"' in result["html"]
+    # Issue #814 owns the owner markup: an explanatory banner plus the
+    # results link (no form, no "already responded" state) -- #846 only
+    # asserts the behavioural part above (form and thanks states absent).
+    assert 'Project owner' in result["html"]
     assert 'href="/project/1/results"' in result["html"]
     assert "You already gave feedback" not in " ".join(result["created"])
