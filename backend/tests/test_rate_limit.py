@@ -466,3 +466,73 @@ def test_response_submit_bucket_rate_limit_over_http():
         app.dependency_overrides.clear()
         reset_rate_limits()
         cleanup_database()
+
+
+def _assert_rate_limit_headers(res, endpoint, remaining):
+    assert res.headers["RateLimit-Limit"] == str(limiter.RATE_LIMITS[endpoint]["max_requests"])
+    assert res.headers["RateLimit-Remaining"] == str(remaining)
+    reset = int(res.headers["RateLimit-Reset"])
+    assert 1 <= reset <= limiter.RATE_LIMITS[endpoint]["window"]
+
+
+def test_rate_limit_headers_on_every_rate_limited_endpoint():
+    """A first request below the limit reports the limit, what is left and when a slot frees up."""
+    reset_rate_limits()
+    cleanup_database()
+    client = create_authenticated_client()
+    try:
+        requests = {
+            "auth": lambda: client.get("/auth/login", follow_redirects=False),
+            "email_login_start": lambda: client.post("/auth/email/start", json={"email": "headers@example.com"}),
+            "email_login_verify": lambda: client.get("/auth/email/verify?token=x", follow_redirects=False),
+            "project_create": lambda: client.post("/api/projects/", json=project_payload("Headers")),
+            # The headers come from the rate-limit dependency, so a missing project is enough here.
+            "project_delete": lambda: client.delete("/api/projects/999999"),
+            "response_submit": lambda: client.post(
+                "/api/projects/999999/responses", json={"clarity": "very_clear", "would_use": "yes"}),
+            "analytics": lambda: client.post("/api/analytics/track?event_name=page_view"),
+        }
+        assert set(requests) == set(limiter.RATE_LIMITS)
+        for endpoint, send in requests.items():
+            res = send()
+            assert res.status_code != 429, endpoint
+            _assert_rate_limit_headers(res, endpoint, limiter.RATE_LIMITS[endpoint]["max_requests"] - 1)
+    finally:
+        app.dependency_overrides.clear()
+    reset_rate_limits()
+    cleanup_database()
+
+
+def test_rate_limit_remaining_decreases_until_429(monkeypatch):
+    """Remaining drops by one per request; the 429 reports 0 and a Reset equal to Retry-After."""
+    reset_rate_limits()
+    now = [1000.0]
+    monkeypatch.setattr(limiter.time, "time", lambda: now[0])
+    client = TestClient(app)
+    limit = limiter.RATE_LIMITS["auth"]["max_requests"]
+    window = limiter.RATE_LIMITS["auth"]["window"]
+
+    resets = []
+    for sent in range(1, limit + 1):
+        res = client.get("/auth/login", follow_redirects=False)
+        assert res.status_code == 307
+        _assert_rate_limit_headers(res, "auth", limit - sent)
+        resets.append(int(res.headers["RateLimit-Reset"]))
+        now[0] += 1.5
+    # Reset counts down to the oldest request's expiry and never goes up within the window.
+    assert resets == sorted(resets, reverse=True)
+    assert resets[0] == window
+
+    res = client.get("/auth/login", follow_redirects=False)
+    assert res.status_code == 429
+    assert res.headers["RateLimit-Remaining"] == "0"
+    assert res.headers["RateLimit-Reset"] == res.headers["Retry-After"]
+    reset_rate_limits()
+
+
+def test_endpoints_without_a_rate_limit_send_no_rate_limit_headers():
+    reset_rate_limits()
+    client = TestClient(app)
+    res = client.get("/api/projects/")
+    assert res.status_code == 200
+    assert not [name for name in res.headers if name.lower().startswith("ratelimit-")]
