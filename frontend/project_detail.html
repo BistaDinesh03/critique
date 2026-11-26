@@ -11,6 +11,7 @@
 
     <!-- Open Graph -->
     <meta property="og:type" content="website">
+    <meta property="og:url" id="og-url" content="https://critique.page/">
     <meta property="og:title" id="og-title" content="Project — Critique">
     <meta property="og:description" id="og-description" content="Give focused feedback on this project on Critique.">
     <meta property="og:image" id="og-image" content="https://critique.page/static/og-image.webp">
@@ -650,6 +651,9 @@
                 if (ogTitle) ogTitle.setAttribute('content', p.title + ' — Critique');
                 var twTitle = document.getElementById('tw-title');
                 if (twTitle) twTitle.setAttribute('content', p.title + ' — Critique');
+                var projectUrl = canonicalProjectUrl(p.id || projectId);
+                var ogUrl = document.getElementById('og-url');
+                if (ogUrl) ogUrl.setAttribute('content', projectUrl);
             }
             if (p && p.description) {
                 var metaDesc = document.getElementById('meta-description');
