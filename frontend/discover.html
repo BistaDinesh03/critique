@@ -61,6 +61,18 @@
             color: var(--text-muted);
         }
 
+        .discover-search {
+            display: flex;
+            gap: var(--space-2);
+            max-width: 480px;
+            margin: 0 auto var(--space-4);
+            align-items: center;
+        }
+
+        .discover-search input {
+            flex: 1;
+        }
+
         .discover-filters {
             display: flex;
             flex-direction: column;
@@ -324,6 +336,11 @@
                 Please enable it and reload.
             </div>
         </noscript>
+        <div class="discover-search" id="discover-search">
+            <label class="sr-only" for="discover-search-input">Search projects</label>
+            <input type="search" id="discover-search-input" class="form-input" placeholder="Search projects by title, description, or question" autocomplete="off" aria-label="Search projects">
+            <button type="button" id="discover-search-clear" class="btn btn-secondary" aria-label="Clear search" hidden>Clear</button>
+        </div>
         <div class="discover-filters" id="discover-filters">
             <label class="filter-toggle is-disabled" for="hide-answered-toggle" id="hide-answered-label">
                 <input type="checkbox" id="hide-answered-toggle" disabled aria-describedby="hide-answered-hint">
@@ -357,13 +374,35 @@
             }
         }
 
+        function parseSearchParam(search) {
+            try {
+                return (readSearchParams(search).get('search') || '').trim();
+            } catch (e) {
+                return '';
+            }
+        }
+
+        function syncSearchControl() {
+            const input = document.getElementById('discover-search-input');
+            const clearBtn = document.getElementById('discover-search-clear');
+            if (input && input.value !== searchTerm) {
+                input.value = searchTerm;
+            }
+            if (clearBtn) {
+                clearBtn.hidden = !searchTerm;
+            }
+        }
+
         let currentPage = 1;
         const pageSize = 9;
         let totalPages = 1;
         let lastPaginationFocus = null;
         let isAuthenticated = !!(document.documentElement && document.documentElement.getAttribute('data-auth') === 'in');
         let hideAnswered = parseHideAnsweredParam(window.location.search);
+        let searchTerm = '';
+        try { searchTerm = (readSearchParams(window.location.search).get('search') || '').trim(); } catch (e) { searchTerm = ''; }
         let lastLoadedEmpty = false;
+        let searchDebounceTimer = null;
 
         function syncHideAnsweredControl() {
             const toggle = document.getElementById('hide-answered-toggle');
@@ -387,7 +426,7 @@
             }
         }
 
-        function updateDiscoverUrl(page, shouldHide) {
+        function updateDiscoverUrl(page, shouldHide, term) {
             try {
                 const url = new URL(window.location.pathname + window.location.search, window.location.origin);
                 if (page > 1) {
@@ -400,7 +439,12 @@
                 } else {
                     url.searchParams.delete('hide_answered');
                 }
-                history.pushState({ page: page, hide_answered: shouldHide }, '', url.pathname + url.search + (window.location.hash || ''));
+                if (term) {
+                    url.searchParams.set('search', term);
+                } else {
+                    url.searchParams.delete('search');
+                }
+                history.pushState({ page: page, hide_answered: shouldHide, search: term || '' }, '', url.pathname + url.search + (window.location.hash || ''));
             } catch (e) {}
         }
 
@@ -412,7 +456,7 @@
             }
             hideAnswered = Boolean(enabled);
             syncHideAnsweredControl();
-            updateDiscoverUrl(1, hideAnswered);
+            updateDiscoverUrl(1, hideAnswered, searchTerm);
             return loadProjects(1);
         }
 
@@ -481,7 +525,23 @@
             list.removeAttribute('role');
             list.removeAttribute('aria-label');
             const iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="empty-state-icon" aria-hidden="true" style="margin:0 auto var(--space-3);color:var(--text-muted);display:block;"><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>';
-            if (hideAnswered && isAuthenticated) {
+            if (searchTerm) {
+                list.innerHTML = '<div class="empty-state" role="status">' + iconSvg +
+                    '<h3>No projects match your search</h3>' +
+                    '<p>Nothing matched "' + escapeHtml(searchTerm) + '". Try a different keyword, or clear the search to see all projects.</p>' +
+                    '<div class="empty-state-actions">' +
+                    '<button type="button" id="clear-search-empty" class="btn btn-secondary">Clear search</button>' +
+                    '<a href="/" class="btn btn-primary">Submit a project</a>' +
+                    '</div></div>';
+                const clearBtn = document.getElementById('clear-search-empty');
+                if (clearBtn) {
+                    clearBtn.addEventListener('click', function() {
+                        const input = document.getElementById('discover-search-input');
+                        if (input) input.value = '';
+                        setSearch('');
+                    });
+                }
+            } else if (hideAnswered && isAuthenticated) {
                 list.innerHTML = '<div class="empty-state" role="status">' + iconSvg +
                     '<h3>You\'re all caught up</h3>' +
                     '<p>You\'ve answered every project here. Turn off the filter to see them again, or submit a project of your own.</p>' +
@@ -619,6 +679,9 @@
                 if (hideAnswered) {
                     url += '&hide_answered=true';
                 }
+                if (searchTerm) {
+                    url += '&search=' + encodeURIComponent(searchTerm);
+                }
                 const response = await fetchWithRetry(url);
                 if (!response.ok) { throw new Error('Failed to load projects'); }
                 const data = await response.json();
@@ -634,9 +697,16 @@
             const newPage = currentPage + delta;
             if (newPage >= 1 && newPage <= totalPages) {
                 lastPaginationFocus = delta > 0 ? 'next' : 'prev';
-                updateDiscoverUrl(newPage, hideAnswered);
+                updateDiscoverUrl(newPage, hideAnswered, searchTerm);
                 return loadProjects(newPage);
             }
+        }
+
+        function setSearch(term) {
+            searchTerm = (term || '').trim();
+            syncSearchControl();
+            updateDiscoverUrl(1, hideAnswered, searchTerm);
+            return loadProjects(1);
         }
 
         window.addEventListener('popstate', function(e) {
@@ -644,12 +714,44 @@
                 const params = readSearchParams(window.location.search);
                 const p = parseInt(params.get('page') || '1', 10);
                 hideAnswered = isAuthenticated && parseHideAnsweredParam(window.location.search);
+                searchTerm = parseSearchParam(window.location.search);
                 syncHideAnsweredControl();
+                syncSearchControl();
                 if (!isNaN(p) && p >= 1) {
                     loadProjects(p);
                 }
             } catch (err) {}
         });
+
+        (function wireSearch() {
+            const input = document.getElementById('discover-search-input');
+            const clearBtn = document.getElementById('discover-search-clear');
+            if (input) {
+                input.value = searchTerm;
+                syncSearchControl();
+                input.addEventListener('input', function() {
+                    const val = input.value;
+                    if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+                    searchDebounceTimer = setTimeout(function() {
+                        setSearch(val);
+                    }, 300);
+                });
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape') {
+                        input.value = '';
+                        setSearch('');
+                    }
+                });
+            }
+            if (clearBtn) {
+                clearBtn.addEventListener('click', function() {
+                    const input = document.getElementById('discover-search-input');
+                    if (input) input.value = '';
+                    setSearch('');
+                    if (input) input.focus();
+                });
+            }
+        })();
 
         const hideAnsweredToggle = document.getElementById('hide-answered-toggle');
         if (hideAnsweredToggle) {
