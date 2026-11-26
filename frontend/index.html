@@ -1135,6 +1135,11 @@
             min-height: 48px;
         }
 
+        .buttons-form {
+            display: flex;
+            gap: 20px;
+        }
+
         .form-reassurance {
             text-align: center;
             font-size: var(--text-xs);
@@ -1199,6 +1204,106 @@
             .hero .subheadline { font-size: var(--text-lg); }
             .hero-actions { margin-bottom: var(--space-3); }
         }
+
+        #full-preview{
+            position:fixed;
+            inset:0;
+            z-index: 1000;
+        }
+
+        .project-preview-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+
+        .project-preview-content {
+            background: var(--surface);
+            width: 100%;
+            max-width: 850px;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: var(--space-6);
+            border-radius: var(--radius-lg);
+        }
+
+        #close-full-preview {
+            margin-top: 2rem;
+        }
+
+        #full-preview-content .project-header-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: var(--space-3);
+            margin-bottom: var(--space-2);
+        }
+
+        #full-preview-content .project-header-row .project-title {
+            margin-bottom: 0;
+        }
+
+        #full-preview-content .project-summary {
+            color: var(--text-secondary);
+            font-size: var(--text-base);
+            line-height: 1.55;
+            margin-bottom: var(--space-4);
+        }
+
+        #full-preview-content .project-url {
+            color: var(--accent);
+            font-size: var(--text-sm);
+            text-decoration: none;
+            word-break: break-all;
+        }
+
+        #full-preview-content .project-url:hover {
+            text-decoration: underline;
+        }
+
+        #full-preview-content .question-block {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--accent);
+            border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+            padding: var(--space-5);
+            margin-bottom: var(--space-5);
+        }
+
+        #full-preview-content .question-label {
+            font-size: var(--text-xs);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: var(--space-2);
+        }
+
+        #full-preview-content .question-text {
+            font-weight: 600;
+            font-size: var(--text-lg);
+            color: var(--text-primary);
+        }
+        #full-preview-content .project-screenshot { width: 100%; border-radius: var(--radius-lg); margin-bottom: var(--space-4); object-fit: cover; max-height: 300px; }
+
+        #full-preview-content .project-header {
+            margin-bottom: var(--space-5);
+        }
+
+        #full-preview-content .project-title {
+            font-size: var(--text-2xl);
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: var(--space-2);
+            letter-spacing: -0.01em;
+        }
+
     </style>
 </head>
 <body>
@@ -1564,10 +1669,46 @@
                     </div>
                 </div>
 
+                <div class="buttons-form">
+                <button type="button" class="btn btn-secondary btn-submit" id="preview-btn"> Preview your project</button>
                 <button type="submit" class="btn btn-primary btn-submit" id="submit-btn">Submit for feedback</button>
+                </div>
+
                 <p class="form-reassurance">Free to use. Human feedback. No AI-generated responses.</p>
                 <div class="message" id="message" role="alert" aria-live="polite"></div>
             </form>
+
+            <div id="project-preview" hidden>
+                <h3 style="text-align: center;">Project Preview</h3>
+                <article class="project-card" id="preview" tabindex="0" role="button">
+                    <img id="preview-image" class="project-screenshot" alt="Project screenshot" hidden>
+                    <div class="project-card-body">
+                        <div class="eyebrow">Need feedback on</div>
+                        <h3 class="project-title" id="preview-title">
+                            Your project title
+                        </h3>
+                        <div class="project-description" id="preview-description">
+                            Your description will appear here.
+                        </div>
+                        <div class="project-question" id="preview-question">
+                            Your question will appear here.
+                        </div>
+                    </div>
+                </article>
+                <button type="button" class="btn btn-secondary btn-submit" id="close-preview">
+                    Close Preview
+                </button>
+            </div>
+            <div id="full-preview" hidden>
+                <div class="project-preview-overlay">
+                    <div class="project-preview-content container">
+                        <div id="full-preview-content"></div>
+                        <button type="button" id="close-full-preview" class="btn btn-secondary">
+                            Close Preview
+                        </button>
+                    </div>
+                </div>
+            </div>
         </section>
 
         <section class="final-cta">
@@ -2026,6 +2167,109 @@
                 e.returnValue = '';
             }
         });
+
+        function updatePreview() {
+            //Updates the preview with the information input
+            var project = getInfo();
+
+            document.getElementById('preview-title').textContent = project.title || 'Your project title';
+            document.getElementById('preview-description').textContent = project.description|| 'Description to be provided';
+            document.getElementById('preview-question').textContent = 'Question: ' + (project.question || 'No question provided'); //cant see question
+
+            var previewImage = document.getElementById('preview-image');
+            if(project.image_url){
+                previewImage.src = project.image_url;
+                previewImage.hidden = false;
+            }
+            else{
+                previewImage.hidden= true;
+            } 
+        }
+
+        function fullPreview(){
+            var project = getInfo();
+            var html = '';
+            html += '<div class="project-header-row">';
+            html += '<h2 class="project-title">' + escapeHtml(project.title || 'Project Title required') + '</h2>';
+            html += '</div>';
+
+
+            if (project.description) {
+                html += '<p class="project-summary">' + escapeHtml(project.description) + '</p>';
+            }
+
+            html += '<div class="question-block">';
+            html += '<div class="question-label">The Makers Question </div>';
+            html += '<div class="question-text">' + escapeHtml(project.question) + '</div>';
+            html += '</div>';
+
+            if (project.url) {
+                html += '<p class="project-link">';
+                html += '<a href="' + escapeHtml(project.url) + '" target="_blank" rel="noopener noreferrer" class="btn btn-secondary visit-project-btn">';
+                html += 'Visit project →</a></p>';
+                }
+
+            if (project.image_url) {
+                html += '<div class="eyebrow">About this project</div>';
+                html += '<div class="project-header" style="margin-top: var(--space-5);">';
+                html += '<img class="project-screenshot" src="' + escapeHtml(project.image_url) + '" alt="Screenshot of ' + escapeHtml(project.title || 'project') + '" loading="lazy" onerror="this.style.display=\'none\'">';
+                html += '</div>';
+            }
+
+            document.getElementById('full-preview-content').innerHTML = html;
+        }
+
+        function getInfo() {
+            return {
+                title: document.getElementById('title').value.trim(),
+                url: document.getElementById('url').value.trim(),
+                description: document.getElementById('description').value.trim(),
+                question: document.getElementById('question').value.trim(),
+                image_url: document.getElementById('image_url').value.trim()
+            };
+        }
+        
+        var preview = document.getElementById('preview-btn');
+        var closePreview = document.getElementById('close-preview');
+        var previewArea = document.getElementById('project-preview');
+        var previewCard = document.getElementById('preview')
+        var openFullPreview = document.getElementById('full-preview');
+        var closeFullPreview = document.getElementById('close-full-preview');
+        pForm.addEventListener('input', function(){
+            //Live listening
+            if(!previewArea.hidden){
+                updatePreview();
+            }
+        });
+
+        preview.addEventListener('click', function(){
+            updatePreview();
+            previewArea.hidden=false
+        });
+
+        closePreview.addEventListener('click', function(){
+            previewArea.hidden=true;
+            preview.focus();
+        });
+
+        previewCard.addEventListener('click', function(){
+            fullPreview();
+            openFullPreview.hidden = false;
+        });
+
+        previewCard.addEventListener('keydown', function(event){
+            if (event.key=='Enter' || event.key == ' '){
+                event.preventDefault();
+                fullPreview();
+                openFullPreview.hidden = false;
+            }
+        });
+
+        closeFullPreview.addEventListener('click', function(){
+            openFullPreview.hidden = true;
+            previewCard.focus();
+        });
+        
 
         document.getElementById('project-form').addEventListener('submit', async function(e) {
             e.preventDefault();
