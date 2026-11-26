@@ -338,7 +338,7 @@
         </noscript>
         <div class="discover-search" id="discover-search">
             <label class="sr-only" for="discover-search-input">Search projects</label>
-            <input type="search" id="discover-search-input" class="form-input" placeholder="Search projects by title, description, or question" autocomplete="off" aria-label="Search projects">
+            <input type="search" id="discover-search-input" class="form-input" placeholder="Search projects by title, description, or question" autocomplete="off" aria-label="Search projects" maxlength="100">
             <button type="button" id="discover-search-clear" class="btn btn-secondary" aria-label="Clear search" hidden>Clear</button>
         </div>
         <div class="discover-filters" id="discover-filters">
@@ -671,7 +671,10 @@
             throw lastError;
         }
 
+        let latestLoadId = 0;
+
         async function loadProjects(page) {
+            const requestId = ++latestLoadId;
             currentPage = page;
             showLoading();
             try {
@@ -683,11 +686,14 @@
                     url += '&search=' + encodeURIComponent(searchTerm);
                 }
                 const response = await fetchWithRetry(url);
+                if (requestId !== latestLoadId) return;
                 if (!response.ok) { throw new Error('Failed to load projects'); }
                 const data = await response.json();
+                if (requestId !== latestLoadId) return;
                 totalPages = data.total_pages;
                 if (data.items.length === 0) { showEmpty(); } else { showProjects(data.items); }
             } catch (error) {
+                if (requestId !== latestLoadId) return;
                 console.error('Error loading projects:', error);
                 showError();
             }
