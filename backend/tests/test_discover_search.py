@@ -53,6 +53,8 @@ def search_seed():
     make_project(owner, "Weather Forecast App", "A tiny forecast tool", "Is the forecast clear?")
     make_project(owner, "Notes CLI", "Plain-text note manager", "Does the CLI feel intuitive?")
     make_project(owner, "Budget Tracker", "Track monthly expenses", "Is the chart readable?")
+    make_project(owner, "Underscore_Project", "Has an underscore", "Question with underscore")
+    make_project(owner, "Backslash\\Project", "Has a backslash", "Question with backslash")
 
     try:
         yield db
@@ -100,22 +102,22 @@ def test_search_no_results(search_seed):
 def test_search_empty_query_behaves_like_unfiltered(search_seed):
     r = client.get("/api/projects/?search=")
     assert r.status_code == 200
-    assert r.json()["total"] == 3
+    assert r.json()["total"] == 5
 
 
 def test_search_whitespace_only_behaves_like_unfiltered(search_seed):
     r = client.get("/api/projects/?search=%20%20")
     assert r.status_code == 200
-    assert r.json()["total"] == 3
+    assert r.json()["total"] == 5
 
 
 def test_search_pagination(search_seed):
-    r = client.get("/api/projects/?search=a&page_size=1&page=1")
+    r = client.get("/api/projects/?search=Project&page_size=1&page=1")
     assert r.status_code == 200
     assert r.json()["page_size"] == 1
-    # All three titles contain "a"; pagination should split them.
+    # Two titles contain "Project"; pagination should split them.
     assert len(r.json()["items"]) == 1
-    r2 = client.get("/api/projects/?search=a&page_size=1&page=2")
+    r2 = client.get("/api/projects/?search=Project&page_size=1&page=2")
     assert r2.status_code == 200
     assert len(r2.json()["items"]) == 1
 
@@ -125,6 +127,22 @@ def test_search_wildcard_is_literal(search_seed):
     r = client.get("/api/projects/?search=%25")
     assert r.status_code == 200
     assert r.json()["total"] == 0
+
+
+def test_search_underscore_is_literal(search_seed):
+    # "_" must not act as a single-character wildcard.
+    r = client.get("/api/projects/?search=_")
+    assert r.status_code == 200
+    assert "Underscore_Project" in _titles(r)
+    # A title without an underscore must not be matched by the wildcard.
+    assert "Weather Forecast App" not in _titles(r)
+
+
+def test_search_backslash_is_literal(search_seed):
+    # A backslash must be matched literally, not as an escape that breaks parsing.
+    r = client.get("/api/projects/?search=%5C")
+    assert r.status_code == 200
+    assert "Backslash\\Project" in _titles(r)
 
 
 def test_search_max_length_rejected():
