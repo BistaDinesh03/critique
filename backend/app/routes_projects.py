@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
-from sqlalchemy import func, update
+from sqlalchemy import func, update, or_
 from app.database import get_db, in_int64_range
 from app.models import Project, Question, Response, User, ProjectView, AnalyticsEvent
 from app.schemas import (
@@ -12,6 +12,8 @@ from app.schemas import (
     ProjectWithQuestion,
     PaginatedProjects,
 )
+from typing import Optional
+
 from app.auth import get_current_user, get_current_user_optional
 from app.csrf import require_csrf
 from app.rate_limit import rate_limit
@@ -94,6 +96,7 @@ def list_projects(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=50),
     hide_answered: bool = Query(False),
+    search: Optional[str] = Query(None, max_length=100),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_optional),
 ):
@@ -102,6 +105,13 @@ def list_projects(
     # result, so no separate count query is needed. Dropping it
     # removes one database round trip from the busiest read endpoint.
     offset = (page - 1) * page_size
+
+    # Normalize the optional keyword search. Empty/whitespace-only input is
+    # treated as "no search" so the endpoint behaves like the unfiltered feed.
+    if search is not None:
+        search = search.strip()
+    if not search:
+        search = None
 
     # Get recently viewed project IDs for current user (24h cooldown)
     recent_viewed = set()
@@ -140,7 +150,7 @@ def list_projects(
         .subquery()
     )
 
-    projects = (
+    projects_query = (
         db.query(
             Project,
             question_subq.c.question_text,
@@ -148,9 +158,24 @@ def list_projects(
         )
         .outerjoin(question_subq, question_subq.c.project_id == Project.id)
         .outerjoin(response_count_subq, response_count_subq.c.project_id == Project.id)
-        .order_by(Project.id.asc())
-        .all()
     )
+
+    # Optional keyword search across the meaningful project fields. Applied in
+    # SQL so the result set (and pagination count) only contains matches, rather
+    # than loading every project into memory. Wildcards in the user input are
+    # escaped so "%" and "_" are matched literally.
+    if search:
+        escaped = search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        pattern = f"%{escaped}%"
+        projects_query = projects_query.filter(
+            or_(
+                Project.title.ilike(pattern, escape="\\"),
+                Project.description.ilike(pattern, escape="\\"),
+                question_subq.c.question_text.ilike(pattern, escape="\\"),
+            )
+        )
+
+    projects = projects_query.order_by(Project.id.asc()).all()
 
     # Filter eligible and rank
     ranked_items = []

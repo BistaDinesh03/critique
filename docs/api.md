@@ -91,7 +91,7 @@ else is ignored.
 | Method | Path | Auth | CSRF | Rate limit | Notes |
 |---|---|---|---|---|---|
 | POST | `/api/projects/` | Required | Required | `project_create` | Creates a project and its first question. Returns `201` with `{project, question}`. |
-| GET | `/api/projects/` | — | — | — | Discover feed. Query: `page` (≥1, default 1), `page_size` (1–50, default 10). Deterministically ranked. |
+| GET | `/api/projects/` | — | — | — | Discover feed. Query: `page` (≥1, default 1), `page_size` (1–50, default 10), `hide_answered` (boolean, signed-in only), `search` (optional keyword, max 100 chars, case-insensitive match on title, description, and question). Deterministically ranked. |
 | GET | `/api/projects/my/list` | Required | — | — | All projects owned by the session user. |
 | GET | `/api/projects/{project_id}` | — | — | — | One project with its active question; `404` if not found. |
 | DELETE | `/api/projects/{project_id}` | Required | Required | `project_delete` | Owner-only. `204` on success; `404` if the project does not exist; `403` if you are signed in but not the owner. |
