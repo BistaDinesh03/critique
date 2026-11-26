@@ -3,6 +3,14 @@ on:
   pull_request:
   push:
     branches: [main]
+  # Weekly run to catch dependency and runner drift that no PR would trigger.
+  # Mondays at 03:17 UTC: off-peak, and off the top of the hour, when GitHub's
+  # scheduler is most congested and scheduled runs are often delayed or dropped.
+  # A red scheduled run means main broke without a code change: open an issue
+  # with the failing step, or re-run it if it looks like a transient failure.
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
