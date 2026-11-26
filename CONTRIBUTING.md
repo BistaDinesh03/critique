@@ -109,6 +109,50 @@ For a practical guide to scenario JSON, fetch mocks, DOM assertions,
 accessibility checks, and complete test examples, see the
 [Frontend Render Test Harness guide](docs/frontend-render-harness.md).
 
+### Performance benchmarks (Discover)
+
+The Discover endpoint's request work can be measured with the benchmark harness
+in `backend/tests/test_discover_benchmark.py`. Benchmarks are **not** run by
+default; they are gated behind an environment variable so they never make the
+normal suite slow or flaky.
+
+```bash
+cd backend
+RUN_BENCHMARKS=1 python -m pytest tests/test_discover_benchmark.py -v -s
+```
+
+On Windows (PowerShell):
+
+```powershell
+cd backend
+$env:RUN_BENCHMARKS = "1"
+python -m pytest tests/test_discover_benchmark.py -v -s
+```
+
+What it measures (at 1,000 and 10,000 projects):
+
+- Number of SQL statements executed by `GET /api/projects/`
+- Number of project rows present (loaded by the unfiltered endpoint)
+- Returned item count and total pages
+- Wall-clock time per request (informational only; not asserted)
+
+Scenarios: anonymous page 1, a later page, an authenticated viewer with own
+projects and recently-viewed rows, `hide_answered=true`, and a keyword search.
+
+Dataset generation is deterministic (seeded `random.Random(20261126)`) and
+includes varied owners, freshness, feedback counts, responses, superseded
+questions, and recently-viewed/answered rows so the ranking path is exercised
+realistically. Fixture setup queries are excluded from the measurement.
+
+A separate, fast suite (`test_discover_ranking_invariants.py`) runs in the
+default suite and protects ranking behaviour (own-project exclusion,
+recently-viewed exclusion, total consistency, pagination disjointness) so a
+future optimization can demonstrate equivalence.
+
+Limitations: timing is environment-dependent (SQLite, single machine) and is
+reported as informational data only. No timing threshold is asserted. The
+benchmark does not change endpoint behaviour.
+
 ## Development Guidelines
 
 ### Keep it simple

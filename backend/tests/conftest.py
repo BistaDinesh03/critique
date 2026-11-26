@@ -99,6 +99,10 @@ def pytest_configure(config):
         "markers",
         "frontend_render: tests that require the Node frontend rendering harness",
     )
+    config.addinivalue_line(
+        "markers",
+        "benchmark: performance benchmarks excluded from default CI; set RUN_BENCHMARKS=1 to run",
+    )
 
 def pytest_collection_modifyitems(config, items):
     """Prevent CI from passing when frontend-render tests are skipped for no Node."""
