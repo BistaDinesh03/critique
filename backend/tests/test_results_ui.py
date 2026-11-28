@@ -169,6 +169,24 @@ def test_mixed_results_show_header_question_counts_and_bars(tmp_path):
     assert 'href="/discover" class="btn btn-secondary">Discover projects' in html
 
 
+def test_non_owner_with_responses_gets_give_feedback_cta(tmp_path):
+    """A visitor on a public results page must not be told to get feedback (#902)."""
+    clarity, would_use = mixed_stats()
+    html = render_results(tmp_path, results_data(3, clarity, would_use, owner=False))
+
+    assert 'href="/project/1" class="btn btn-primary">Give feedback</a>' in html
+    assert "Get more feedback" not in html
+    assert "Download CSV" not in html
+
+
+def test_owner_with_responses_keeps_owner_actions(tmp_path):
+    clarity, would_use = mixed_stats()
+    html = render_results(tmp_path, results_data(3, clarity, would_use, owner=True))
+
+    assert 'href="/project/1" class="btn btn-primary">Get more feedback</a>' in html
+    assert 'id="download-csv-btn"' in html
+
+
 def test_each_percentage_appears_exactly_once(tmp_path):
     """The old page repeated every percentage in a signal card and a bar.
 
