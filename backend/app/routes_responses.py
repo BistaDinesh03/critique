@@ -46,10 +46,17 @@ def create_response(
             ),
         )
 
+    # Lock the active question for the duration of the duplicate check and the
+    # insert. Two concurrent submissions for the same question are then
+    # serialised on PostgreSQL, so the second one sees the first one's row and
+    # answers 409 instead of inserting a duplicate. SQLite ignores
+    # ``FOR UPDATE`` (it serialises writes itself), which keeps tests and local
+    # development working unchanged.
     question = (
         db.query(Question)
         .filter(Question.project_id == project_id, Question.is_active == True)
         .order_by(Question.created_at.desc())
+        .with_for_update()
         .first()
     )
     if not question:
