@@ -24,12 +24,24 @@ If you are contributing for the first time, check out our step-by-step [Contribu
 git clone https://github.com/YOUR_USERNAME/critique.git
 cd critique
 python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
+
+# macOS / Linux
+source .venv/bin/activate
+
+# Windows PowerShell
+.venv\Scripts\Activate.ps1
+
+# Windows cmd.exe
+.venv\Scripts\activate.bat
+
 pip install -r requirements.txt
 cp .env.example .env             # Windows: copy .env.example .env
 cd backend
 uvicorn app.main:app --reload
 ```
+
+If PowerShell blocks `Activate.ps1`, allow it for the current session with
+`Set-ExecutionPolicy -Scope Process Bypass` and try again.
 
 Open http://127.0.0.1:8000. Authentication providers are optional for local
 browsing — see [docs/github-oauth-setup.md](docs/github-oauth-setup.md) if
@@ -239,8 +251,8 @@ documentation, or feedback.
 
 ### First-contribution checklist
 
-1. Read [README.md](README.md), skim [docs/architecture.md](docs/architecture.md), and [docs/first-contributors.md](docs/first-contributors.md).
-2. Pick an issue from the [Good issues to contribute](README.md#good-issues-to-contribute) list.
+1. Read [README.md](README.md), skim [docs/architecture.md](docs/architecture.md), and follow the [first-contribution guide](docs/first-contribution.md).
+2. Pick an issue from the [good first issue label](https://github.com/BistaDinesh03/critique/labels/good%20first%20issue) or the [curated opportunities page](docs/contributor-opportunities.md).
 3. Comment on the issue to claim it (maintainers confirm availability).
 4. Fork, branch, implement, and add tests.
 5. Run the relevant test suite and `git diff --check`.
@@ -272,11 +284,10 @@ Issues are also labeled by **area** and by **difficulty**, so you can filter for
 work that matches what you know — or deliberately stretch into something new.
 Both are documented in [The label taxonomy](#the-label-taxonomy) below.
 
-For a verified list of work that is actually available, use
-[docs/contributor-opportunities.md](docs/contributor-opportunities.md). Every issue
-on that page is open, unassigned, not claimed in a comment, and not attached to an
-open pull request, and the page states the date it was last checked against the
-tracker. It is the only list you should act on.
+For a curated shortlist, use
+[docs/contributor-opportunities.md](docs/contributor-opportunities.md). It records
+the date it was last checked and the checks used to verify each issue. Treat it
+as a starting point: confirm live state on GitHub before you claim anything.
 
 [docs/issue-roadmap.md](docs/issue-roadmap.md) also exists, but it is a **dated
 historical record** from 2026-10-17 — many of its rows have since shipped. Read it
@@ -419,9 +430,9 @@ Each report ends with `READY`, `CHANGES_REQUESTED`, or `BLOCKED`, followed by
 the merge gate as a checklist. Continuous integration and branch protection
 on the default branch (`main`) are actively configured: every pull request runs
 the required `test` check via GitHub Actions, and `main` requires passing status
-checks, strict up-to-date branch alignment, 1 approval, and conversation
-resolution with administrator enforcement. `--merge` enforces these gates and
-refuses if any check, approval, or gate remains unsatisfied.
+checks, strict up-to-date branch alignment, and conversation resolution with
+administrator enforcement. A formal approval is not currently a repository
+requirement, but `--merge` still refuses a pending or changes-requested review.
 
 Full usage, what each check means, and the limitations:
 [docs/pull-request-review.md](docs/pull-request-review.md).

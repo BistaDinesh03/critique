@@ -12,18 +12,19 @@ Critique is an open-source platform where builders share their projects and rece
 
 ## Finding an Issue
 
-1. Browse [open issues](https://github.com/BistaDinesh03/critique/issues) labeled [`good first issue`](https://github.com/BistaDinesh03/critique/labels/good%20first%20issue).
-2. Read the issue carefully. Make sure you understand the problem and the acceptance criteria.
-3. Comment on the issue saying you'd like to work on it. A maintainer will confirm availability.
-4. If you have questions, ask in the issue or in [Discussion #741](https://github.com/BistaDinesh03/critique/discussions/741).
+1. Browse the [`good first issue` label](https://github.com/BistaDinesh03/critique/labels/good%20first%20issue) or the [contributor opportunities page](contributor-opportunities.md).
+2. Read the problem, acceptance criteria, and comments. Skip anything assigned, claimed in a comment, or attached to an open pull request.
+3. Comment on the issue saying you would like to work on it. A maintainer will confirm availability.
+4. Ask questions in the issue or in [issue #1](https://github.com/BistaDinesh03/critique/issues/1). No question is too small.
 
-### Recommended Starting Issues
+### Good first issues to start with
 
-- [#77](https://github.com/BistaDinesh03/critique/issues/77) — Add `<noscript>` notices (HTML, beginner)
-- [#683](https://github.com/BistaDinesh03/critique/issues/683) — Feedback quality guide (docs, beginner)
-- [#688](https://github.com/BistaDinesh03/critique/issues/688) — RSS/Atom feed (backend, beginner)
-- [#685](https://github.com/BistaDinesh03/critique/issues/685) — Clarity distribution visualization (frontend, beginner)
-- [#720](https://github.com/BistaDinesh03/critique/issues/720) — Save draft capability (frontend, beginner)
+These were open, unassigned, and unclaimed when last checked on 2026-11-28. Verify the live state before you start.
+
+- [#901 — correct the feedback progress count](https://github.com/BistaDinesh03/critique/issues/901)
+- [#903 — explain who sees written feedback](https://github.com/BistaDinesh03/critique/issues/903)
+
+More beginner work is listed under the [`good first issue` label](https://github.com/BistaDinesh03/critique/labels/good%20first%20issue).
 
 ## Setting Up
 
@@ -31,6 +32,9 @@ Critique is an open-source platform where builders share their projects and rece
 
 - Python 3.11+
 - Git
+- Node.js (optional; frontend-render tests are skipped without it)
+
+The canonical setup and fork workflow is in [contributing-start.md](contributing-start.md). For a quick local run, use `python scripts/quickstart.py` (`py scripts/quickstart.py` on Windows).
 
 ### Clone and install
 
@@ -38,10 +42,21 @@ Critique is an open-source platform where builders share their projects and rece
 git clone https://github.com/YOUR_USERNAME/critique.git
 cd critique
 python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
+# macOS / Linux
+source .venv/bin/activate
+
+# Windows PowerShell
+.venv\Scripts\Activate.ps1
+
+# Windows cmd.exe
+.venv\Scripts\activate.bat
+
 pip install -r requirements.txt
 cp .env.example .env             # Windows: copy .env.example .env
 ```
+
+If PowerShell blocks `Activate.ps1`, run
+`Set-ExecutionPolicy -Scope Process Bypass` for the current session and try again.
 
 ### Run the backend
 
@@ -101,6 +116,6 @@ python -m pytest tests/ -q
 ## Getting Help
 
 - Comment on the issue you're working on.
-- Ask in [Discussion #741](https://github.com/BistaDinesh03/critique/discussions/741).
+- Ask in [GitHub Discussions](https://github.com/BistaDinesh03/critique/discussions) or [issue #1](https://github.com/BistaDinesh03/critique/issues/1).
 - Read [CONTRIBUTING.md](../CONTRIBUTING.md) for full guidelines.
 - Read [SECURITY.md](../SECURITY.md) for vulnerability reporting.

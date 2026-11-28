@@ -54,8 +54,10 @@ Use the check that matches your change. For backend behavior, install the projec
 
 ```bash
 cd backend
-python -m pytest tests/ -q
+GITHUB_CLIENT_ID=ci-test-client-id python -m pytest tests/ -q
 ```
+
+On Windows PowerShell, set `$env:GITHUB_CLIENT_ID = "ci-test-client-id"` first.
 
 For a focused test file or test, examples are:
 

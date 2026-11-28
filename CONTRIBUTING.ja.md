@@ -115,7 +115,7 @@ Critique への貢献に関心をお寄せいただき、ありがとうござ�
 ### 初回貢献チェックリスト
 
 1. [README.ja.md](README.ja.md) を読み、[docs/first-contributors.md](docs/first-contributors.md) に目を通す。
-2. [貢献に適した issue](README.ja.md#good-issues-to-contribute) 一覧から issue を選ぶ。
+2. [コントリビューター向け課題一覧](docs/contributor-opportunities.md)からissueを選び、GitHubでまだ対応可能か確認する。
 3. issue にコメントを投稿して着手を宣言する（メンテナーが対応可否を確認します）。
 4. フォークし、ブランチを作成して実装およびテストを追加する。
 5. 関連するテストスイートと `git diff --check` を実行する。

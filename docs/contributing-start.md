@@ -34,9 +34,21 @@ Critique tags issues designed for newcomers:
 3. Set up a Python virtual environment:
    ```bash
    python -m venv .venv
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+   # macOS / Linux
+   source .venv/bin/activate
+
+   # Windows PowerShell
+   .venv\Scripts\Activate.ps1
+
+   # Windows cmd.exe
+   .venv\Scripts\activate.bat
+
    pip install -r backend/requirements.txt
    ```
+
+   If PowerShell blocks `Activate.ps1`, run
+   `Set-ExecutionPolicy -Scope Process Bypass` for the current session and try again.
 
 ---
 

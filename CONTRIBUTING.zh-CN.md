@@ -112,7 +112,7 @@ Critique 刻意避免复杂性。在添加任何东西之前，先问自己：
 ### 首次贡献检查清单
 
 1. 阅读 [README.zh-CN.md](README.zh-CN.md) 并浏览 [docs/first-contributors.md](docs/first-contributors.md)。
-2. 从 [适合贡献的 issue](README.zh-CN.md#good-issues-to-contribute) 列表中挑选一个任务。
+2. 从 [贡献机会列表](docs/contributor-opportunities.md) 中挑选一个任务，并在 GitHub 上确认它仍然可用。
 3. 在 issue 下评论认领（维护者将确认是否可用）。
 4. Fork 仓库、新建分支、实现功能并添加测试。
 5. 运行相关测试套件和 `git diff --check`。

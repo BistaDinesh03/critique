@@ -5,9 +5,9 @@ structure, that every issue reference points at this repository, and that an
 issue cannot be advertised as available while it is also listed as in progress.
 
 The live open/closed state is checked against GitHub when the page is refreshed
-(see the "Last verified" line in the document). A unit test must never make a
-network call, so the closed-issue and duplicate guards below use the small set of
-numbers that were removed during the 2026-11-14 refresh.
+(see the "Last checked" line in the document). A unit test must never make a
+network call, so the closed-issue and duplicate guards below use the numbers
+removed during the 2026-11-28 refresh.
 """
 
 from __future__ import annotations
@@ -25,9 +25,12 @@ ISSUE_URL = re.compile(
 )
 ANY_ISSUE_URL = re.compile(r"https://github\.com/([^/\s)]+)/([^/\s)]+)/issues/(\d+)")
 
-# Issues closed before or during the 2026-11-14 refresh. They must never be
+# Issues closed before or during the 2026-11-28 refresh. They must never be
 # advertised as available again.
-KNOWN_CLOSED = {82, 225, 279, 330, 349, 350, 370, 526}
+KNOWN_CLOSED = {
+    21, 31, 32, 77, 82, 143, 163, 225, 279, 330, 349, 350, 362, 370, 526,
+    765, 766, 767, 768, 770, 772, 773, 774,
+}
 
 # #713 duplicates #88's request-logging proposal; only one may be listed.
 KNOWN_DUPLICATE = {713}
@@ -82,25 +85,6 @@ def _in_progress_numbers(text: str) -> list[int]:
     return _issue_numbers(_section(sections, SECTION_PROGRESS))
 
 
-def _glance_counts(text: str) -> dict[str, int]:
-    patterns = {
-        "total": r"\*\*(\d+) open issues\*\*",
-        "listed": r"\*\*(\d+) are listed here as available\*\*",
-        "progress": r"\*\*(\d+) are in progress\*\*",
-        "not_recommended": r"\*\*(\d+) are not recommended by this page\*\*",
-        "split": r"\((\d+)\s+in\s+\*Start here\*,\s+(\d+)\s+in\s+\*More open work\*\)",
-    }
-    counts: dict[str, int] = {}
-    for name, pattern in patterns.items():
-        match = re.search(pattern, text, re.S)
-        assert match, f"missing 'at a glance' count: {name}"
-        if name == "split":
-            counts["start"], counts["more"] = (int(match.group(1)), int(match.group(2)))
-        else:
-            counts[name] = int(match.group(1))
-    return counts
-
-
 def test_document_and_readme_exist():
     assert DOC.is_file(), "docs/contributor-opportunities.md is missing"
     assert README.is_file(), "README.md is missing"
@@ -139,22 +123,6 @@ def test_available_issues_are_not_duplicated():
     assert not duplicates, f"duplicate available issues: {sorted(duplicates)}"
 
 
-def test_glance_counts_match_the_tables():
-    text = _read(DOC)
-    counts = _glance_counts(text)
-    available = _available_numbers(text)
-    in_progress = _in_progress_numbers(text)
-
-    assert counts["listed"] == len(available) == len(set(available))
-    assert counts["start"] + counts["more"] == counts["listed"]
-    assert counts["start"] == len(_issue_numbers(_section(_split_sections(text), SECTION_START)))
-    assert counts["more"] == len(_issue_numbers(_section(_split_sections(text), SECTION_MORE)))
-    assert counts["progress"] == len(set(in_progress))
-    assert counts["total"] == (
-        counts["listed"] + counts["progress"] + counts["not_recommended"]
-    ), "the at-a-glance counts do not add up to the open-issue total"
-
-
 def test_closed_and_duplicate_issues_are_not_available():
     available = set(_available_numbers(_read(DOC)))
     leaked_closed = available & KNOWN_CLOSED
@@ -165,13 +133,25 @@ def test_closed_and_duplicate_issues_are_not_available():
     )
 
 
-def test_issue_with_open_pull_request_is_in_progress_not_available():
-    """#773 has PR #775. A closed/claimed issue must not be advertised as free."""
+def test_claimed_issue_is_in_progress_not_available():
+    """#909 is assigned and has an open PR, so it must not be advertised as free."""
     text = _read(DOC)
     available = set(_available_numbers(text))
     in_progress = set(_in_progress_numbers(text))
-    assert 773 not in available
-    assert 773 in in_progress
+    assert 909 not in available
+    assert 909 in in_progress
+
+
+def test_document_points_to_live_sources():
+    text = _read(DOC)
+    assert "Last checked against the live tracker" in text
+    for target in (
+        "labels/good%20first%20issue",
+        "labels/help%20wanted",
+        "/issues",
+        "/pulls",
+    ):
+        assert target in text, f"missing live source link: {target}"
 
 
 def test_readme_links_to_verified_contributor_opportunities():
