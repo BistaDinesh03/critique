@@ -13,10 +13,12 @@
 //       { "clickCreatedContaining": "Continue with email" },
 //       { "dispatchDocumentClickCreated": "Continue with email" },
 //       { "checkInput": {"name": "clarity", "value": "very_clear"} },
+//       { "dispatchEventId": "project-form", "eventType": "input" },
 //       { "submitId": "response-form" },
 //       { "evaluate": "formatAge('2026-09-24T10:00:00Z')", "as": "age" }
 //     ],
 //     "fetch": { "/api/projects/?": { "status": 200, "body": { ... } } },
+//     "sessionStorage": { "critique_project_draft": "{...}" },
 //     "location": "/project/1/results",
 //     "read": { "byId": "content" }   // or { "created": true }
 //   }
@@ -638,6 +640,11 @@ async function main() {
     });
   }
   const sessionStorage = makeStorage();
+  if (scenario.sessionStorage && typeof scenario.sessionStorage === 'object') {
+    Object.keys(scenario.sessionStorage).forEach((k) => {
+      sessionStorage.setItem(k, scenario.sessionStorage[k]);
+    });
+  }
 
   const analyticsStub = {
     trackEvent() {},
@@ -939,6 +946,42 @@ async function main() {
       } else {
         checkedInputs.set(name, value);
       }
+      continue;
+    }
+
+    // Fire an ordinary DOM event (input/change most often) on a page element.
+    // The target's own handlers run first, then the event bubbles, as in a browser.
+    if (call.dispatchEventId || call.dispatchEventCreated) {
+      const type = call.eventType || 'input';
+      let target = null;
+      let label = '';
+      if (call.dispatchEventId) {
+        label = `#${call.dispatchEventId}`;
+        target = elements.get(call.dispatchEventId) || null;
+      } else {
+        label = JSON.stringify(call.dispatchEventCreated);
+        target = created.find(
+          (el) => String(el.ownInnerHTML ? el.ownInnerHTML() : '').indexOf(call.dispatchEventCreated) !== -1
+        );
+      }
+      if (!target) {
+        errors.push(`${type}: no element for ${label}`);
+        continue;
+      }
+      const handlers = (target.handlers || []).filter((h) => h.type === type);
+      if (!handlers.length) {
+        errors.push(`${type}: no ${type} handler on ${label}`);
+        continue;
+      }
+      const event = makeEvent(type, target, eventPathOf(target));
+      event.bubbles = true;
+      try {
+        handlers.forEach((h) => h.fn(event));
+      } catch (e) {
+        errors.push(`${type}: ${e && e.message ? e.message : String(e)}`);
+      }
+      if (!event.propagationStopped) bubbleAlongPath(event, errors);
+      await settle(0);
       continue;
     }
 
