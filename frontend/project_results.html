@@ -552,9 +552,14 @@
             return 'Based on ' + total + ' responses. Percentages are simple shares of these answers, not statistical measures.';
         }
 
-        function renderActions(isOwner) {
+        function primaryActionLabel(isOwner, hasQuestion) {
+            if (isOwner) return hasQuestion ? 'Get more feedback' : 'Open project';
+            return hasQuestion ? 'Give feedback' : 'View project';
+        }
+
+        function renderActions(isOwner, hasQuestion) {
             let html = '<div class="action-buttons no-print">' +
-                '<a href="/project/' + escapeHtml(projectId) + '" class="btn btn-primary">Get more feedback</a>';
+                '<a href="/project/' + escapeHtml(projectId) + '" class="btn btn-primary">' + primaryActionLabel(isOwner, hasQuestion) + '</a>';
             if (isOwner) {
                 html += '<button type="button" class="btn btn-secondary" id="download-csv-btn" aria-busy="false">Download CSV</button>';
             }
@@ -687,24 +692,21 @@
             if (total === 0) {
                 const hasQuestion = Boolean(data.question_text);
                 let emptyMessage;
-                let primaryLabel;
                 if (data.is_owner) {
                     emptyMessage = hasQuestion
                         ? 'Waiting for the first response. Share your project to start collecting honest feedback.'
                         : 'This project has no active question yet.';
-                    primaryLabel = hasQuestion ? 'Get more feedback' : 'Open project';
                 } else {
                     emptyMessage = hasQuestion
                         ? 'Be the first to give feedback on this project.'
                         : 'This project does not have an active question yet.';
-                    primaryLabel = hasQuestion ? 'Give feedback' : 'View project';
                 }
                 html += '<div class="empty-state">';
                 html += '<h3>No feedback yet</h3>';
                 html += '<p>' + emptyMessage + '</p>';
                 html += '</div>';
                 html += '<div class="action-buttons centered">';
-                html += '<a href="/project/' + escapeHtml(projectId) + '" class="btn btn-primary">' + primaryLabel + '</a>';
+                html += '<a href="/project/' + escapeHtml(projectId) + '" class="btn btn-primary">' + primaryActionLabel(data.is_owner, hasQuestion) + '</a>';
                 html += '<a href="/discover" class="btn btn-secondary">Discover projects</a>';
                 html += '</div>';
                 content.innerHTML = html;
@@ -758,7 +760,7 @@
                 }
             }
 
-            html += renderActions(data.is_owner);
+            html += renderActions(data.is_owner, Boolean(data.question_text));
 
             content.innerHTML = html;
 

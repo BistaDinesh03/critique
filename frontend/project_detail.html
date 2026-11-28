@@ -55,7 +55,29 @@
             text-decoration: none;
         }
 
-        .project-screenshot { width: 100%; border-radius: var(--radius-lg); margin-bottom: var(--space-4); object-fit: cover; max-height: 300px; }
+        .project-context {
+            margin-bottom: var(--space-5);
+        }
+
+        .project-screenshot {
+            display: block;
+            width: 100%;
+            max-width: 100%;
+            height: auto;
+            max-height: 360px;
+            object-fit: contain;
+            border-radius: var(--radius-lg);
+            margin-bottom: var(--space-2);
+            background: var(--surface-muted);
+        }
+
+        .project-screenshot-link {
+            font-size: var(--text-sm);
+        }
+
+        .project-screenshot-fallback {
+            margin-bottom: var(--space-2);
+        }
 
         .project-header {
             margin-bottom: var(--space-5);
@@ -690,6 +712,19 @@
             // visitor, so the answer is given with the context in view.
             if (p.description) { html += '<p class="project-summary">' + escapeHtml(p.description) + '</p>'; }
             if (p.url) { html += '<p class="project-link"><a href="' + escapeHtml(p.url) + '" target="_blank" rel="noopener noreferrer" class="btn btn-secondary visit-project-btn">Visit project \u2192</a></p>'; }
+            // Show what is being reviewed before asking for a judgment. The
+            // image is shown in full, with a link to the original for detail.
+            html += '<div class="project-context"><div class="eyebrow">About this project</div>';
+            if (p.image_url) {
+                const projectTitle = p.title || 'project';
+                const escapedTitle = escapeHtml(projectTitle);
+                const escapedImage = escapeHtml(p.image_url);
+                html += '<img class="project-screenshot" src="' + escapedImage + '" alt="Screenshot of ' + escapedTitle + '" loading="lazy" onerror="this.style.display=\'none\'">';
+                html += '<a class="project-screenshot-link" href="' + escapedImage + '" target="_blank" rel="noopener noreferrer">View full image \u2197</a>';
+            } else {
+                html += '<p class="form-helper project-screenshot-fallback">No screenshot was provided by the maker.</p>';
+            }
+            html += '</div>';
             if (q) {
                 html += '<div class="question-block"><div class="question-label">The Maker\'s Question</div><div class="question-text">' + escapeHtml(q.text) + '</div></div>';
                 if (data.is_owner) {
@@ -707,7 +742,7 @@
                         // Three short, numbered steps: the form reads as a task
                         // with an end rather than an open-ended questionnaire.
                         html += '<div class="response-form-card"><form id="response-form">';
-                        html += '<div class="feedback-progress-indicator" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="3" aria-label="Feedback progress"><div class="progress-track" style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-bottom:var(--space-2);"><div class="progress-fill" id="progress-fill" style="width:0%;height:100%;background:var(--accent);transition:width 0.2s ease;"></div></div><div class="progress-label" id="progress-label" style="font-size:var(--text-xs);color:var(--text-secondary);margin-bottom:var(--space-4);">Step 0 of 3 completed</div></div>';
+                        html += '<div class="feedback-progress-indicator" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="2" aria-valuetext="0 of 2 required questions answered" aria-describedby="progress-label" aria-label="Feedback progress"><div class="progress-track" style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-bottom:var(--space-2);"><div class="progress-fill" id="progress-fill" style="width:0%;height:100%;background:var(--accent);transition:width 0.2s ease;"></div></div><div class="progress-label" id="progress-label" style="font-size:var(--text-xs);color:var(--text-secondary);margin-bottom:var(--space-4);">0 of 2 required questions answered</div></div>';
                         html += '<fieldset class="form-section"><legend>1. How clear is it?</legend><div class="radio-cards">';
                         html += '<label class="radio-card"><input type="radio" id="c1" name="clarity" value="very_clear" required><span class="radio-card-label"><span class="radio-card-title">Very clear</span><span class="radio-card-desc">I understood the project quickly.</span></span></label>';
                         html += '<label class="radio-card"><input type="radio" id="c2" name="clarity" value="mostly_clear"><span class="radio-card-label"><span class="radio-card-title">Mostly clear</span><span class="radio-card-desc">I understood it, but needed some explanation.</span></span></label>';
@@ -718,18 +753,11 @@
                         html += '<label class="radio-card"><input type="radio" id="u2" name="would_use" value="maybe"><span class="radio-card-label"><span class="radio-card-title">Maybe</span><span class="radio-card-desc">I might use this in some cases.</span></span></label>';
                         html += '<label class="radio-card"><input type="radio" id="u3" name="would_use" value="no"><span class="radio-card-label"><span class="radio-card-title">No</span><span class="radio-card-desc">I would not use this.</span></span></label>';
                         html += '</div></fieldset>';
-                        html += '<div class="form-section"><h3 id="suggestion-heading"><span id="suggestion-heading-text">3. What would you change?</span> <span style="font-weight:400;color:var(--text-muted);">(optional)</span></h3><p id="suggestion-followup-hint" class="form-helper" aria-live="polite" hidden style="margin-top:0;margin-bottom:var(--space-2);white-space:pre-line;"></p><textarea class="form-textarea" id="suggestion" maxlength="2000" placeholder="Your honest feedback..." aria-labelledby="suggestion-heading" aria-describedby="suggestion-followup-hint" aria-keyshortcuts="Control+Enter Meta+Enter"></textarea><p class="form-helper" style="font-size:var(--text-xs);color:var(--text-muted);margin-top:var(--space-1);">Press <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd> to submit</p><div id="suggestion-char-count" style="font-size:12px;color:var(--text-muted);text-align:right;margin-top:4px;">0 / 2000</div></div>';
+                        html += '<div class="form-section"><h3 id="suggestion-heading"><span id="suggestion-heading-text">3. What would you change?</span> <span style="font-weight:400;color:var(--text-muted);">(optional)</span></h3><p id="suggestion-privacy-note" class="form-helper" style="margin-top:0;margin-bottom:var(--space-2);">Your written feedback is shared privately with the maker. Other visitors see your ratings only, not your name or written feedback.</p><p id="suggestion-followup-hint" class="form-helper" aria-live="polite" hidden style="margin-top:0;margin-bottom:var(--space-2);white-space:pre-line;"></p><textarea class="form-textarea" id="suggestion" maxlength="2000" placeholder="Your honest feedback..." aria-labelledby="suggestion-heading" aria-describedby="suggestion-privacy-note suggestion-followup-hint" aria-keyshortcuts="Control+Enter Meta+Enter"></textarea><p class="form-helper" style="font-size:var(--text-xs);color:var(--text-muted);margin-top:var(--space-1);">Press <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd> to submit</p><div id="suggestion-char-count" style="font-size:12px;color:var(--text-muted);text-align:right;margin-top:4px;">0 / 2000</div></div>';
                         html += '<button type="submit" class="btn btn-primary" id="submit-btn" style="width:100%;" aria-keyshortcuts="Control+Enter Meta+Enter">Submit feedback</button>';
                         html += '<div class="message" id="message" role="alert" aria-live="polite"></div></form></div>';
                     }
                 }
-                var details = '';
-                if (p.image_url) {
-                    const projectTitle = p.title || 'project';
-                    const altText = 'Screenshot of ' + escapeHtml(projectTitle);
-                    details += '<img class="project-screenshot" src="' + escapeHtml(p.image_url) + '" alt="' + altText + '" loading="lazy" onerror="this.style.display=\'none\'">';
-                }
-                if (details) { html += '<div class="eyebrow">About this project</div><div class="project-header" style="margin-top: var(--space-5);">' + details + '</div>'; }
                 if (Array.isArray(responses)) {
                     html += '<div id="responses-section" aria-live="polite" aria-busy="false">' + responsesHtml(responses) + '</div>';
                 } else {
@@ -818,15 +846,16 @@
             if (!indicator || !fill || !label) return;
             var clarity = document.querySelector('input[name="clarity"]:checked');
             var wouldUse = document.querySelector('input[name="would_use"]:checked');
-            var suggestion = document.getElementById('suggestion');
+            var totalRequired = 2;
             var completed = 0;
             if (clarity) completed++;
             if (wouldUse) completed++;
-            if (suggestion && suggestion.value && suggestion.value.trim().length > 0) completed++;
-            var pct = Math.round((completed / 3) * 100);
+            var pct = Math.round((completed / totalRequired) * 100);
+            indicator.setAttribute('aria-valuemax', String(totalRequired));
             indicator.setAttribute('aria-valuenow', String(completed));
+            indicator.setAttribute('aria-valuetext', completed + ' of ' + totalRequired + ' required questions answered');
             fill.style.width = pct + '%';
-            label.textContent = 'Step ' + completed + ' of 3 completed';
+            label.textContent = completed + ' of ' + totalRequired + ' required questions answered';
         }
 
         // Keep the suggestion character count aligned with the textarea for both
