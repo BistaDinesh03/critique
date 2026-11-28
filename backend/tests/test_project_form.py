@@ -74,7 +74,7 @@ FILL_PROJECT = [
 ]
 
 
-def run(tmp_path, page, calls, fetch=None, location="/", read=None):
+def run(tmp_path, page, calls, fetch=None, location="/", read=None, session=None):
     """Execute the page's scripts and return the harness result."""
     scenario = {
         "page": (FRONTEND_DIR / page).as_posix(),
@@ -82,6 +82,7 @@ def run(tmp_path, page, calls, fetch=None, location="/", read=None):
         "read": read or {"created": True},
         "fetch": fetch or {},
         "location": location,
+        "sessionStorage": session or {},
     }
     scenario_file = tmp_path / "scenario.json"
     scenario_file.write_text(json.dumps(scenario), encoding="utf-8")
@@ -427,9 +428,9 @@ def test_a_failed_project_submission_shows_the_detail_not_raw_json(tmp_path):
     assert "detail" not in result["ids"]["message"]
 
 
-def test_a_validation_failure_falls_back_to_a_sentence_not_an_array(tmp_path):
+def test_a_validation_failure_names_the_field_without_leaking_json(tmp_path):
     """422 detail is a list of objects; stringifying it would dump JSON at the
-    visitor, so the fixed sentence is used instead (#225)."""
+    visitor, so one field-specific sentence is used instead (#225)."""
     result = run(
         tmp_path,
         "index.html",
@@ -453,8 +454,132 @@ def test_a_validation_failure_falls_back_to_a_sentence_not_an_array(tmp_path):
 
     message = result["flags"]["message"]
     assert "alert-error" in message["className"]
-    assert result["ids"]["message"] == "Failed to submit project. Please try again."
+    assert result["ids"]["message"] == (
+        "Add a project title, then try again. Your answers are still here."
+    )
     assert "value_error" not in result["ids"]["message"]
+    assert "project_data" not in result["ids"]["message"]
+    # The failure also persists the words for a reload, not just this render.
+    draft = json.loads(result["storage"]["session"]["critique_project_draft"])
+    assert draft["title"] == "Akiya Scout"
+    assert draft["question"] == "Is the price shown up front?"
+
+
+# ---------------------------------------------------------------------------
+# Maker activation sprint 2: less friction before and after submission
+# ---------------------------------------------------------------------------
+
+
+def test_form_sets_expectations_and_question_guidance_before_submit():
+    form_html = project_form(page_source("index.html"))
+
+    # No template is forced; the guidance just names what a good answer needs.
+    assert "One specific question gets a useful answer." in form_html
+    assert "Name the part you want reviewed, not the whole project." in form_html
+    # The sign-in expectation sits next to the button, not only in the hero.
+    assert "You'll sign in when you submit." in form_html
+
+
+def test_typing_saves_the_draft_without_waiting_for_sign_in(tmp_path):
+    result = run(
+        tmp_path,
+        "index.html",
+        [
+            {
+                "evaluate": (
+                    "document.getElementById('title').value = 'Akiya Scout'; "
+                    "document.getElementById('question').value = 'Is the price clear?'; "
+                    "'filled'"
+                ),
+                "as": "filled",
+            },
+            {"dispatchEventId": "project-form", "eventType": "input"},
+        ],
+        fetch={HOMEPAGE_URL: {"status": 200, "body": {"total": 0, "items": []}}},
+    )
+
+    draft = json.loads(result["storage"]["session"]["critique_project_draft"])
+    assert draft["title"] == "Akiya Scout"
+    assert draft["question"] == "Is the price clear?"
+    assert posts(result) == []
+
+
+def test_a_draft_is_restored_on_a_normal_page_load(tmp_path):
+    draft = json.dumps({"title": "Akiya Scout", "question": "Is the price clear?"})
+    result = run(
+        tmp_path,
+        "index.html",
+        [
+            {"evaluate": "document.getElementById('title').value", "as": "title"},
+            {"evaluate": "document.getElementById('question').value", "as": "question"},
+        ],
+        fetch={HOMEPAGE_URL: {"status": 200, "body": {"total": 0, "items": []}}},
+        session={"critique_project_draft": draft},
+    )
+
+    assert result["values"]["title"] == "Akiya Scout"
+    assert result["values"]["question"] == "Is the price clear?"
+    # Restoration alone is not a sign-in.
+    assert events(result, "login_success") == []
+
+
+def test_resume_flag_still_tracks_the_real_sign_in(tmp_path):
+    draft = json.dumps({"title": "Akiya Scout", "question": "Is the price clear?"})
+    result = run(
+        tmp_path,
+        "index.html",
+        [
+            {"fn": "restoreProjectDraftOnLoad"},
+            {"evaluate": "document.getElementById('title').value", "as": "title"},
+        ],
+        fetch={HOMEPAGE_URL: {"status": 200, "body": {"total": 0, "items": []}}},
+        location="/?resume=project_submit",
+        session={"critique_project_draft": draft},
+    )
+
+    assert result["values"]["title"] == "Akiya Scout"
+    assert len(events(result, "login_success")) == 1
+
+
+def test_rate_limit_error_explains_the_wait_and_keeps_answers(tmp_path):
+    result = run(
+        tmp_path,
+        "index.html",
+        FILL_PROJECT,
+        fetch={
+            HOMEPAGE_URL: {"status": 200, "body": {"total": 0, "items": []}},
+            SUBMIT_URL: {
+                "status": 429,
+                "body": {"detail": "Too many requests. Please slow down."},
+                "headers": {"Retry-After": "42"},
+            },
+        },
+    )
+
+    assert result["ids"]["message"] == (
+        "Too many submissions. Try again in 42 seconds. Your answers are still here."
+    )
+    draft = json.loads(result["storage"]["session"]["critique_project_draft"])
+    assert draft["title"] == "Akiya Scout"
+    assert draft["question"] == "Is the price shown up front?"
+
+
+def test_network_failure_saves_the_draft_and_reassures(tmp_path):
+    result = run(
+        tmp_path,
+        "index.html",
+        FILL_PROJECT,
+        fetch={
+            HOMEPAGE_URL: {"status": 200, "body": {"total": 0, "items": []}},
+            SUBMIT_URL: {"networkError": True, "message": "Failed to fetch", "body": {}},
+        },
+    )
+
+    assert result["ids"]["message"] == "Network error. Your answers are still here."
+    assert "Failed to fetch" not in result["ids"]["message"]
+    draft = json.loads(result["storage"]["session"]["critique_project_draft"])
+    assert draft["title"] == "Akiya Scout"
+    assert draft["question"] == "Is the price shown up front?"
 
 
 # ---------------------------------------------------------------------------

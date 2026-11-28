@@ -49,8 +49,11 @@ var CritiqueShare = (function() {
         return window.location.origin + '/project/' + parseInt(projectId, 10);
     }
 
-    function suggestedPost(title, url) {
-        return 'I just shared my project, ' + title + ', on Critique and would love some honest feedback. What do you think, and what could I improve?\n\n' + url;
+    function suggestedPost(title, url, question) {
+        var post = 'I just shared my project, ' + title + ', on Critique and would love some honest feedback.';
+        var cleanQuestion = typeof question === 'string' ? question.trim() : '';
+        if (cleanQuestion) post += '\n\nMy question: ' + cleanQuestion;
+        return post + '\n\n' + url;
     }
 
     // Only fixed, verified hosts; everything that travels in a query string
@@ -316,7 +319,7 @@ var CritiqueShare = (function() {
     // screen, not when the confirmation appears.
     function renderSuccess(container, data) {
         var url = data.url || projectUrl(data.projectId);
-        var defaultPost = suggestedPost(data.title, url);
+        var defaultPost = suggestedPost(data.title, url, data.question);
 
         container.textContent = '';
         var panel = make('div', 'success-share');
@@ -327,6 +330,7 @@ var CritiqueShare = (function() {
         announcement.setAttribute('role', 'status');
         announcement.appendChild(make('h3', 'success-title', 'Your project is live'));
         announcement.appendChild(make('p', 'success-lede', 'Your project is now on Critique.'));
+        announcement.appendChild(make('p', 'success-lede', 'Anyone with the link can answer your question.'));
         announcement.appendChild(make('strong', 'success-project-title', data.title));
         panel.appendChild(announcement);
 
@@ -432,7 +436,7 @@ var CritiqueShare = (function() {
     // card's info column in the page, any container in tests).
     function renderCardShareRow(host, data) {
         var url = projectUrl(data.projectId);
-        var post = suggestedPost(data.title, url);
+        var post = suggestedPost(data.title, url, data.question);
 
         var row = buildActions({
             projectId: data.projectId,
