@@ -10,7 +10,7 @@
 
 <!-- How did you verify these changes? -->
 
-- [ ] Ran `python -m pytest tests/ -q` in `backend/`
+- [ ] Ran `GITHUB_CLIENT_ID=ci-test-client-id python -m pytest tests/ -q` in `backend/` (PowerShell: set `$env:GITHUB_CLIENT_ID = "ci-test-client-id"` first)
 - [ ] Ran relevant frontend render tests
 - [ ] Ran `git diff --check`
 

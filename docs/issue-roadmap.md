@@ -6,11 +6,11 @@
 > written. Many of the rows below have since shipped, been superseded, or been
 > closed — the status column is **not** maintained.
 >
-> For work that is actually open, unassigned, unclaimed, and free of an open pull
-> request, use **[contributor-opportunities.md](contributor-opportunities.md)**. That page
-> is verified against the live tracker and is the only list you should act on.
->
-> Live tracker: https://github.com/BistaDinesh03/critique/issues
+> For current work, start with
+> **[contributor-opportunities.md](contributor-opportunities.md)**. It is a dated
+> shortlist, not a reservation. Confirm live state on the
+> [issue tracker](https://github.com/BistaDinesh03/critique/issues) before you
+> claim anything.
 
 A curated plan of **50 distinct issues**, originally prepared and validated against the live issue tracker and the current code on `BistaDinesh03/critique`.
 
