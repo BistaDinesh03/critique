@@ -880,6 +880,23 @@ async function main() {
         // Honour the real hidden attribute: it is page-visible state (the
         // expired-link notice ships hidden and is revealed by script).
         if (/(^|\s)hidden(\s|=|$)/.test(attrs)) el.hidden = true;
+        // The static parser only keeps id/class/hidden by default, but dialog
+        // semantics and form-control types are page-visible state that render
+        // tests need to observe on the real element.
+        const observableAttrs = [
+          'role', 'aria-label', 'aria-modal', 'aria-expanded', 'aria-pressed',
+          'aria-busy', 'aria-live', 'aria-invalid', 'aria-describedby',
+          'type', 'name', 'placeholder', 'value',
+        ];
+        observableAttrs.forEach((name) => {
+          const match = new RegExp('\\s' + name + '\\s*=\\s*(["\'])(.*?)\\1', 'i').exec(attrs);
+          if (!match) return;
+          if (name === 'type') el.type = match[2];
+          else if (name === 'name') el.name = match[2];
+          else if (name === 'placeholder') el.placeholder = match[2];
+          else if (name === 'value') el.value = match[2];
+          else el.setAttribute(name, match[2]);
+        });
         elements.set(idMatch[1], el);
         parentOf().appendChild(el);
       }
