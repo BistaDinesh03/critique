@@ -81,5 +81,5 @@ Critique is built as a lightweight, zero-build web application designed to be si
 
 ## 4. Testing Strategy (`backend/tests/`)
 - **Pytest Suite:** All routes, models, authentication flows, and security constraints are verified with pytest.
-- **In-Memory Fixtures:** Tests spin up ephemeral database sessions, ensuring isolation and fast execution.
+- **Test database:** The pytest suite shares the on-disk SQLite database `backend/critique_test.db`. The session-scoped fixture in [`backend/tests/conftest.py`](../backend/tests/conftest.py) recreates it at the start of each test session and leaves it on disk for inspection. Individual tests use cleanup fixtures to reset data. [Issue #250](https://github.com/BistaDinesh03/critique/issues/250) tracks the remaining test isolation work.
 - **Harness Integration:** Node-based headless DOM harness (`frontend_render_harness.js`) validates key frontend interactions where necessary.
