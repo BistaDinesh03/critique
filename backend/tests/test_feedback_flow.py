@@ -855,7 +855,9 @@ def test_feedback_form_has_progress_indicator(tmp_path):
     assert 'role="progressbar"' in result["html"]
     assert 'aria-label="Feedback progress"' in result["html"]
     assert 'aria-valuenow="0"' in result["html"]
-    assert "Step 0 of 3 completed" in result["html"]
+    assert 'aria-valuemax="2"' in result["html"]
+    assert 'aria-valuetext="0 of 2 required questions answered"' in result["html"]
+    assert "0 of 2 required questions answered" in result["html"]
 
 
 def test_project_detail_shows_response_count_to_owner(tmp_path):
