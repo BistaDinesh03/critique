@@ -41,9 +41,15 @@ is officially representing the community in public spaces.
 ## Enforcement
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported to the maintainers via GitHub issues or the contact listed in
-SECURITY.md. All complaints will be reviewed and investigated promptly and
-fairly.
+reported privately to the maintainers through GitHub's private reporting
+channels. If GitHub private reporting is unavailable to you, contact the
+maintainer privately through GitHub instead. Please do not open a public issue
+for a conduct report.
+
+Security vulnerabilities are separate from conduct reports. Follow the private
+process in [SECURITY.md](SECURITY.md) for those.
+
+All complaints will be reviewed and investigated promptly and fairly.
 
 ## Attribution
 

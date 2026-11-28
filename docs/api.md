@@ -241,7 +241,7 @@ pointed at the right site.
 curl -s https://critique.page/api/stats
 
 # Paginated projects
-curl -s "https://critique.page/api/projects/?page=1&limit=10"
+curl -s "https://critique.page/api/projects/?page=1&page_size=10"
 ```
 
 **Python (`httpx` or `requests`):**
@@ -255,7 +255,7 @@ stats = requests.get(f"{BASE_URL}/api/stats").json()
 print("Total builders:", stats["total_builders"])
 
 # List discover projects
-feed = requests.get(f"{BASE_URL}/api/projects/?page=1&limit=10").json()
+feed = requests.get(f"{BASE_URL}/api/projects/?page=1&page_size=10").json()
 for project in feed["items"]:
     print(project["title"], project["url"])
 ```

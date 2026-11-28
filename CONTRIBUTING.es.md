@@ -116,7 +116,7 @@ Agradecemos cada contribución significativa, ya sea código, pruebas, documenta
 ### Lista de verificación para la primera contribución
 
 1. Lee [README.es.md](README.es.md) y echa un vistazo a [docs/first-contributors.md](docs/first-contributors.md).
-2. Elige un issue de la lista [Buenos issues para contribuir](README.es.md#good-issues-to-contribute).
+2. Elige un issue de la [lista de oportunidades para contribuir](docs/contributor-opportunities.md) y comprueba en GitHub que sigue disponible.
 3. Comenta en el issue para reclamarlo (el mantenimiento confirmará la disponibilidad).
 4. Haz fork, crea una rama, implementa los cambios y añade pruebas.
 5. Ejecuta la suite de pruebas correspondiente y `git diff --check`.

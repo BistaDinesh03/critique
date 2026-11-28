@@ -64,3 +64,10 @@ body:
       description: Browser, OS version, device, and any other relevant environment details.
     validations:
       required: false
+  - type: input
+    id: request_id
+    attributes:
+      label: X-Request-ID (optional)
+      description: Include this from the response header if the server returned one.
+    validations:
+      required: false
