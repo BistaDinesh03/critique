@@ -1,4 +1,5 @@
-﻿from fastapi import APIRouter, Depends, HTTPException
+﻿from xml.sax.saxutils import escape
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response as FastAPIResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -52,7 +53,9 @@ def get_badge(project_id: int, db: Session = Depends(get_db)):
     label = "reviews" if count != 1 else "review"
 
     svg = f'''<svg xmlns="http://www.w3.org/2000/svg"
-     width="215" height="40" viewBox="0 0 215 40">
+     width="215" height="40" viewBox="0 0 215 40"
+     role="img">
+  <title>{escape(project.title)}: {count} {label}</title>
 
   <rect width="215" height="40" rx="20" fill="#16181A"/>
 

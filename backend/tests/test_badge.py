@@ -94,6 +94,20 @@ def test_existing_project_returns_svg():
     assert response.text.rstrip().endswith("</svg>")
 
 
+def test_badge_has_accessible_name():
+    """The SVG has an accessible name based on the project title and count."""
+    with badge_for_existing_project(response_count=1) as project_id:
+        response = get_badge(project_id)
+
+    assert response.status_code == 200
+    assert '<svg' in response.text
+    assert 'role="img"' in response.text
+    assert "<title>" in response.text
+    assert "</title>" in response.text
+    assert "Badge project" in response.text
+    assert ": 1 review</title>" in response.text
+
+
 def test_missing_project_returns_404():
     response = get_badge(999999999)
 
