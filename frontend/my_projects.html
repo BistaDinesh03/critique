@@ -336,9 +336,9 @@
                     }
                     html += '<div><span class="' + pillClass + '">' + pillText + '</span></div>';
                     html += '<div class="card-actions">';
-                    html += '<a href="/project/' + p.id + '" class="btn btn-ghost">View project</a>';
-                    html += '<a href="/project/' + p.id + '/results" class="btn btn-primary">View Feedback</a>';
-                    html += '<button type="button" onclick="toggleShare(this)" data-project="' + p.id + '" data-title="' + escapeHtml(p.title) + '" aria-expanded="false" aria-controls="share-row-' + p.id + '" class="btn btn-secondary">Share</button>';
+                    html += '<a href="/project/' + p.id + '" class="btn btn-ghost" aria-label="View project: ' + escapeHtml(p.title) + '">View project</a>';
+                    html += '<a href="/project/' + p.id + '/results" class="btn btn-primary" aria-label="View feedback: ' + escapeHtml(p.title) + '">View Feedback</a>';
+                    html += '<button type="button" onclick="toggleShare(this)" data-project="' + p.id + '" data-title="' + escapeHtml(p.title) + '" aria-expanded="false" aria-controls="share-row-' + p.id + '" class="btn btn-secondary" aria-label="Share: ' + escapeHtml(p.title) + '">Share</button>';
                     html += '<span class="spacer"></span>';
                     html += '<button onclick="deleteProject(' + p.id + ', this)" data-title="' + escapeHtml(p.title) + '" aria-label="Delete ' + escapeHtml(p.title) + '" class="btn-delete">Delete</button>';
                     html += '</div>';

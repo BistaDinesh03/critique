@@ -803,7 +803,9 @@ def test_view_feedback_and_delete_survive_next_to_share(tmp_path):
 
     content = result["ids"]["content"]
     # The old actions are untouched...
-    assert '<a href="/project/1/results" class="btn btn-primary">View Feedback</a>' in content
+    assert 'href="/project/1/results"' in content
+    assert 'aria-label="View feedback: Sentry bot"' in content
+    assert '>View Feedback</a>' in content
     assert "deleteProject(1, this)" in content
     # ...and Share is wired to that card's own data, collapsed by default.
     assert 'onclick="toggleShare(this)"' in content
@@ -821,8 +823,10 @@ def test_my_projects_cards_link_to_their_own_public_pages(tmp_path):
     )
 
     content = result["ids"]["content"]
-    assert '<a href="/project/1" class="btn btn-ghost">View project</a>' in content
-    assert '<a href="/project/2" class="btn btn-ghost">View project</a>' in content
+    assert 'href="/project/1"' in content
+    assert 'href="/project/2"' in content
+    assert 'aria-label="View project: Sentry bot"' in content
+    assert 'aria-label="View project: Log Lens"' in content
 
 
 # ---------------------------------------------------------------------------

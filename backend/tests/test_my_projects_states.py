@@ -151,3 +151,12 @@ def test_my_projects_populated_grid_lists_cards_with_actions(tmp_path):
     assert "View Feedback" in html
     assert "toggleShare(this)" in html
     assert "deleteProject(2, this)" in html
+
+    # Each card action has an accessible name that includes its project title.
+    assert 'aria-label="View project: Weather App"' in html
+    assert 'aria-label="View feedback: Weather App"' in html
+    assert 'aria-label="Share: Weather App"' in html
+
+    assert 'aria-label="View project: Notes CLI"' in html
+    assert 'aria-label="View feedback: Notes CLI"' in html
+    assert 'aria-label="Share: Notes CLI"' in html
