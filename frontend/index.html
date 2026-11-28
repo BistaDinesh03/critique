@@ -1546,7 +1546,7 @@
                         <label class="form-label" for="question">Ask ONE question <span class="form-required">(required)</span></label>
                         <textarea class="form-textarea" id="question" name="question" required maxlength="500" placeholder="e.g. Is it immediately clear what this product does?" style="min-height:80px;" aria-describedby="question-char-count"></textarea>
                         <div id="question-char-count" class="form-char-count" aria-live="off">0/500</div>
-                        <p class="form-helper">Be specific. One clear question leads to more useful feedback.</p>
+                        <p class="form-helper">One specific question gets a useful answer. Name the part you want reviewed, not the whole project.</p>
                     </div>
 
                     <div class="form-examples">
@@ -1567,7 +1567,7 @@
                 </div>
 
                 <button type="submit" class="btn btn-primary btn-submit" id="submit-btn">Submit for feedback</button>
-                <p class="form-reassurance">Free to use. Human feedback. No AI-generated responses.</p>
+                <p class="form-reassurance">Free to use. Human feedback, no AI-generated responses. You'll sign in when you submit.</p>
                 <div class="message" id="message" role="alert" aria-live="polite"></div>
             </form>
         </section>
@@ -1919,6 +1919,45 @@
             } catch (e) {}
         }
 
+        // Server errors are translated into one actionable sentence. The raw
+        // 422 list (and its internal field paths) never reaches the visitor.
+        function projectSubmitErrorMessage(response, data) {
+            var status = response && response.status;
+            if (status === 429) {
+                var retryAfter = response && response.headers && typeof response.headers.get === 'function'
+                    ? response.headers.get('Retry-After')
+                    : null;
+                var seconds = parseInt(retryAfter, 10);
+                var wait = (isFinite(seconds) && seconds > 0)
+                    ? 'Try again in ' + seconds + ' second' + (seconds === 1 ? '' : 's') + '.'
+                    : 'Please wait a moment and try again.';
+                return 'Too many submissions. ' + wait + ' Your answers are still here.';
+            }
+            if (status === 422 && data && Array.isArray(data.detail)) {
+                var fieldMessages = {
+                    title: 'Add a project title, then try again.',
+                    url: 'Check the project URL. Use http:// or https://.',
+                    image_url: 'Project screenshots need an https:// link. Leave it blank if you do not have one.',
+                    description: 'Shorten the description and try again.',
+                    question: 'Add your question, then try again.',
+                    text: 'Add your question, then try again.'
+                };
+                for (var i = 0; i < data.detail.length; i++) {
+                    var error = data.detail[i] || {};
+                    var loc = Array.isArray(error.loc) ? error.loc : [];
+                    for (var j = loc.length - 1; j >= 0; j--) {
+                        var field = loc[j];
+                        if (typeof field === 'string' && fieldMessages[field]) {
+                            return fieldMessages[field] + ' Your answers are still here.';
+                        }
+                    }
+                }
+            }
+            return (data && typeof data.detail === 'string')
+                ? data.detail
+                : 'Failed to submit project. Please try again.';
+        }
+
         // The success state, shown only after the API confirms the project
         // was created (201 with the created project in the response body).
         // It stays compact; sharing lives behind one secondary action inside
@@ -1937,7 +1976,8 @@
             msg.className = 'message';
             CritiqueShare.renderSuccess(msg, {
                 projectId: project.id,
-                title: project.title || ''
+                title: project.title || '',
+                question: (data.question && data.question.text) || ''
             });
         }
 
@@ -1968,20 +2008,13 @@
             });
         }
 
-        function maybeRestoreProjectAfterLogin() {
+        // A draft belongs to the tab, not to sign-in: a reload, a 422, or a
+        // network error should all bring the maker back to their own words.
+        // Only the resume flag proves a sign-in actually happened.
+        function restoreProjectDraftOnLoad() {
             try {
-                var raw = sessionStorage.getItem(projectStorageKey());
-                if (raw) {
-                    if (restoreProjectDraft()) {
-                        // A saved draft is not evidence of a sign-in: only the
-                        // resume flag that OAuth and the email link come back
-                        // with says this session actually logged in. Firing
-                        // login_success on any reload counted every refresh
-                        // with a half-written form as a new sign-in.
-                        if (window.location.search.indexOf('resume=project_submit') !== -1) {
-                            window.CritiqueAnalytics.trackEvent('login_success', null);
-                        }
-                    }
+                if (restoreProjectDraft() && window.location.search.indexOf('resume=project_submit') !== -1) {
+                    window.CritiqueAnalytics.trackEvent('login_success', null);
                 }
             } catch (e) {}
         }
@@ -2012,11 +2045,16 @@
             projectFormDirty = Boolean(title || desc || url || question);
         }
 
+        function handleProjectFormChange() {
+            updateProjectFormDirty();
+            syncProjectFormCharCounts();
+            saveProjectDraft();
+        }
+
         var pForm = document.getElementById('project-form');
         if (pForm) {
-            pForm.addEventListener('input', updateProjectFormDirty);
-            pForm.addEventListener('change', updateProjectFormDirty);
-            pForm.addEventListener('input', syncProjectFormCharCounts);
+            pForm.addEventListener('input', handleProjectFormChange);
+            pForm.addEventListener('change', handleProjectFormChange);
             pForm.addEventListener('reset', function() {
                 setTimeout(syncProjectFormCharCounts, 0);
             });
@@ -2079,16 +2117,16 @@
                     msg.setAttribute('role', 'alert');
                     msg.textContent = 'Session expired. Your project is saved — refresh and try again.';
                 } else {
+                    saveProjectDraft();
                     msg.className = 'alert alert-error';
                     msg.setAttribute('role', 'alert');
-                    msg.textContent = (data && typeof data.detail === 'string')
-                        ? data.detail
-                        : 'Failed to submit project. Please try again.';
+                    msg.textContent = projectSubmitErrorMessage(response, data);
                 }
             } catch (error) {
+                saveProjectDraft();
                 msg.className = 'alert alert-error';
                 msg.setAttribute('role', 'alert');
-                msg.textContent = 'Network error.';
+                msg.textContent = 'Network error. Your answers are still here.';
             } finally {
                 const submitBtn = document.getElementById('submit-btn');
                 submitBtn.disabled = false;
@@ -2098,7 +2136,6 @@
 
         try { loadSocialProof(); } catch(e) { console.error('Social proof error:', e); }
         try { loadHomepageProjects(); } catch(e) { console.error('Homepage projects error:', e); }
-        try { maybeRestoreProjectAfterLogin(); } catch(e) {}
         try { syncProjectFormCharCounts(); } catch(e) {}
         try { maybeResumeToSubmit(); } catch(e) {}
 
@@ -2235,7 +2272,12 @@
     <script src="/static/analytics_events.js"></script>
 <script src="/static/analytics.js"></script>
     <script src="/static/share.js"></script>
-    <script>trackPageView();</script>
+    <script>
+        trackPageView();
+        // Analytics loads after the form script, so restore here: the draft is
+        // back before the maker types, and a real return can claim login_success.
+        try { restoreProjectDraftOnLoad(); } catch(e) {}
+    </script>
 
     <footer class="site-footer">
         <div class="footer-inner">

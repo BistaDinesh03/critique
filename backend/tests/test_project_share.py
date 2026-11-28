@@ -1,11 +1,12 @@
 """Optional sharing: the success state, the platform links, the card row.
 
 Phases 2-6 and 9 of the sharing pass. After the API confirms a 201, the
-project form shows a compact success state -- the confirmation, the
-project's title, one primary action (View project) -- with the optional,
-user-initiated share options collapsed behind a single secondary action
-(Share project) until a person asks for them. My Projects gets an inline
-share row per card, driven by the same ``CritiqueShare`` module.
+project form shows a compact success state -- the confirmation, what
+happens next, the project's title, one primary action (View project) -- with
+the optional, user-initiated share options collapsed behind a single
+secondary action (Share project) until a person asks for them. The suggested
+post carries the maker's own question. My Projects gets an inline share row
+per card, driven by the same ``CritiqueShare`` module.
 
 Sharing never posts anything by itself: the platform links only build that
 platform's own compose/share URL (fixed domains, correctly encoded), the
@@ -69,7 +70,7 @@ CREATED_PROJECT = {
 PUBLIC_URL = TEST_ORIGIN + "/project/9"
 DEFAULT_POST = (
     "I just shared my project, Akiya Scout, on Critique and would love some "
-    "honest feedback. What do you think, and what could I improve?\n\n" + PUBLIC_URL
+    "honest feedback.\n\nMy question: Is the price shown up front?\n\n" + PUBLIC_URL
 )
 
 # Values are set the way a visitor types them; the harness reads element
@@ -206,9 +207,10 @@ def test_successful_submission_shows_the_live_success_state(tmp_path):
 
     seen = texts(result)
     assert "Your project is live" in seen
-    # The supporting text is exactly the one-line confirmation -- no sharing
-    # pitch folded into it.
+    # The supporting text confirms publication and says who can answer -- no
+    # sharing pitch folded into it.
     assert any(t == "Your project is now on Critique." for t in seen)
+    assert any(t == "Anyone with the link can answer your question." for t in seen)
     # The share options are reachable through one compact secondary action.
     assert "Share project" in seen
     # The promotional filler paragraph is gone, not merely reworded.
@@ -291,14 +293,15 @@ def test_a_failed_submission_shows_no_success_and_no_share_state(tmp_path):
 # ---------------------------------------------------------------------------
 
 
-def test_the_suggested_post_carries_the_real_project(tmp_path):
+def test_the_suggested_post_carries_the_real_project_and_question(tmp_path):
     result = submitted_page(tmp_path)
 
     post = next(m for m in result["createdMeta"] if m.get("value"))
-    # Exactly the agreed template: real title, real public URL, no claims
-    # about feedback received.
+    # The real title, the maker's own question, and the real public URL -- no
+    # claims about feedback received.
     assert post["value"] == DEFAULT_POST
     assert "Akiya Scout" in post["value"]
+    assert "Is the price shown up front?" in post["value"]
     assert PUBLIC_URL in post["value"]
     assert "responses" not in post["value"]
     # The editor is real but not part of the default view: it stays hidden
