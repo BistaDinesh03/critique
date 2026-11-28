@@ -378,3 +378,57 @@ def test_suggestion_is_trimmed_or_dropped(auth_client, raw, expected):
     suggestions = [item["suggestion"] for item in results.json()["responses"]]
     assert suggestions == [expected]
     cleanup_database()
+def test_feedback_submit_outcome_is_logged_without_personal_data(auth_client, caplog):
+    """The production failure classes must be countable from logs.
+
+    Analytics only records that a submission failed. This log line carries the
+    status and request id (never the body, email, IP, or suggestion) so 403 /
+    422 / 429 / 5xx failures can be told apart in production.
+    """
+    import logging
+
+    cleanup_database()
+    project_id = create_test_project(auth_client).json()["project"]["id"]
+
+    # The owner cannot review their own project, so submit as a second user.
+    app.dependency_overrides.clear()
+    reviewer, _ = create_user_and_client(111111, "reviewer")
+
+    caplog.set_level(logging.INFO, logger="app.feedback")
+    response = reviewer.post(
+        f"/api/projects/{project_id}/responses",
+        json={"clarity": "very_clear", "would_use": "yes", "suggestion": "private words"},
+    )
+    assert response.status_code == 201
+
+    records = [r for r in caplog.records if r.name == "app.feedback"]
+    assert records, "no feedback outcome was logged"
+    message = records[-1].getMessage()
+    assert "feedback_submit status=201" in message
+    assert "request_id=" in message
+    assert "private words" not in message
+    assert "very_clear" not in message
+    cleanup_database()
+
+
+def test_duplicate_submit_outcome_is_logged_as_409(auth_client, caplog):
+    """A duplicate is a completed state, but it still appears in the log."""
+    import logging
+
+    cleanup_database()
+    project_id = create_test_project(auth_client).json()["project"]["id"]
+
+    app.dependency_overrides.clear()
+    reviewer, _ = create_user_and_client(111111, "reviewer")
+    payload = {"clarity": "very_clear", "would_use": "yes"}
+
+    first = reviewer.post(f"/api/projects/{project_id}/responses", json=payload)
+    assert first.status_code == 201
+
+    caplog.set_level(logging.INFO, logger="app.feedback")
+    second = reviewer.post(f"/api/projects/{project_id}/responses", json=payload)
+    assert second.status_code == 409
+
+    messages = [r.getMessage() for r in caplog.records if r.name == "app.feedback"]
+    assert any("feedback_submit status=409" in m for m in messages)
+    cleanup_database()

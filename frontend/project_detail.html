@@ -557,6 +557,7 @@
 
         let feedbackStartTracked = false;
         let feedbackFormViewedTracked = false;
+        let submitInFlight = false;
         let serverHasResponded = false;
         let currentProjectId = projectId;
 
@@ -1250,10 +1251,52 @@
                 }
             } catch (e) {}
         }
+        // Map a failed submission to copy the visitor can act on. Backend
+        // ``detail`` strings are technical ("Internal server error") and a 422
+        // detail is a list of field errors, so they are never rendered raw.
+        function submitFailureMessage(status, waitSeconds) {
+            if (status === 404) return 'This project is no longer accepting feedback.';
+            if (status === 422) return 'Please check your answers and try again.';
+            if (status === 429) {
+                var wait = waitSeconds ? ' Try again in about ' + waitSeconds + ' seconds.' : ' Please wait a minute and try again.';
+                return 'You have submitted several responses recently.' + wait;
+            }
+            if (status >= 500) return 'Something went wrong on our side. Your answers are saved — please try again in a moment.';
+            return 'We could not send your feedback. Your answers are saved — please try again.';
+        }
+
+        function retryAfterSeconds(response) {
+            try {
+                if (!response.headers || typeof response.headers.get !== 'function') return null;
+                var seconds = parseInt(response.headers.get('Retry-After'), 10);
+                return isNaN(seconds) || seconds <= 0 ? null : seconds;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // A 403 means the server rejected the request before doing any work, so
+        // one retry with a freshly issued token cannot duplicate feedback. It
+        // recovers the case where the CSRF cookie changed between reading it
+        // and sending the request (for example, a sign-in in another tab).
+        async function refreshCsrfToken() {
+            try {
+                var res = await fetch('/auth/csrf-token', { credentials: 'same-origin' });
+                if (!res.ok) return null;
+                var data = await res.json();
+                return (data && data.csrf_token) || null;
+            } catch (e) {
+                return null;
+            }
+        }
+
         async function handleSubmit(e) {
             e.preventDefault();
             const msg = document.getElementById('message');
             const btn = document.getElementById('submit-btn');
+            // A programmatic requestSubmit (the post-sign-in resume) must not
+            // race a manual submit into two POSTs for the same answer.
+            if (submitInFlight) return;
             msg.className = 'alert';
             msg.textContent = '';
 
@@ -1274,6 +1317,7 @@
                 return;
             }
 
+            submitInFlight = true;
             btn.disabled = true;
             btn.textContent = 'Submitting feedback\u2026';
             btn.setAttribute('aria-busy', 'true');
@@ -1283,16 +1327,14 @@
             let finished = false;
             let gated = false;
 
-            const csrfToken = getCsrfToken();
             const payload = {
                 clarity: document.querySelector('input[name="clarity"]:checked').value,
                 would_use: document.querySelector('input[name="would_use"]:checked').value,
                 suggestion: document.getElementById('suggestion').value.trim() || null,
             };
 
-            window.CritiqueAnalytics.trackEvent('feedback_submit_attempt', projectId);
-            try {
-                const response = await fetch('/api/projects/' + projectId + '/responses', {
+            async function sendFeedback(csrfToken) {
+                return fetch('/api/projects/' + projectId + '/responses', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1300,11 +1342,26 @@
                     },
                     body: JSON.stringify(payload),
                 });
-                let data = {};
+            }
+
+            async function readJson(response) {
                 try {
-                    data = await response.json();
+                    return await response.json();
                 } catch (jsonError) {
-                    data = {};
+                    return {};
+                }
+            }
+
+            window.CritiqueAnalytics.trackEvent('feedback_submit_attempt', projectId);
+            try {
+                let response = await sendFeedback(getCsrfToken());
+                let data = await readJson(response);
+                if (response.status === 403) {
+                    const freshToken = await refreshCsrfToken();
+                    if (freshToken) {
+                        response = await sendFeedback(freshToken);
+                        data = await readJson(response);
+                    }
                 }
                 if (response.ok) {
                     window.CritiqueAnalytics.trackEvent('feedback_submit', projectId);
@@ -1321,11 +1378,10 @@
                     if (doneBtn) doneBtn.style.display = 'none';
                     showFeedbackSuccessNextStep(msg);
                 } else if (response.status === 401) {
-                    // The designed sign-in gate, not a failed submission: the
-                    // draft is kept for after login and login_prompt_shown
-                    // already records that the gate appeared. Reporting this as
-                    // feedback_submit_error buried every real failure under the
-                    // far larger number of anonymous attempts.
+                    // Defensive: the API currently accepts guest feedback, so
+                    // this only fires if a future policy re-introduces the
+                    // sign-in gate. The draft is kept and login_prompt_shown
+                    // records the gate; it is not a submit error.
                     saveFeedbackDraft();
                     gated = true;
                     showInlineLoginPrompt(msg);
@@ -1340,6 +1396,31 @@
                     const doneBtn = document.getElementById('submit-btn');
                     if (doneBtn) doneBtn.style.display = 'none';
                     showAlreadyRespondedState(msg);
+                } else if (response.status === 404) {
+                    // The project or its active question is gone: retrying
+                    // cannot succeed, so close the form calmly.
+                    window.CritiqueAnalytics.trackEvent('feedback_submit_error', projectId);
+                    finished = true;
+                    disableResponseForm();
+                    const doneBtn = document.getElementById('submit-btn');
+                    if (doneBtn) {
+                        doneBtn.textContent = 'Feedback closed';
+                        doneBtn.style.display = 'none';
+                    }
+                    msg.className = 'alert alert-error';
+                    msg.setAttribute('role', 'alert');
+                    msg.textContent = submitFailureMessage(404);
+                } else if (response.status === 429) {
+                    // Throttling, not a bug: keep the answers and tell the
+                    // visitor when they can try again. The button stays usable
+                    // (the server still enforces the limit), so no client timer
+                    // is left running.
+                    window.CritiqueAnalytics.trackEvent('feedback_submit_error', projectId);
+                    saveFeedbackDraft();
+                    const wait = retryAfterSeconds(response) || 60;
+                    msg.className = 'alert alert-error';
+                    msg.setAttribute('role', 'alert');
+                    msg.textContent = submitFailureMessage(429, wait);
                 } else if (response.status === 403) {
                     window.CritiqueAnalytics.trackEvent('feedback_submit_error', projectId);
                     // A stale CSRF/session pair is fixed by refreshing, which
@@ -1354,7 +1435,7 @@
                     msg.className = 'alert alert-error';
                     msg.setAttribute('role', 'alert');
                     saveFeedbackDraft();
-                    msg.textContent = data.detail || 'Failed to submit.';
+                    msg.textContent = submitFailureMessage(response.status);
                 }
             } catch (e) {
                 window.CritiqueAnalytics.trackEvent('feedback_submit_error', projectId);
@@ -1364,6 +1445,7 @@
                 saveFeedbackDraft();
                 msg.textContent = 'Network error. Your answers are saved — please try again.';
             } finally {
+                submitInFlight = false;
                 if (!finished && !gated) {
                     btn.disabled = false;
                     btn.textContent = 'Submit feedback';

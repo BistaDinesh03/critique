@@ -291,6 +291,39 @@ def test_analytics_track_is_exempt_from_csrf():
     assert response.json() == {"ok": True}
 
 
+def test_page_load_reuses_existing_csrf_token():
+    """Loading a page must not rotate the token a form already holds.
+
+    Rotating on every page load made a token read in one tab stale the moment
+    another tab loaded any page, which could turn a legitimate feedback
+    submission into a 403.
+    """
+    client = TestClient(app)
+    client.cookies.set(CSRF_COOKIE_NAME, "stable_page_token")
+
+    response = client.get("/")
+    assert response.status_code == 200
+
+    cookie = SimpleCookie()
+    for header in response.headers.get_list("set-cookie"):
+        cookie.load(header)
+    assert CSRF_COOKIE_NAME in cookie
+    assert cookie[CSRF_COOKIE_NAME].value == "stable_page_token"
+
+
+def test_page_load_issues_csrf_token_for_a_new_visitor():
+    """A visitor without a token still gets one from the first page they load."""
+    client = TestClient(app)
+    response = client.get("/")
+    assert response.status_code == 200
+
+    cookie = SimpleCookie()
+    for header in response.headers.get_list("set-cookie"):
+        cookie.load(header)
+    assert CSRF_COOKIE_NAME in cookie
+    assert len(cookie[CSRF_COOKIE_NAME].value) >= 20
+
+
 @pytest.mark.parametrize("secure", [False, True])
 def test_csrf_cookie_attributes(monkeypatch, secure):
     monkeypatch.setattr(settings, "SESSION_COOKIE_SECURE", secure)

@@ -1,19 +1,22 @@
 """Feedback submission: which outcomes count as errors, and what comes next.
 
-Production analytics showed 22 feedback submit attempts with 16 "errors" and
-9 successes. The backend was reproduced locally: a signed-out visitor always
-sends the CSRF token issued with the page, so the only status they can reach
-is 401 -- the *designed* sign-in gate (``test_anonymous_submit_with_valid_csrf_gets_401_gate``).
-The page used to report that gate as ``feedback_submit_error``, so the metric
-counted every anonymous attempt as a failure and buried the real ones (403,
-5xx, network).
+Production analytics showed 109 submit attempts, 46 successes, 13
+already-responded results, and 33 recorded errors. The endpoint currently
+accepts guest feedback (``get_current_user_optional``), so a signed-out visitor
+can reach ``201`` and a ``401`` is not reachable in practice; it is kept as a
+defensive branch in case a sign-in gate returns. The failure classes that are
+real today are ``403`` (CSRF or owner), ``404`` (project/question gone), ``422``
+(validation), ``429`` (rate limit), ``5xx``, and network errors.
 
-These tests run the page's real JavaScript inside the Node rendering harness
-and lock both sides of the fix:
+The page used to count the (then reachable) 401 gate as
+``feedback_submit_error``, which inflated the error count and buried real
+failures. These tests run the page's real JavaScript inside the Node rendering
+harness and lock both sides of the fix:
 
-* the 401 gate is *not* an error (it is already recorded as
-  ``login_prompt_shown``, and the draft is kept for after login),
-* genuine failures (CSRF, server error) still are,
+* a 401 gate is *not* an error (it is recorded as ``login_prompt_shown`` and the
+  draft is kept for after login),
+* genuine failures (CSRF, server error, validation, rate limit, network) still
+  are, and they show actionable copy instead of backend internals,
 * a successful submit stays on screen and offers the next real project
   instead of reloading the form away,
 * reloading after a success shows the recorded state, never a form that the
@@ -136,11 +139,12 @@ def help_links(result):
 # ---------------------------------------------------------------------------
 
 
-def test_anonymous_sign_in_gate_is_not_a_submit_error(tmp_path):
-    """401 is the designed gate: login prompt, kept draft, no error event.
+def test_sign_in_gate_401_is_not_a_submit_error(tmp_path):
+    """A 401 gate shows login, keeps the draft, and is not an error event.
 
-    Regression: counting this as feedback_submit_error inflated the error
-    count with every anonymous attempt (the most common visitor).
+    Defensive: the API currently accepts guest feedback, so this status is not
+    reachable today. If a sign-in gate is ever re-introduced, it must not be
+    counted as a failed submission.
     """
     result = run(
         tmp_path,
@@ -191,7 +195,7 @@ def test_csrf_failure_is_still_a_submit_error(tmp_path):
 
 
 def test_server_error_is_still_a_submit_error(tmp_path):
-    """A 5xx is a real failure and must stay visible."""
+    """A 5xx is a real failure, but the visitor sees copy they can act on."""
     fetch = {
         "/api/projects/1/responses": {"status": 500, "body": {"detail": "Boom on the server"}},
         "/api/projects/1": {"status": 200, "body": PROJECT},
@@ -206,7 +210,144 @@ def test_server_error_is_still_a_submit_error(tmp_path):
 
     assert len(events(result, "feedback_submit_error")) == 1
     assert events(result, "feedback_submit") == []
-    assert "Boom on the server" in result["ids"]["message"]
+    # The raw server detail is an internal and is never rendered.
+    assert "Boom on the server" not in result["ids"]["message"]
+    assert "Something went wrong on our side" in result["ids"]["message"]
+    # The answers survive so a retry does not start from scratch.
+    draft = json.loads(result["storage"]["session"]["critique_feedback_1"])
+    assert draft["clarity"] == "very_clear"
+    assert draft["would_use"] == "yes"
+
+
+def test_rate_limit_shows_wait_and_keeps_draft(tmp_path):
+    """429 is throttling: say when to retry, keep the answers, one error event."""
+    fetch = {
+        "/api/projects/1/responses": {
+            "status": 429,
+            "body": {"detail": "Too many requests. Please slow down."},
+            "headers": {"Retry-After": "42"},
+        },
+        "/api/projects/1": {"status": 200, "body": PROJECT},
+    }
+    result = run(
+        tmp_path,
+        "project_detail.html",
+        submit(),
+        fetch=fetch,
+        location="/project/1",
+    )
+
+    assert len(events(result, "feedback_submit_error")) == 1
+    assert events(result, "feedback_submit") == []
+    message = result["ids"]["message"]
+    assert "submitted several responses recently" in message
+    assert "42 seconds" in message
+    # The raw backend wording is not shown.
+    assert "Too many requests" not in message
+    draft = json.loads(result["storage"]["session"]["critique_feedback_1"])
+    assert draft["clarity"] == "very_clear"
+
+
+def test_closed_project_404_closes_the_form_without_raw_detail(tmp_path):
+    """A project/question that disappeared is a calm closed state, not internals."""
+    fetch = {
+        "/api/projects/1/responses": {
+            "status": 404,
+            "body": {"detail": "No active question for this project"},
+        },
+        "/api/projects/1": {"status": 200, "body": PROJECT},
+    }
+    result = run(
+        tmp_path,
+        "project_detail.html",
+        submit(),
+        fetch=fetch,
+        location="/project/1",
+    )
+
+    assert len(events(result, "feedback_submit_error")) == 1
+    assert "no longer accepting feedback" in result["ids"]["message"]
+    assert "No active question" not in " ".join(result["created"])
+    # The form is closed, so the same dead submission cannot be retried.
+    assert result["flags"]["submit-btn"]["display"] == "none"
+    assert result["flags"]["submit-btn"]["disabled"] is True
+
+
+def test_validation_422_never_renders_the_detail_object(tmp_path):
+    """FastAPI's 422 detail is a list; it must not reach the visitor as text."""
+    fetch = {
+        "/api/projects/1/responses": {
+            "status": 422,
+            "body": {"detail": [{"loc": ["body", "clarity"], "msg": "invalid"}]},
+        },
+        "/api/projects/1": {"status": 200, "body": PROJECT},
+    }
+    result = run(
+        tmp_path,
+        "project_detail.html",
+        submit(),
+        fetch=fetch,
+        location="/project/1",
+    )
+
+    message = result["ids"]["message"]
+    assert "Please check your answers" in message
+    assert "[object Object]" not in message
+    assert len(events(result, "feedback_submit_error")) == 1
+    draft = json.loads(result["storage"]["session"]["critique_feedback_1"])
+    assert draft["clarity"] == "very_clear"
+
+
+def test_csrf_403_is_retried_once_with_a_fresh_token(tmp_path):
+    """A stale CSRF token recovers without retyping or a duplicate answer."""
+    # The harness consumes a route array in call order, and the page loads the
+    # existing responses (GET .../responses) before the submit. The first entry
+    # is that load; the POST then gets 403 and its one retry gets 201.
+    fetch = {
+        "/api/projects/1/responses": [
+            {"status": 200, "body": []},
+            {"status": 403, "body": {"detail": "Invalid or missing CSRF token"}},
+            {"status": 201, "body": {}},
+        ],
+        "/auth/csrf-token": {"status": 200, "body": {"csrf_token": "fresh-token"}},
+        "/api/projects/1": {"status": 200, "body": PROJECT},
+    }
+    result = run(
+        tmp_path,
+        "project_detail.html",
+        submit(),
+        fetch=fetch,
+        location="/project/1",
+    )
+
+    posts = [r for r in result["requests"] if r["method"] == "POST" and r["url"].endswith("/responses")]
+    token_gets = [r for r in result["requests"] if r["url"].endswith("/auth/csrf-token")]
+    assert len(posts) == 2, "the rejected send should be retried exactly once"
+    assert len(token_gets) == 1
+    # The retry is part of the same attempt: one attempt, one success, no error.
+    assert len(events(result, "feedback_submit_attempt")) == 1
+    assert len(events(result, "feedback_submit")) == 1
+    assert events(result, "feedback_submit_error") == []
+    assert "Feedback submitted successfully!" in result["ids"]["message"]
+
+
+def test_double_submit_while_in_flight_sends_only_one_request(tmp_path):
+    """A second submit before the first resolves must not POST twice."""
+    fetch = {
+        "/api/projects/1/responses": {"pending": True},
+        "/api/projects/1": {"status": 200, "body": PROJECT},
+    }
+    result = run(
+        tmp_path,
+        "project_detail.html",
+        [*FILL_FORM, {"submitId": "response-form"}, {"submitId": "response-form"}],
+        fetch=fetch,
+        location="/project/1",
+    )
+
+    posts = [r for r in result["requests"] if r["method"] == "POST" and r["url"].endswith("/responses")]
+    assert len(posts) == 1
+    assert len(events(result, "feedback_submit_attempt")) == 1
 
 
 # ---------------------------------------------------------------------------

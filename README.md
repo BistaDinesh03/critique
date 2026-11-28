@@ -399,6 +399,9 @@ The JSON API is documented in [docs/api.md](docs/api.md). Major categories:
 While the app is running, interactive docs are served at `/docs` (Swagger UI)
 and `/redoc`, and a health check is available at `GET /health`.
 
+How a feedback submission can end — and how to diagnose a failed one — is
+documented in [docs/feedback-reliability.md](docs/feedback-reliability.md).
+
 Example — list projects currently looking for feedback (public, no
 authentication required):
 

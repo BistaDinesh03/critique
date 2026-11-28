@@ -157,7 +157,7 @@ If the project does not exist, the endpoint returns `404 Not Found`:
 
 | Method | Path | Auth | CSRF | Rate limit | Notes |
 |---|---|---|---|---|---|
-| POST | `.../responses` | Required | Required | `response_submit` | Body: `clarity` (enum), `would_use` (enum), optional `suggestion` text. Returns `201`. One response per user per question — a second submission returns `409`. The client IP is stored only as a keyed HMAC-SHA-256 digest, stable while `SECRET_KEY` remains unchanged; raw IP addresses are not stored. |
+| POST | `.../responses` | Optional (guests allowed) | Required | `response_submit` | Body: `clarity` (enum), `would_use` (enum), optional `suggestion` text. Returns `201`. Signed-in users may answer a question once (`409` on a second submission); guest submissions are deduplicated by a keyed IP hash within one hour. The client IP is stored only as a keyed HMAC-SHA-256 digest, stable while `SECRET_KEY` remains unchanged; raw IP addresses are not stored. See [feedback-reliability.md](feedback-reliability.md) for the full outcome taxonomy. |
 | GET | `.../responses` | Optional | — | — | Owner receives written `suggestion` text; everyone else receives scores only (`id`, `clarity`, `would_use`, `question_id`, `created_at`). `404` if the project does not exist. |
 
 ## Results — `/api/projects/{project_id}/results`
@@ -209,7 +209,7 @@ pointed at the right site.
 
 | Method | Path | Notes |
 |---|---|---|
-| GET | `/` `/discover` `/my-projects` `/project/{id}` `/project/{id}/results` | HTML pages. A CSRF cookie is issued with each page response. `/?auth=cancelled` renders a neutral notice banner and cleans up the URL query flag. |
+| GET | `/` `/discover` `/my-projects` `/project/{id}` `/project/{id}/results` | HTML pages. The CSRF cookie is reused across page loads and rotated only on login/logout. `/?auth=cancelled` renders a neutral notice banner and cleans up the URL query flag. |
 | GET | `/google8ffd0ae5f931d1e6.html` | Google Search Console site-verification file. |
 | GET | `/health` | `{"status": "ok"}` — uptime probe. |
 | GET | `/docs`, `/redoc` | FastAPI-generated API documentation. |

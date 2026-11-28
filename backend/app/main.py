@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+import logging
 import mimetypes
 import re
 import uuid
@@ -16,7 +17,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from app.auth import router as auth_router
 from app.auth import session_cookie_is_valid
 from app.config import settings
-from app.csrf import generate_csrf_token, set_csrf_cookie
+from app.csrf import CSRF_COOKIE_NAME, generate_csrf_token, set_csrf_cookie
 from app.database import get_db, in_int64_range, init_db
 from app.models import Project
 from app.rate_limit import rate_limit_headers_for
@@ -64,6 +65,31 @@ class RateLimitHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         response = await call_next(request)
         response.headers.update(rate_limit_headers_for(request))
+        return response
+
+
+_FEEDBACK_SUBMIT_PATH_RE = re.compile(r"^/api/projects/\d+/responses$")
+
+
+class FeedbackOutcomeLogMiddleware(BaseHTTPMiddleware):
+    """Record the HTTP status of feedback submissions, with no personal data.
+
+    Product analytics can only say *that* a submission failed, not why. This
+    line (status + request id) lets the production failure classes -- CSRF 403,
+    rate limit 429, validation 422, server 5xx -- be counted from logs and
+    correlated with the browser's ``feedback_submit_error`` event via the
+    ``X-Request-ID`` header. The request body, email, IP, and free-text
+    suggestion are never logged.
+    """
+
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        if request.method == "POST" and _FEEDBACK_SUBMIT_PATH_RE.match(request.url.path):
+            logging.getLogger("app.feedback").info(
+                "feedback_submit status=%s request_id=%s",
+                response.status_code,
+                getattr(request.state, "request_id", "-"),
+            )
         return response
 
 
@@ -129,6 +155,7 @@ app = FastAPI(
 app.add_middleware(CacheControlMiddleware)
 app.add_middleware(RequestIDMiddleware)
 app.add_middleware(RateLimitHeadersMiddleware)
+app.add_middleware(FeedbackOutcomeLogMiddleware)
 
 app.include_router(auth_router)
 app.include_router(projects_router)
@@ -207,7 +234,13 @@ def _page_response(
     # cache -- shared or browser -- may replay one visitor's page to another.
     response.headers["Cache-Control"] = "private, no-store"
     response.headers["Vary"] = "Cookie"
-    set_csrf_cookie(response, generate_csrf_token())
+    # Reuse the visitor's existing CSRF token instead of rotating it on every
+    # page load. Rotating here made a token read in one tab stale the moment
+    # another tab loaded any page, which could turn a legitimate submission
+    # into a 403. Rotation still happens at the authentication boundary
+    # (login/logout) where it protects against session fixation.
+    existing_csrf = request.cookies.get(CSRF_COOKIE_NAME)
+    set_csrf_cookie(response, existing_csrf or generate_csrf_token())
     return response
 
 
